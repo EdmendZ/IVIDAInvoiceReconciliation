@@ -1,0 +1,24 @@
+[project]
+name = "ivida-invoice-reconciliation"
+version = "0.1.0"
+description = "Invoice and Receive Note extraction and reconciliation prototype for IVIDA"
+requires-python = ">=3.11,<3.13"
+dependencies = [
+    "fastapi>=0.115,<1",
+    "minio>=7.2,<8",
+    "pydantic-settings>=2.7,<3",
+    "pymongo>=4.10,<5",
+    "python-multipart>=0.0.20,<1",
+    "uvicorn[standard]>=0.34,<1",
+]
+
+[dependency-groups]
+dev = [
+    "httpx>=0.28,<1",
+    "pytest>=8.3,<9",
+]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = "-q"
+pythonpath = ["."]
