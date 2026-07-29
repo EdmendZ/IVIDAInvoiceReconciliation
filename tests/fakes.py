@@ -240,3 +240,17 @@ class InMemoryDocumentDraftRepository:
 
     def get_for_run(self, run_id: str) -> DraftBundle | None:
         return self.bundles.get(run_id)
+
+    def get_for_task(self, task_id: str) -> DraftBundle | None:
+        candidates = [
+            bundle
+            for bundle in self.bundles.values()
+            if bundle.draft.task_id == task_id
+        ]
+        if not candidates:
+            return None
+        return sorted(
+            candidates,
+            key=lambda item: item.draft.created_at,
+            reverse=True,
+        )[0]

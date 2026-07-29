@@ -276,3 +276,88 @@ class AdminSessionRow(Base):
         Index("ix_admin_sessions_user_id", "user_id"),
         Index("ix_admin_sessions_expires_at", "expires_at"),
     )
+
+
+class DocumentVersionRow(Base):
+    __tablename__ = "document_versions"
+
+    version_id: Mapped[str] = mapped_column(String(36), primary_key=True)
+    task_id: Mapped[str] = mapped_column(
+        String(36),
+        ForeignKey("extraction_tasks.task_id", ondelete="CASCADE"),
+        nullable=False,
+    )
+    source_draft_id: Mapped[str] = mapped_column(
+        String(36),
+        ForeignKey("document_drafts.draft_id", ondelete="RESTRICT"),
+        nullable=False,
+    )
+    version_number: Mapped[int] = mapped_column(Integer, nullable=False)
+    document_type: Mapped[str] = mapped_column(String(32), nullable=False)
+    document_json: Mapped[dict] = mapped_column(
+        JSON().with_variant(JSONB(), "postgresql"),
+        nullable=False,
+    )
+    status: Mapped[str] = mapped_column(String(32), nullable=False)
+    created_by: Mapped[str] = mapped_column(
+        String(36),
+        ForeignKey("admin_users.user_id", ondelete="RESTRICT"),
+        nullable=False,
+    )
+    approved_by: Mapped[str | None] = mapped_column(
+        String(36),
+        ForeignKey("admin_users.user_id", ondelete="RESTRICT"),
+        nullable=True,
+    )
+    approved_at: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True),
+        nullable=True,
+    )
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True),
+        nullable=False,
+    )
+
+    __table_args__ = (
+        Index("ix_document_versions_task_id", "task_id"),
+        Index("ix_document_versions_status", "status"),
+        Index(
+            "uq_document_versions_task_number",
+            "task_id",
+            "version_number",
+            unique=True,
+        ),
+    )
+
+
+class ReviewActionRow(Base):
+    __tablename__ = "review_actions"
+
+    action_id: Mapped[str] = mapped_column(String(36), primary_key=True)
+    version_id: Mapped[str] = mapped_column(
+        String(36),
+        ForeignKey("document_versions.version_id", ondelete="RESTRICT"),
+        nullable=False,
+    )
+    actor_user_id: Mapped[str] = mapped_column(
+        String(36),
+        ForeignKey("admin_users.user_id", ondelete="RESTRICT"),
+        nullable=False,
+    )
+    action: Mapped[str] = mapped_column(String(100), nullable=False)
+    field_path: Mapped[str | None] = mapped_column(String(512), nullable=True)
+    old_value: Mapped[object | None] = mapped_column(
+        JSON().with_variant(JSONB(), "postgresql"),
+        nullable=True,
+    )
+    new_value: Mapped[object | None] = mapped_column(
+        JSON().with_variant(JSONB(), "postgresql"),
+        nullable=True,
+    )
+    reason: Mapped[str | None] = mapped_column(Text, nullable=True)
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True),
+        nullable=False,
+    )
+
+    __table_args__ = (Index("ix_review_actions_version_id", "version_id"),)

@@ -49,9 +49,18 @@ class PostgresDocumentDraftRepository:
         return draft
 
     def get_for_run(self, run_id: str) -> DraftBundle | None:
+        return self._get_bundle(DocumentDraftRow.run_id == run_id)
+
+    def get_for_task(self, task_id: str) -> DraftBundle | None:
+        return self._get_bundle(DocumentDraftRow.task_id == task_id)
+
+    def _get_bundle(self, predicate) -> DraftBundle | None:
         with self._session_factory() as session:
             draft_row = session.execute(
-                select(DocumentDraftRow).where(DocumentDraftRow.run_id == run_id)
+                select(DocumentDraftRow)
+                .where(predicate)
+                .order_by(DocumentDraftRow.created_at.desc())
+                .limit(1)
             ).scalar_one_or_none()
             if draft_row is None:
                 return None
