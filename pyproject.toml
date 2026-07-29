@@ -4,11 +4,13 @@ version = "0.1.0"
 description = "Invoice and Receive Note extraction and reconciliation prototype for IVIDA"
 requires-python = ">=3.11,<3.13"
 dependencies = [
+    "alembic>=1.14,<2",
     "fastapi>=0.115,<1",
     "minio>=7.2,<8",
+    "psycopg[binary]>=3.2,<4",
     "pydantic-settings>=2.7,<3",
-    "pymongo>=4.10,<5",
     "python-multipart>=0.0.20,<1",
+    "sqlalchemy>=2.0,<3",
     "uvicorn[standard]>=0.34,<1",
 ]
 

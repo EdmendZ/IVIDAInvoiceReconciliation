@@ -18,8 +18,11 @@ class Settings(BaseSettings):
     cors_origins: str = "http://localhost:5274"
     upload_max_bytes: int = 25 * 1024 * 1024
 
-    mongo_url: str = "mongodb://127.0.0.1:27017"
-    mongo_db_name: str = "ivida_invoice_reconciliation"
+    database_url: str = (
+        "postgresql+psycopg://postgres:CHANGE_ME@127.0.0.1:5432/"
+        "ivida_invoice_reconciliation"
+    )
+    database_connect_timeout_seconds: int = 3
 
     minio_endpoint: str = "127.0.0.1:9000"
     minio_access_key: str = "CHANGE_ME"

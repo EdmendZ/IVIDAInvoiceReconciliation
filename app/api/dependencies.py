@@ -1,8 +1,9 @@
 from functools import lru_cache
 
 from app.core.config import get_settings
+from app.infra.database import get_session_factory
 from app.infra.minio_storage import MinioObjectStorage
-from app.infra.mongo_task_repository import MongoExtractionTaskRepository
+from app.infra.postgres_task_repository import PostgresExtractionTaskRepository
 from app.services.document_upload_service import DocumentUploadService
 
 
@@ -16,13 +17,9 @@ def get_document_upload_service() -> DocumentUploadService:
         bucket_name=settings.minio_bucket_name,
         secure=settings.minio_secure,
     )
-    repository = MongoExtractionTaskRepository(
-        mongo_url=settings.mongo_url,
-        database_name=settings.mongo_db_name,
-    )
+    repository = PostgresExtractionTaskRepository(get_session_factory())
     return DocumentUploadService(
         storage=storage,
         repository=repository,
         max_bytes=settings.upload_max_bytes,
     )
-
