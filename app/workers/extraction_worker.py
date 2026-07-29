@@ -7,15 +7,19 @@ from uuid import uuid4
 
 from app.domain.extraction_runs import ExtractionRun, ExtractionRunStatus
 from app.domain.extraction_tasks import ExtractionStatus
+from app.domain.document_drafts import DocumentDraft, DraftValidationState
 from app.domain.parse_results import ParseResultRecord
-from app.domain.parsing import AsyncDocumentParser, ParseState
+from app.domain.parsing import AsyncDocumentParser, ParseResult, ParseState
+from app.domain.normalization import NormalizationProvider
 from app.infra.external_errors import ExternalServiceError
 from app.services.ports import (
     ExtractionRunRepository,
     ExtractionTaskRepository,
+    DocumentDraftRepository,
     ObjectStorage,
     ParseResultRepository,
 )
+from app.services.validation_service import ValidationService
 
 logger = logging.getLogger(__name__)
 
@@ -29,6 +33,9 @@ class ExtractionWorker:
         task_repository: ExtractionTaskRepository,
         run_repository: ExtractionRunRepository,
         parse_repository: ParseResultRepository,
+        normalizer: NormalizationProvider | None = None,
+        draft_repository: DocumentDraftRepository | None = None,
+        validation_service: ValidationService | None = None,
         poll_interval_seconds: int = 5,
         lease_seconds: int = 60,
     ) -> None:
@@ -37,6 +44,9 @@ class ExtractionWorker:
         self._task_repository = task_repository
         self._run_repository = run_repository
         self._parse_repository = parse_repository
+        self._normalizer = normalizer
+        self._draft_repository = draft_repository
+        self._validation_service = validation_service
         self._poll_interval_seconds = poll_interval_seconds
         self._lease_seconds = lease_seconds
 
@@ -54,6 +64,8 @@ class ExtractionWorker:
                 self._submit(run, now)
             elif run.status == ExtractionRunStatus.PARSING:
                 self._poll(run, now)
+            elif run.status == ExtractionRunStatus.NORMALIZING:
+                self._normalize(run, now)
             else:
                 self._run_repository.set_status(
                     run.run_id,
@@ -162,6 +174,75 @@ class ExtractionWorker:
         self._run_repository.set_status(
             run.run_id,
             ExtractionRunStatus.NORMALIZING,
+        )
+
+    def _normalize(self, run: ExtractionRun, now: datetime) -> None:
+        if (
+            self._normalizer is None
+            or self._draft_repository is None
+            or self._validation_service is None
+        ):
+            self._fail(
+                run,
+                code="NORMALIZATION_NOT_CONFIGURED",
+                message="Document normalization is not configured",
+            )
+            return
+        task = self._task_repository.get(run.task_id)
+        record = self._parse_repository.get_for_run(run.run_id)
+        if task is None or record is None:
+            self._fail(
+                run,
+                code="PARSE_RESULT_MISSING",
+                message="Persisted MinerU result is missing",
+            )
+            return
+        parse_result = ParseResult(
+            provider="mineru",
+            model_name=self._parser.model_name,
+            markdown=record.markdown,
+            content_blocks=record.content_blocks,
+            tables=record.tables,
+            page_count=record.page_count,
+        )
+        normalized = self._normalizer.normalize(
+            document_type=task.document_type,
+            parse_result=parse_result,
+        )
+        report = self._validation_service.validate(normalized.document)
+        draft = DocumentDraft(
+            draft_id=str(uuid4()),
+            run_id=run.run_id,
+            task_id=run.task_id,
+            document_type=task.document_type,
+            normalized_json=normalized.document.model_dump(mode="json"),
+            validation_state=(
+                DraftValidationState.BLOCKED
+                if report.blocking_count
+                else DraftValidationState.REVIEWABLE
+            ),
+            created_at=now,
+            updated_at=now,
+        )
+        self._draft_repository.create_with_evidence_and_issues(
+            draft,
+            normalized.evidence,
+            report.issues,
+        )
+        self._run_repository.mark_ready_for_review(
+            run.run_id,
+            normalized_output=draft.normalized_json,
+            input_tokens=normalized.input_tokens,
+            output_tokens=normalized.output_tokens,
+            estimated_cost_aud=(
+                str(normalized.estimated_cost_aud)
+                if normalized.estimated_cost_aud is not None
+                else None
+            ),
+        )
+        self._task_repository.update_status(
+            run.task_id,
+            ExtractionStatus.READY_FOR_REVIEW,
         )
 
     def _handle_external_error(

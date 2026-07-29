@@ -7,6 +7,8 @@ from app.infra.postgres_extraction_run_repository import (
     PostgresExtractionRunRepository,
 )
 from app.infra.postgres_task_repository import PostgresExtractionTaskRepository
+from app.infra.postgres_draft_repository import PostgresDocumentDraftRepository
+from app.infra.postgres_parse_repository import PostgresParseResultRepository
 from app.services.document_upload_service import DocumentUploadService
 from app.services.extraction_provider import DisabledExtractionProvider
 from app.services.extraction_service import ExtractionService
@@ -27,6 +29,16 @@ def get_object_storage() -> MinioObjectStorage:
 @lru_cache
 def get_task_repository() -> PostgresExtractionTaskRepository:
     return PostgresExtractionTaskRepository(get_session_factory())
+
+
+@lru_cache
+def get_parse_repository() -> PostgresParseResultRepository:
+    return PostgresParseResultRepository(get_session_factory())
+
+
+@lru_cache
+def get_draft_repository() -> PostgresDocumentDraftRepository:
+    return PostgresDocumentDraftRepository(get_session_factory())
 
 
 @lru_cache

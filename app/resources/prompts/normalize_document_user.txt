@@ -1,0 +1,10 @@
+Document type: {document_type}
+
+Required JSON schema:
+{schema}
+
+MinerU Markdown:
+{markdown}
+
+MinerU content blocks:
+{content_blocks}

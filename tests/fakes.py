@@ -5,6 +5,9 @@ from app.domain.extraction_runs import ExtractionRun, ExtractionRunStatus
 from app.domain.extraction_tasks import ExtractionStatus
 from app.domain.extraction_tasks import ExtractionTask
 from app.domain.parse_results import ParseResultRecord
+from app.domain.document_drafts import DocumentDraft, DraftBundle
+from app.domain.normalization import FieldEvidence
+from app.domain.validation import ValidationIssue
 
 
 class InMemoryObjectStorage:
@@ -135,6 +138,31 @@ class InMemoryExtractionRunRepository:
             changes["lease_owner"] = None
         self.runs[run_id] = self.runs[run_id].model_copy(update=changes)
 
+    def mark_ready_for_review(
+        self,
+        run_id: str,
+        *,
+        normalized_output: dict,
+        input_tokens: int | None,
+        output_tokens: int | None,
+        estimated_cost_aud: str | None,
+    ) -> None:
+        self.runs[run_id] = self.runs[run_id].model_copy(
+            update={
+                "status": ExtractionRunStatus.READY_FOR_REVIEW,
+                "normalized_output": normalized_output,
+                "input_tokens": input_tokens,
+                "output_tokens": output_tokens,
+                "estimated_cost_aud": (
+                    Decimal(estimated_cost_aud)
+                    if estimated_cost_aud is not None
+                    else None
+                ),
+                "completed_at": datetime.now(UTC),
+                "lease_owner": None,
+            }
+        )
+
     def complete(
         self,
         run_id: str,
@@ -191,3 +219,24 @@ class InMemoryParseResultRepository:
 
     def get_for_run(self, run_id: str) -> ParseResultRecord | None:
         return self.results.get(run_id)
+
+
+class InMemoryDocumentDraftRepository:
+    def __init__(self) -> None:
+        self.bundles: dict[str, DraftBundle] = {}
+
+    def create_with_evidence_and_issues(
+        self,
+        draft: DocumentDraft,
+        evidence: list[FieldEvidence],
+        issues: list[ValidationIssue],
+    ) -> DocumentDraft:
+        self.bundles[draft.run_id] = DraftBundle(
+            draft=draft,
+            evidence=evidence,
+            issues=issues,
+        )
+        return draft
+
+    def get_for_run(self, run_id: str) -> DraftBundle | None:
+        return self.bundles.get(run_id)

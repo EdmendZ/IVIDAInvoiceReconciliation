@@ -24,6 +24,7 @@ class LineItem(BaseModel):
     description: str
     quantity: Decimal = Field(gt=0)
     unit: str | None = None
+    tax_code: str | None = None
     unit_price: Decimal | None = Field(default=None, ge=0)
     tax_amount: Decimal | None = Field(default=None, ge=0)
     line_total: Decimal | None = Field(default=None, ge=0)
@@ -68,4 +69,3 @@ class ReceiveNote(BusinessDocument):
         if self.document_type != DocumentType.RECEIVE_NOTE:
             raise ValueError("ReceiveNote document_type must be 'receive_note'")
         return self
-

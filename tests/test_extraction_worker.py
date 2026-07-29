@@ -1,7 +1,9 @@
 from datetime import UTC, datetime, timedelta
 
 from app.domain.documents import DocumentType
+from app.domain.documents import Invoice
 from app.domain.extraction_runs import ExtractionRunStatus
+from app.domain.normalization import FieldEvidence, NormalizationResult
 from app.domain.parsing import (
     ParserPollResult,
     ParserSubmission,
@@ -11,10 +13,12 @@ from app.domain.parsing import (
 from app.services.document_upload_service import DocumentUploadService
 from app.services.extraction_provider import DisabledExtractionProvider
 from app.services.extraction_service import ExtractionService
+from app.services.validation_service import ValidationService
 from app.workers.extraction_worker import ExtractionWorker
 from tests.fakes import (
     InMemoryExtractionRunRepository,
     InMemoryExtractionTaskRepository,
+    InMemoryDocumentDraftRepository,
     InMemoryObjectStorage,
     InMemoryParseResultRepository,
 )
@@ -48,11 +52,52 @@ class FakeParser:
         )
 
 
+class FakeNormalizer:
+    provider_name = "fixture"
+    model_name = "fixture-v1"
+
+    def normalize(self, **kwargs) -> NormalizationResult:
+        return NormalizationResult(
+            document=Invoice.model_validate(
+                {
+                    "document_type": "invoice",
+                    "document_number": "INV-1",
+                    "purchase_order_number": "PO-1",
+                    "subtotal": "20.00",
+                    "tax_total": "2.00",
+                    "total": "22.00",
+                    "items": [
+                        {
+                            "description": "Mozzarella",
+                            "quantity": "2",
+                            "unit_price": "10.00",
+                            "line_total": "20.00",
+                            "tax_amount": "2.00",
+                            "tax_code": "GST",
+                        }
+                    ],
+                }
+            ),
+            evidence=[
+                FieldEvidence(
+                    field_path="document_number",
+                    value="INV-1",
+                    page=1,
+                    source_text="Invoice INV-1",
+                )
+            ],
+            raw_response={"source": "fixture"},
+            input_tokens=100,
+            output_tokens=50,
+        )
+
+
 def test_worker_submits_then_polls_and_persists_result() -> None:
     storage = InMemoryObjectStorage()
     tasks = InMemoryExtractionTaskRepository()
     runs = InMemoryExtractionRunRepository()
     parses = InMemoryParseResultRepository()
+    drafts = InMemoryDocumentDraftRepository()
     parser = FakeParser()
     upload = DocumentUploadService(storage, tasks, max_bytes=1024)
     task = upload.upload(
@@ -73,6 +118,9 @@ def test_worker_submits_then_polls_and_persists_result() -> None:
         task_repository=tasks,
         run_repository=runs,
         parse_repository=parses,
+        normalizer=FakeNormalizer(),
+        draft_repository=drafts,
+        validation_service=ValidationService(),
         poll_interval_seconds=0,
     )
 
@@ -89,3 +137,10 @@ def test_worker_submits_then_polls_and_persists_result() -> None:
     assert persisted.remote_job_id == "batch-123"
     assert storage.get(persisted.artifact_object_key) == b"zip-data"
     assert runs.get(run.run_id).status == ExtractionRunStatus.NORMALIZING
+
+    assert worker.run_once("worker-1") is True
+    bundle = drafts.get_for_run(run.run_id)
+    assert bundle is not None
+    assert bundle.draft.normalized_json["document_number"] == "INV-1"
+    assert runs.get(run.run_id).status == ExtractionRunStatus.READY_FOR_REVIEW
+    assert tasks.get(task.task_id).status.value == "ready_for_review"

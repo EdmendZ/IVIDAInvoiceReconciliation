@@ -6,6 +6,9 @@ from app.domain.extraction_runs import ExtractionRun, ExtractionRunStatus
 from app.domain.extraction_tasks import ExtractionStatus
 from app.domain.extraction_tasks import ExtractionTask
 from app.domain.parse_results import ParseResultRecord
+from app.domain.document_drafts import DocumentDraft, DraftBundle
+from app.domain.normalization import FieldEvidence
+from app.domain.validation import ValidationIssue
 
 
 class ObjectStorage(Protocol):
@@ -74,6 +77,16 @@ class ExtractionRunRepository(Protocol):
         release_lease: bool = True,
     ) -> None: ...
 
+    def mark_ready_for_review(
+        self,
+        run_id: str,
+        *,
+        normalized_output: dict,
+        input_tokens: int | None,
+        output_tokens: int | None,
+        estimated_cost_aud: str | None,
+    ) -> None: ...
+
     def complete(
         self,
         run_id: str,
@@ -99,3 +112,14 @@ class ParseResultRepository(Protocol):
     def create(self, result: ParseResultRecord) -> None: ...
 
     def get_for_run(self, run_id: str) -> ParseResultRecord | None: ...
+
+
+class DocumentDraftRepository(Protocol):
+    def create_with_evidence_and_issues(
+        self,
+        draft: DocumentDraft,
+        evidence: list[FieldEvidence],
+        issues: list[ValidationIssue],
+    ) -> DocumentDraft: ...
+
+    def get_for_run(self, run_id: str) -> DraftBundle | None: ...

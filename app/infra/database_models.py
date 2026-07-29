@@ -146,3 +146,94 @@ class ParseResultRow(Base):
     )
 
     __table_args__ = (Index("ix_parse_results_run_id", "run_id"),)
+
+
+class DocumentDraftRow(Base):
+    __tablename__ = "document_drafts"
+
+    draft_id: Mapped[str] = mapped_column(String(36), primary_key=True)
+    run_id: Mapped[str] = mapped_column(
+        String(36),
+        ForeignKey("extraction_runs.run_id", ondelete="CASCADE"),
+        nullable=False,
+        unique=True,
+    )
+    task_id: Mapped[str] = mapped_column(
+        String(36),
+        ForeignKey("extraction_tasks.task_id", ondelete="CASCADE"),
+        nullable=False,
+    )
+    document_type: Mapped[str] = mapped_column(String(32), nullable=False)
+    normalized_json: Mapped[dict] = mapped_column(
+        JSON().with_variant(JSONB(), "postgresql"),
+        nullable=False,
+    )
+    validation_state: Mapped[str] = mapped_column(String(32), nullable=False)
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True),
+        nullable=False,
+    )
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True),
+        nullable=False,
+    )
+
+    __table_args__ = (Index("ix_document_drafts_task_id", "task_id"),)
+
+
+class FieldEvidenceRow(Base):
+    __tablename__ = "field_evidence"
+
+    evidence_id: Mapped[str] = mapped_column(String(36), primary_key=True)
+    draft_id: Mapped[str] = mapped_column(
+        String(36),
+        ForeignKey("document_drafts.draft_id", ondelete="CASCADE"),
+        nullable=False,
+    )
+    field_path: Mapped[str] = mapped_column(String(512), nullable=False)
+    value: Mapped[str | None] = mapped_column(Text, nullable=True)
+    page: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    source_text: Mapped[str] = mapped_column(Text, nullable=False)
+    block_id: Mapped[str | None] = mapped_column(String(255), nullable=True)
+    table_id: Mapped[str | None] = mapped_column(String(255), nullable=True)
+    row_index: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    confidence: Mapped[Decimal | None] = mapped_column(
+        Numeric(6, 5),
+        nullable=True,
+    )
+
+    __table_args__ = (
+        Index("ix_field_evidence_draft_field", "draft_id", "field_path"),
+    )
+
+
+class ValidationIssueRow(Base):
+    __tablename__ = "validation_issues"
+
+    issue_id: Mapped[str] = mapped_column(String(36), primary_key=True)
+    draft_id: Mapped[str] = mapped_column(
+        String(36),
+        ForeignKey("document_drafts.draft_id", ondelete="CASCADE"),
+        nullable=False,
+    )
+    rule_code: Mapped[str] = mapped_column(String(100), nullable=False)
+    severity: Mapped[str] = mapped_column(String(32), nullable=False)
+    field_path: Mapped[str] = mapped_column(String(512), nullable=False)
+    message: Mapped[str] = mapped_column(Text, nullable=False)
+    measured_difference: Mapped[Decimal | None] = mapped_column(
+        Numeric(18, 6),
+        nullable=True,
+    )
+    resolved_at: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True),
+        nullable=True,
+    )
+
+    __table_args__ = (
+        Index(
+            "ix_validation_issues_draft_severity",
+            "draft_id",
+            "severity",
+            "resolved_at",
+        ),
+    )

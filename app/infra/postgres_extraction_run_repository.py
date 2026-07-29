@@ -127,6 +127,33 @@ class PostgresExtractionRunRepository:
             values.update(lease_owner=None, lease_expires_at=None)
         self._update(run_id, **values)
 
+    def mark_ready_for_review(
+        self,
+        run_id: str,
+        *,
+        normalized_output: dict,
+        input_tokens: int | None,
+        output_tokens: int | None,
+        estimated_cost_aud: str | None,
+    ) -> None:
+        self._update(
+            run_id,
+            status=ExtractionRunStatus.READY_FOR_REVIEW.value,
+            normalized_output=normalized_output,
+            input_tokens=input_tokens,
+            output_tokens=output_tokens,
+            estimated_cost_aud=(
+                Decimal(estimated_cost_aud)
+                if estimated_cost_aud is not None
+                else None
+            ),
+            completed_at=datetime.now(UTC),
+            error_message=None,
+            phase_error_code=None,
+            lease_owner=None,
+            lease_expires_at=None,
+        )
+
     def complete(
         self,
         run_id: str,
