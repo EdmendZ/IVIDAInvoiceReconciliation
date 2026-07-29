@@ -5,6 +5,7 @@ description = "Invoice and Receive Note extraction and reconciliation prototype 
 requires-python = ">=3.11,<3.13"
 dependencies = [
     "alembic>=1.14,<2",
+    "argon2-cffi>=25,<26",
     "fastapi>=0.115,<1",
     "minio>=7.2,<8",
     "mineru-open-sdk>=0.2.5,<0.3",
