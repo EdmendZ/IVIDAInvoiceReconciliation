@@ -12,4 +12,5 @@ uploads/
 evaluation_data/
 frontend/node_modules/
 frontend/dist/
+frontend/tsconfig.tsbuildinfo
 *.log
