@@ -54,6 +54,17 @@ class PostgresDocumentDraftRepository:
     def get_for_task(self, task_id: str) -> DraftBundle | None:
         return self._get_bundle(DocumentDraftRow.task_id == task_id)
 
+    def list_latest(self) -> list[DraftBundle]:
+        with self._session_factory() as session:
+            task_ids = session.execute(
+                select(DocumentDraftRow.task_id).distinct()
+            ).scalars()
+        return [
+            bundle
+            for task_id in task_ids
+            if (bundle := self.get_for_task(task_id)) is not None
+        ]
+
     def _get_bundle(self, predicate) -> DraftBundle | None:
         with self._session_factory() as session:
             draft_row = session.execute(

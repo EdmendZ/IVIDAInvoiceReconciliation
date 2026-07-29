@@ -52,10 +52,13 @@ uv run uvicorn app.main:app --host 0.0.0.0 --port 8200 --reload
 
 抽取框架接口：
 
-- `POST /api/extraction-tasks/{task_id}/extract`：创建后台抽取运行。
-- `GET /api/extraction-runs/{run_id}`：查询模型原始输出、标准结果、耗时和成本。
+- `POST /api/extraction-tasks/{task_id}/extract`：创建 PostgreSQL 持久化抽取任务。
+- `GET /api/extraction-runs/{run_id}`：查询执行阶段、耗时和成本。
+- `GET /api/extraction-runs/{run_id}/result`：查询草稿、证据和校验问题。
 
-在真实模型尚未配置时启动抽取，任务会进入 `failed` 并保留明确错误；不会产生虚假的财务结果。
+API 不再使用进程内 `BackgroundTasks`。必须单独运行
+`run_extraction_worker.py`；API 或 Worker 重启不会丢失排队任务。在真实模型
+尚未配置时，Worker 会以稳定错误码结束任务，不会产生虚假的财务结果。
 
 真实上传前，需要复制 `.env.example` 为 `.env`，填写 PostgreSQL 连接和当前 MinIO 的有效账号。可以复用项目2的 MinIO 服务器参数，但必须保留：
 
@@ -87,3 +90,13 @@ PostgreSQL 和 MinIO 可以使用现有服务器；database 与 bucket 必须使
 ## 评测数据
 
 项目本地包含一套澳洲披萨门店采购合成评测集，位于 `evaluation_data/`，并已被 Git 忽略。生成器、场景说明和校验方式见 [docs/evaluation-dataset.md](docs/evaluation-dataset.md)。
+
+## 人工审核与对账
+
+- 审核前端：<http://127.0.0.1:5274>
+- 账号创建：`python -m app.cli.create_admin --username reviewer --role reviewer`
+- 只有已批准且不可变的 Invoice/Receive Note 版本可以调用生产对账接口。
+- 编辑会创建新版本；批准版本与审核记录由 PostgreSQL 触发器保护。
+
+完整启动顺序、恢复和备份说明见
+[docs/operations/review-workflow.md](docs/operations/review-workflow.md)。

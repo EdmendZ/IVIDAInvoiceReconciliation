@@ -148,11 +148,64 @@ class ReviewService:
         version = self._require_version(version_id)
         return version, self._reviews.list_actions(version_id)
 
+    def get_detail(self, version_id: str) -> dict:
+        version, actions = self.get(version_id)
+        bundle = self._drafts.get_for_task(version.task_id)
+        return {
+            "version": version.model_dump(mode="json"),
+            "actions": [item.model_dump(mode="json") for item in actions],
+            "evidence": (
+                [item.model_dump(mode="json") for item in bundle.evidence]
+                if bundle
+                else []
+            ),
+            "issues": (
+                [item.model_dump(mode="json") for item in bundle.issues]
+                if bundle
+                else []
+            ),
+        }
+
     def list_versions(
         self,
         status: DocumentVersionStatus | None = None,
     ) -> list[DocumentVersion]:
         return self._reviews.list_versions(status=status)
+
+    def list_queue(self) -> list[dict]:
+        versions = self._reviews.list_versions()
+        by_task = {version.task_id: version for version in versions}
+        result: list[dict] = []
+        for bundle in self._drafts.list_latest():
+            version = by_task.get(bundle.draft.task_id)
+            result.append(
+                {
+                    "task_id": bundle.draft.task_id,
+                    "version_id": version.version_id if version else None,
+                    "version_number": version.version_number if version else None,
+                    "status": (
+                        version.status.value if version else "ready_for_review"
+                    ),
+                    "document_type": bundle.draft.document_type.value,
+                    "document_number": bundle.draft.normalized_json.get(
+                        "document_number"
+                    ),
+                    "supplier": (
+                        bundle.draft.normalized_json.get("supplier") or {}
+                    ).get("name"),
+                    "validation_state": bundle.draft.validation_state.value,
+                    "blocking_count": sum(
+                        issue.severity.value == "blocking"
+                        for issue in bundle.issues
+                    ),
+                    "warning_count": sum(
+                        issue.severity.value == "warning"
+                        for issue in bundle.issues
+                    ),
+                    "created_at": bundle.draft.created_at.isoformat(),
+                }
+            )
+        return sorted(result, key=lambda item: item["created_at"], reverse=True)
 
     def _require_version(self, version_id: str) -> DocumentVersion:
         version = self._reviews.get_version(version_id)

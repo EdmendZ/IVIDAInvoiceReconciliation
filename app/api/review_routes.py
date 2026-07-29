@@ -29,15 +29,11 @@ class DecisionRequest(BaseModel):
 
 @router.get("/tasks")
 def list_review_tasks(
-    status_filter: DocumentVersionStatus | None = None,
     service: ReviewService = Depends(get_review_service),
     user: AuthenticatedUser = Depends(require_reviewer),
 ) -> list[dict]:
     del user
-    return [
-        version.model_dump(mode="json")
-        for version in service.list_versions(status_filter)
-    ]
+    return service.list_queue()
 
 
 @router.post("/tasks/{task_id}/start")
@@ -60,13 +56,9 @@ def get_review_version(
 ) -> dict:
     del user
     try:
-        version, actions = service.get(version_id)
+        return service.get_detail(version_id)
     except ReviewVersionNotFound as exc:
         raise HTTPException(status_code=404, detail="Version not found") from exc
-    return {
-        "version": version.model_dump(mode="json"),
-        "actions": [item.model_dump(mode="json") for item in actions],
-    }
 
 
 @router.patch("/versions/{version_id}")

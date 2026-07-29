@@ -254,3 +254,13 @@ class InMemoryDocumentDraftRepository:
             key=lambda item: item.draft.created_at,
             reverse=True,
         )[0]
+
+    def list_latest(self) -> list[DraftBundle]:
+        task_ids = {
+            bundle.draft.task_id for bundle in self.bundles.values()
+        }
+        return [
+            bundle
+            for task_id in task_ids
+            if (bundle := self.get_for_task(task_id)) is not None
+        ]
