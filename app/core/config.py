@@ -16,6 +16,7 @@ class Settings(BaseSettings):
     app_host: str = "0.0.0.0"
     app_port: int = 8200
     cors_origins: str = "http://localhost:5274"
+    upload_max_bytes: int = 25 * 1024 * 1024
 
     mongo_url: str = "mongodb://127.0.0.1:27017"
     mongo_db_name: str = "ivida_invoice_reconciliation"
@@ -39,4 +40,3 @@ class Settings(BaseSettings):
 @lru_cache
 def get_settings() -> Settings:
     return Settings()
-
