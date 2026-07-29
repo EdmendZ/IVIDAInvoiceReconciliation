@@ -52,7 +52,16 @@ def _aggregate(items: list[LineItem]) -> dict[str, _AggregatedLine]:
         quantity = sum((item.quantity for item in matching_items), Decimal("0"))
         amounts = [_item_amount(item) for item in matching_items]
         amount = None if any(value is None for value in amounts) else sum(amounts, Decimal("0"))
-        weighted_price = amount / quantity if amount is not None and quantity else None
+        price_extensions = [
+            item.quantity * item.unit_price
+            for item in matching_items
+            if item.unit_price is not None
+        ]
+        weighted_price = (
+            sum(price_extensions, Decimal("0")) / quantity
+            if len(price_extensions) == len(matching_items) and quantity
+            else None
+        )
         first = matching_items[0]
         result[key] = _AggregatedLine(
             sku=first.sku,
@@ -189,4 +198,3 @@ def reconcile(request: ReconciliationRequest) -> ReconciliationResult:
             ),
         ),
     )
-

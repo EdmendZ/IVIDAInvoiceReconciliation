@@ -12,10 +12,12 @@ IVIDA 发票（Invoice）与收货单（Receive Note）比对原型。该项目�
 - 数量、单价、金额容差与差异分类
 - PDF、PNG、JPEG 原件上传与安全格式校验
 - MinIO 原件存储与 PostgreSQL 抽取任务持久化
+- 异步抽取运行记录和 `ready_for_review` 状态流
+- 模型 Provider 统一接口、耗时、Token 和成本字段
 - PostgreSQL、MinIO 和模型供应商的独立配置命名
 - 健康检查、示例接口和自动化测试
 
-当前可以上传原件并创建任务，但尚未执行 OCR/模型抽取。比对接口的输入仍是已经结构化的 JSON。
+当前已具备抽取编排框架，但 `MODEL_PROVIDER` 默认仍为 `disabled`，尚未连接真实 OCR/视觉模型。比对接口的输入仍是已经结构化或人工审核后的 JSON。
 
 ## 启动
 
@@ -48,6 +50,13 @@ uv run uvicorn app.main:app --host 0.0.0.0 --port 8200 --reload
 6. 成功时返回 `task_id`、MinIO 对象路径以及 `uploaded` 状态。
 7. 将 `task_id` 填入 `GET /api/extraction-tasks/{task_id}` 可再次查询。
 
+抽取框架接口：
+
+- `POST /api/extraction-tasks/{task_id}/extract`：创建后台抽取运行。
+- `GET /api/extraction-runs/{run_id}`：查询模型原始输出、标准结果、耗时和成本。
+
+在真实模型尚未配置时启动抽取，任务会进入 `failed` 并保留明确错误；不会产生虚假的财务结果。
+
 真实上传前，需要复制 `.env.example` 为 `.env`，填写 PostgreSQL 连接和当前 MinIO 的有效账号。可以复用项目2的 MinIO 服务器参数，但必须保留：
 
 ```dotenv
@@ -74,3 +83,7 @@ uv run pytest
 | Milvus | 阶段 1 不使用 |
 
 PostgreSQL 和 MinIO 可以使用现有服务器；database 与 bucket 必须使用上表中的独立名称。当前项目不再依赖 MongoDB。
+
+## 评测数据
+
+项目本地包含一套澳洲披萨门店采购合成评测集，位于 `evaluation_data/`，并已被 Git 忽略。生成器、场景说明和校验方式见 [docs/evaluation-dataset.md](docs/evaluation-dataset.md)。

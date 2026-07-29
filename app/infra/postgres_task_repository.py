@@ -1,5 +1,9 @@
+from datetime import UTC, datetime
+
+from sqlalchemy import update
 from sqlalchemy.orm import Session, sessionmaker
 
+from app.domain.extraction_tasks import ExtractionStatus
 from app.domain.extraction_tasks import ExtractionTask
 from app.infra.database_models import ExtractionTaskRow
 
@@ -36,3 +40,21 @@ class PostgresExtractionTaskRepository:
                     "updated_at": row.updated_at,
                 }
             )
+
+    def update_status(
+        self,
+        task_id: str,
+        status: ExtractionStatus,
+        error_message: str | None = None,
+    ) -> None:
+        with self._session_factory() as session:
+            session.execute(
+                update(ExtractionTaskRow)
+                .where(ExtractionTaskRow.task_id == task_id)
+                .values(
+                    status=status.value,
+                    error_message=error_message,
+                    updated_at=datetime.now(UTC),
+                )
+            )
+            session.commit()
