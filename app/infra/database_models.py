@@ -80,6 +80,18 @@ class ExtractionRunRow(Base):
         nullable=True,
     )
     error_message: Mapped[str | None] = mapped_column(Text, nullable=True)
+    phase_error_code: Mapped[str | None] = mapped_column(String(100), nullable=True)
+    remote_job_id: Mapped[str | None] = mapped_column(String(255), nullable=True)
+    attempt_count: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
+    next_attempt_at: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True),
+        nullable=True,
+    )
+    lease_owner: Mapped[str | None] = mapped_column(String(255), nullable=True)
+    lease_expires_at: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True),
+        nullable=True,
+    )
     started_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True),
         nullable=False,
@@ -97,4 +109,40 @@ class ExtractionRunRow(Base):
         Index("ix_extraction_runs_task_id", "task_id"),
         Index("ix_extraction_runs_status", "status"),
         Index("ix_extraction_runs_created_at", "created_at"),
+        Index(
+            "ix_extraction_runs_claim",
+            "status",
+            "next_attempt_at",
+            "created_at",
+        ),
     )
+
+
+class ParseResultRow(Base):
+    __tablename__ = "parse_results"
+
+    parse_result_id: Mapped[str] = mapped_column(String(36), primary_key=True)
+    run_id: Mapped[str] = mapped_column(
+        String(36),
+        ForeignKey("extraction_runs.run_id", ondelete="CASCADE"),
+        nullable=False,
+        unique=True,
+    )
+    remote_job_id: Mapped[str] = mapped_column(String(255), nullable=False)
+    artifact_object_key: Mapped[str] = mapped_column(String(1024), nullable=False)
+    markdown: Mapped[str] = mapped_column(Text, nullable=False)
+    content_blocks: Mapped[list] = mapped_column(
+        JSON().with_variant(JSONB(), "postgresql"),
+        nullable=False,
+    )
+    tables: Mapped[list] = mapped_column(
+        JSON().with_variant(JSONB(), "postgresql"),
+        nullable=False,
+    )
+    page_count: Mapped[int] = mapped_column(Integer, nullable=False)
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True),
+        nullable=False,
+    )
+
+    __table_args__ = (Index("ix_parse_results_run_id", "run_id"),)

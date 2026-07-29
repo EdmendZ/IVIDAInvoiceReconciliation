@@ -53,7 +53,8 @@ class ExtractionService:
             task_id=task.task_id,
             provider=self._provider.provider_name,
             model_name=self._provider.model_name,
-            status=ExtractionRunStatus.RUNNING,
+            status=ExtractionRunStatus.QUEUED,
+            next_attempt_at=now,
             started_at=now,
             created_at=now,
         )
@@ -116,4 +117,3 @@ class ExtractionService:
         if run is None:
             raise ExtractionRunNotFound(run_id)
         return run
-

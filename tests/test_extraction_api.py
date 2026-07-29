@@ -79,12 +79,9 @@ def test_start_and_query_extraction() -> None:
         run_response = client.get(f"/api/extraction-runs/{run_id}")
         task_response = client.get(f"/api/extraction-tasks/{task_id}")
         assert run_response.status_code == 200
-        assert run_response.json()["status"] == "succeeded"
-        assert (
-            run_response.json()["normalized_output"]["document_number"]
-            == "API-EXTRACTED-1"
-        )
-        assert task_response.json()["status"] == "ready_for_review"
+        assert run_response.json()["status"] == "queued"
+        assert run_response.json()["normalized_output"] is None
+        assert task_response.json()["status"] == "extracting"
     finally:
         if previous_upload is None:
             app.dependency_overrides.pop(get_document_upload_service, None)

@@ -1,8 +1,11 @@
 from typing import Protocol
 
+from datetime import datetime
+
 from app.domain.extraction_runs import ExtractionRun, ExtractionRunStatus
 from app.domain.extraction_tasks import ExtractionStatus
 from app.domain.extraction_tasks import ExtractionTask
+from app.domain.parse_results import ParseResultRecord
 
 
 class ObjectStorage(Protocol):
@@ -39,6 +42,38 @@ class ExtractionRunRepository(Protocol):
 
     def get(self, run_id: str) -> ExtractionRun | None: ...
 
+    def claim_next(
+        self,
+        *,
+        worker_id: str,
+        lease_seconds: int,
+        now: datetime,
+    ) -> ExtractionRun | None: ...
+
+    def set_remote_job(
+        self,
+        run_id: str,
+        *,
+        remote_job_id: str,
+        next_attempt_at: datetime,
+    ) -> None: ...
+
+    def schedule_poll(
+        self,
+        run_id: str,
+        *,
+        next_attempt_at: datetime,
+        increment_attempt: bool = False,
+    ) -> None: ...
+
+    def set_status(
+        self,
+        run_id: str,
+        status: ExtractionRunStatus,
+        *,
+        release_lease: bool = True,
+    ) -> None: ...
+
     def complete(
         self,
         run_id: str,
@@ -51,4 +86,16 @@ class ExtractionRunRepository(Protocol):
         estimated_cost_aud: str | None,
     ) -> None: ...
 
-    def fail(self, run_id: str, error_message: str) -> None: ...
+    def fail(
+        self,
+        run_id: str,
+        error_message: str,
+        *,
+        error_code: str | None = None,
+    ) -> None: ...
+
+
+class ParseResultRepository(Protocol):
+    def create(self, result: ParseResultRecord) -> None: ...
+
+    def get_for_run(self, run_id: str) -> ParseResultRecord | None: ...

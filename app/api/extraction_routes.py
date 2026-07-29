@@ -1,4 +1,4 @@
-from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, status
 
 from app.api.dependencies import get_extraction_service
 from app.domain.extraction_runs import ExtractionRun
@@ -19,7 +19,6 @@ router = APIRouter(prefix="/api", tags=["document extraction"])
 )
 def start_extraction(
     task_id: str,
-    background_tasks: BackgroundTasks,
     service: ExtractionService = Depends(get_extraction_service),
 ) -> ExtractionRun:
     try:
@@ -34,7 +33,6 @@ def start_extraction(
             status_code=status.HTTP_409_CONFLICT,
             detail=str(exc),
         ) from exc
-    background_tasks.add_task(service.execute, task_id, run.run_id)
     return run
 
 

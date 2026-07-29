@@ -4,6 +4,7 @@ from decimal import Decimal
 from app.domain.extraction_runs import ExtractionRun, ExtractionRunStatus
 from app.domain.extraction_tasks import ExtractionStatus
 from app.domain.extraction_tasks import ExtractionTask
+from app.domain.parse_results import ParseResultRecord
 
 
 class InMemoryObjectStorage:
@@ -61,6 +62,79 @@ class InMemoryExtractionRunRepository:
     def get(self, run_id: str) -> ExtractionRun | None:
         return self.runs.get(run_id)
 
+    def claim_next(
+        self,
+        *,
+        worker_id: str,
+        lease_seconds: int,
+        now: datetime,
+    ) -> ExtractionRun | None:
+        del lease_seconds
+        eligible = {
+            ExtractionRunStatus.QUEUED,
+            ExtractionRunStatus.PARSING,
+            ExtractionRunStatus.NORMALIZING,
+            ExtractionRunStatus.VALIDATING,
+        }
+        candidates = [
+            run
+            for run in self.runs.values()
+            if run.status in eligible
+            and (run.next_attempt_at is None or run.next_attempt_at <= now)
+            and (run.lease_expires_at is None or run.lease_expires_at < now)
+        ]
+        if not candidates:
+            return None
+        run = sorted(candidates, key=lambda item: item.created_at)[0]
+        claimed = run.model_copy(update={"lease_owner": worker_id})
+        self.runs[run.run_id] = claimed
+        return claimed
+
+    def set_remote_job(
+        self,
+        run_id: str,
+        *,
+        remote_job_id: str,
+        next_attempt_at: datetime,
+    ) -> None:
+        self.runs[run_id] = self.runs[run_id].model_copy(
+            update={
+                "status": ExtractionRunStatus.PARSING,
+                "remote_job_id": remote_job_id,
+                "next_attempt_at": next_attempt_at,
+                "lease_owner": None,
+            }
+        )
+
+    def schedule_poll(
+        self,
+        run_id: str,
+        *,
+        next_attempt_at: datetime,
+        increment_attempt: bool = False,
+    ) -> None:
+        run = self.runs[run_id]
+        self.runs[run_id] = run.model_copy(
+            update={
+                "status": ExtractionRunStatus.PARSING,
+                "next_attempt_at": next_attempt_at,
+                "attempt_count": run.attempt_count + int(increment_attempt),
+                "lease_owner": None,
+            }
+        )
+
+    def set_status(
+        self,
+        run_id: str,
+        status: ExtractionRunStatus,
+        *,
+        release_lease: bool = True,
+    ) -> None:
+        changes = {"status": status}
+        if release_lease:
+            changes["lease_owner"] = None
+        self.runs[run_id] = self.runs[run_id].model_copy(update=changes)
+
     def complete(
         self,
         run_id: str,
@@ -90,11 +164,30 @@ class InMemoryExtractionRunRepository:
             }
         )
 
-    def fail(self, run_id: str, error_message: str) -> None:
+    def fail(
+        self,
+        run_id: str,
+        error_message: str,
+        *,
+        error_code: str | None = None,
+    ) -> None:
         self.runs[run_id] = self.runs[run_id].model_copy(
             update={
                 "status": ExtractionRunStatus.FAILED,
                 "error_message": error_message,
+                "phase_error_code": error_code,
                 "completed_at": datetime.now(UTC),
+                "lease_owner": None,
             }
         )
+
+
+class InMemoryParseResultRepository:
+    def __init__(self) -> None:
+        self.results: dict[str, ParseResultRecord] = {}
+
+    def create(self, result: ParseResultRecord) -> None:
+        self.results[result.run_id] = result
+
+    def get_for_run(self, run_id: str) -> ParseResultRecord | None:
+        return self.results.get(run_id)
