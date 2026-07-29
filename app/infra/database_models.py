@@ -361,3 +361,71 @@ class ReviewActionRow(Base):
     )
 
     __table_args__ = (Index("ix_review_actions_version_id", "version_id"),)
+
+
+class ReconciliationRow(Base):
+    __tablename__ = "reconciliations"
+
+    reconciliation_id: Mapped[str] = mapped_column(String(36), primary_key=True)
+    invoice_version_id: Mapped[str] = mapped_column(
+        String(36),
+        ForeignKey("document_versions.version_id", ondelete="RESTRICT"),
+        nullable=False,
+    )
+    result_json: Mapped[dict] = mapped_column(
+        JSON().with_variant(JSONB(), "postgresql"),
+        nullable=False,
+    )
+    created_by: Mapped[str] = mapped_column(
+        String(36),
+        ForeignKey("admin_users.user_id", ondelete="RESTRICT"),
+        nullable=False,
+    )
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True),
+        nullable=False,
+    )
+
+    __table_args__ = (
+        Index("ix_reconciliations_invoice_version", "invoice_version_id"),
+    )
+
+
+class ReconciliationReceiveNoteRow(Base):
+    __tablename__ = "reconciliation_receive_notes"
+
+    reconciliation_id: Mapped[str] = mapped_column(
+        String(36),
+        ForeignKey("reconciliations.reconciliation_id", ondelete="CASCADE"),
+        primary_key=True,
+    )
+    receive_note_version_id: Mapped[str] = mapped_column(
+        String(36),
+        ForeignKey("document_versions.version_id", ondelete="RESTRICT"),
+        primary_key=True,
+    )
+
+
+class ReconciliationLineResultRow(Base):
+    __tablename__ = "reconciliation_line_results"
+
+    line_result_id: Mapped[str] = mapped_column(String(36), primary_key=True)
+    reconciliation_id: Mapped[str] = mapped_column(
+        String(36),
+        ForeignKey("reconciliations.reconciliation_id", ondelete="CASCADE"),
+        nullable=False,
+    )
+    line_index: Mapped[int] = mapped_column(Integer, nullable=False)
+    result_json: Mapped[dict] = mapped_column(
+        JSON().with_variant(JSONB(), "postgresql"),
+        nullable=False,
+    )
+
+    __table_args__ = (
+        Index(
+            "uq_reconciliation_line_index",
+            "reconciliation_id",
+            "line_index",
+            unique=True,
+        ),
+    )

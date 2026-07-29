@@ -1,8 +1,16 @@
-from fastapi import APIRouter
+from fastapi import APIRouter, Depends, HTTPException
+from pydantic import BaseModel, Field
 
 from app.core.config import get_settings
 from app.domain.reconciliation import ReconciliationRequest, ReconciliationResult
 from app.services.reconciliation_service import reconcile
+from app.api.auth_dependencies import require_reviewer
+from app.api.dependencies import get_reconciliation_application_service
+from app.domain.admin_users import AuthenticatedUser
+from app.services.reconciliation_application_service import (
+    DocumentNotApproved,
+    ReconciliationApplicationService,
+)
 
 router = APIRouter(prefix="/api")
 
@@ -62,3 +70,26 @@ def reconciliation_example() -> dict:
 def compare_documents(request: ReconciliationRequest) -> ReconciliationResult:
     return reconcile(request)
 
+
+class ApprovedReconciliationRequest(BaseModel):
+    invoice_version_id: str
+    receive_note_version_ids: list[str] = Field(min_length=1)
+
+
+@router.post("/reconciliations")
+def create_reconciliation(
+    request: ApprovedReconciliationRequest,
+    service: ReconciliationApplicationService = Depends(
+        get_reconciliation_application_service
+    ),
+    user: AuthenticatedUser = Depends(require_reviewer),
+) -> dict:
+    try:
+        record = service.compare(
+            request.invoice_version_id,
+            request.receive_note_version_ids,
+            created_by=user.user_id,
+        )
+    except DocumentNotApproved as exc:
+        raise HTTPException(status_code=409, detail=str(exc)) from exc
+    return record.model_dump(mode="json")

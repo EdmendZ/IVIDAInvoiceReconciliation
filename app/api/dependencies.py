@@ -15,6 +15,12 @@ from app.services.extraction_service import ExtractionService
 from app.infra.postgres_review_repository import PostgresReviewRepository
 from app.services.review_service import ReviewService
 from app.services.validation_service import ValidationService
+from app.infra.postgres_reconciliation_repository import (
+    PostgresReconciliationRepository,
+)
+from app.services.reconciliation_application_service import (
+    ReconciliationApplicationService,
+)
 
 
 @lru_cache
@@ -55,6 +61,16 @@ def get_review_service() -> ReviewService:
         review_repository=get_review_repository(),
         draft_repository=get_draft_repository(),
         validation_service=ValidationService(),
+    )
+
+
+@lru_cache
+def get_reconciliation_application_service() -> ReconciliationApplicationService:
+    return ReconciliationApplicationService(
+        review_repository=get_review_repository(),
+        reconciliation_repository=PostgresReconciliationRepository(
+            get_session_factory()
+        ),
     )
 
 
