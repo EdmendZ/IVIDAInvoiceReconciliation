@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { api } from "../api/client";
+import { StructuredDocumentEditor } from "./StructuredDocumentEditor";
 
 type Detail = {
   version: {
@@ -175,9 +176,11 @@ export function ReviewDocumentPage({
           </p>
         </div>
         <div className="type-control-actions">
-          <label>
+          <label htmlFor="review-document-type">
             Document type
             <select
+              id="review-document-type"
+              name="document_type"
               value={selectedType}
               disabled={busy || detail.data.version.status !== "draft"}
               onChange={(event) => {
@@ -203,8 +206,13 @@ export function ReviewDocumentPage({
           </button>
         </div>
         {selectedType === detail.data.version.document_type ? (
-          <label className="type-confirmation">
+          <label
+            className="type-confirmation"
+            htmlFor="confirm-document-type"
+          >
             <input
+              id="confirm-document-type"
+              name="confirm_document_type"
               type="checkbox"
               checked={typeConfirmed}
               disabled={busy || detail.data.version.status !== "draft"}
@@ -235,12 +243,10 @@ export function ReviewDocumentPage({
           {!detail.data.evidence.length && <p>No evidence was extracted.</p>}
         </aside>
         <div className="editor-panel">
-          <h3>Structured document</h3>
-          <textarea
-            aria-label="Structured document JSON"
-            value={editor}
-            onChange={(event) => setEditor(event.target.value)}
-            spellCheck={false}
+          <StructuredDocumentEditor
+            editor={editor}
+            evidence={detail.data.evidence}
+            onChange={setEditor}
           />
         </div>
         <aside className="issues-panel">
