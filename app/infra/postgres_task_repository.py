@@ -1,6 +1,6 @@
 from datetime import UTC, datetime
 
-from sqlalchemy import update
+from sqlalchemy import select, update
 from sqlalchemy.orm import Session, sessionmaker
 
 from app.domain.extraction_tasks import ExtractionStatus
@@ -41,6 +41,15 @@ class PostgresExtractionTaskRepository:
                 }
             )
 
+    def list_recent(self, limit: int = 100) -> list[ExtractionTask]:
+        with self._session_factory() as session:
+            rows = session.execute(
+                select(ExtractionTaskRow)
+                .order_by(ExtractionTaskRow.created_at.desc())
+                .limit(limit)
+            ).scalars()
+            return [self._to_domain(row) for row in rows]
+
     def update_status(
         self,
         task_id: str,
@@ -58,3 +67,12 @@ class PostgresExtractionTaskRepository:
                 )
             )
             session.commit()
+
+    @staticmethod
+    def _to_domain(row: ExtractionTaskRow) -> ExtractionTask:
+        return ExtractionTask.model_validate(
+            {
+                column.name: getattr(row, column.name)
+                for column in ExtractionTaskRow.__table__.columns
+            }
+        )

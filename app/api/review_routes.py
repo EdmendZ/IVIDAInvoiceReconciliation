@@ -36,6 +36,18 @@ def list_review_tasks(
     return service.list_queue()
 
 
+@router.get("/approved-versions")
+def list_approved_versions(
+    service: ReviewService = Depends(get_review_service),
+    user: AuthenticatedUser = Depends(require_reviewer),
+) -> list[dict]:
+    del user
+    return [
+        version.model_dump(mode="json")
+        for version in service.list_versions(DocumentVersionStatus.APPROVED)
+    ]
+
+
 @router.post("/tasks/{task_id}/start")
 def start_review(
     task_id: str,

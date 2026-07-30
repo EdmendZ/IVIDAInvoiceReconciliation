@@ -106,3 +106,5 @@ class DocumentUploadService:
             raise ExtractionTaskNotFound(task_id)
         return task
 
+    def list_tasks(self, limit: int = 100) -> list[ExtractionTask]:
+        return self._repository.list_recent(limit)

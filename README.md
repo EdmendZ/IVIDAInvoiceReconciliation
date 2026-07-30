@@ -94,6 +94,9 @@ PostgreSQL 和 MinIO 可以使用现有服务器；database 与 bucket 必须使
 ## 人工审核与对账
 
 - 审核前端：<http://127.0.0.1:5274>
+- `Upload`：上传 Invoice/Receive Note、启动处理并查看 Worker 阶段。
+- `Review`：查看证据与校验问题、保存新版本、批准或驳回。
+- `Reconcile`：选择已批准 Invoice 和一个或多个 Receive Note，展示逐行差异。
 - 账号创建：`python -m app.cli.create_admin --username reviewer --role reviewer`
 - 只有已批准且不可变的 Invoice/Receive Note 版本可以调用生产对账接口。
 - 编辑会创建新版本；批准版本与审核记录由 PostgreSQL 触发器保护。

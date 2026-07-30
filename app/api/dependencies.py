@@ -56,6 +56,11 @@ def get_review_repository() -> PostgresReviewRepository:
 
 
 @lru_cache
+def get_run_repository() -> PostgresExtractionRunRepository:
+    return PostgresExtractionRunRepository(get_session_factory())
+
+
+@lru_cache
 def get_review_service() -> ReviewService:
     return ReviewService(
         review_repository=get_review_repository(),
@@ -89,6 +94,6 @@ def get_extraction_service() -> ExtractionService:
     return ExtractionService(
         storage=get_object_storage(),
         task_repository=get_task_repository(),
-        run_repository=PostgresExtractionRunRepository(get_session_factory()),
+        run_repository=get_run_repository(),
         provider=DisabledExtractionProvider(),
     )

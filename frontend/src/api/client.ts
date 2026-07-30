@@ -28,3 +28,19 @@ export async function api<T>(
   }
   return response.json() as Promise<T>;
 }
+
+export async function uploadDocument<T>(formData: FormData): Promise<T> {
+  const response = await fetch("/api/documents/upload", {
+    method: "POST",
+    credentials: "include",
+    body: formData,
+  });
+  if (response.status === 401) {
+    window.dispatchEvent(new CustomEvent("ivida:unauthorized"));
+  }
+  if (!response.ok) {
+    const body = await response.json().catch(() => ({}));
+    throw new Error(body.detail ?? `Upload failed (${response.status})`);
+  }
+  return response.json() as Promise<T>;
+}

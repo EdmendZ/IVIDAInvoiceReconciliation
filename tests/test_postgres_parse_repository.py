@@ -58,6 +58,7 @@ def test_claim_and_parse_result_round_trip() -> None:
     assert claimed is not None
     assert claimed.run_id == run.run_id
     assert claimed.lease_owner == "worker-1"
+    assert runs.get_latest_for_task(task.task_id).run_id == run.run_id
 
     record = ParseResultRecord(
         parse_result_id="00000000-0000-0000-0000-000000000003",

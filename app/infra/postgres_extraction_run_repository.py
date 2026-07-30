@@ -32,6 +32,16 @@ class PostgresExtractionRunRepository:
                 }
             )
 
+    def get_latest_for_task(self, task_id: str) -> ExtractionRun | None:
+        with self._session_factory() as session:
+            row = session.execute(
+                select(ExtractionRunRow)
+                .where(ExtractionRunRow.task_id == task_id)
+                .order_by(ExtractionRunRow.created_at.desc())
+                .limit(1)
+            ).scalar_one_or_none()
+            return self._to_domain(row) if row else None
+
     def claim_next(
         self,
         *,

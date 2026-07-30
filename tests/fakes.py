@@ -39,6 +39,13 @@ class InMemoryExtractionTaskRepository:
     def get(self, task_id: str) -> ExtractionTask | None:
         return self.tasks.get(task_id)
 
+    def list_recent(self, limit: int = 100) -> list[ExtractionTask]:
+        return sorted(
+            self.tasks.values(),
+            key=lambda item: item.created_at,
+            reverse=True,
+        )[:limit]
+
     def update_status(
         self,
         task_id: str,
@@ -64,6 +71,18 @@ class InMemoryExtractionRunRepository:
 
     def get(self, run_id: str) -> ExtractionRun | None:
         return self.runs.get(run_id)
+
+    def get_latest_for_task(self, task_id: str) -> ExtractionRun | None:
+        candidates = [
+            run for run in self.runs.values() if run.task_id == task_id
+        ]
+        if not candidates:
+            return None
+        return sorted(
+            candidates,
+            key=lambda item: item.created_at,
+            reverse=True,
+        )[0]
 
     def claim_next(
         self,

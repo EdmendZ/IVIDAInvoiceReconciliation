@@ -62,6 +62,15 @@ Open three terminals:
 
 Open `http://127.0.0.1:5274`.
 
+The browser UI now covers the pilot workflow:
+
+- **Upload** stores a PDF/image, queues extraction and polls durable task state.
+- **Review** exposes normalized JSON, source evidence and validation issues.
+- **Reconcile** lists only approved versions and renders persisted line results.
+
+Swagger remains useful for diagnostics, but is no longer required for the normal
+upload-to-reconciliation workflow.
+
 ## Business workflow
 
 1. Upload an Invoice or Receive Note using `POST /api/documents/upload`.

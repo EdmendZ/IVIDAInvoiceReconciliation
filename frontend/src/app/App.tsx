@@ -3,6 +3,8 @@ import { api, type User } from "../api/client";
 import { LoginPage } from "../auth/LoginPage";
 import { ReviewDocumentPage } from "../review/ReviewDocumentPage";
 import { ReviewQueuePage } from "../review/ReviewQueuePage";
+import { UploadPage } from "../upload/UploadPage";
+import { ReconciliationPage } from "../reconcile/ReconciliationPage";
 
 export function App() {
   const [user, setUser] = useState<User | null | undefined>(undefined);
@@ -46,8 +48,28 @@ export function App() {
       <header className="topbar">
         <div>
           <span className="eyebrow">IVIDA OPERATIONS</span>
-          <h1>Document Review</h1>
+          <h1>Finance Document Control</h1>
         </div>
+        <nav className="primary-nav" aria-label="Primary navigation">
+          <button
+            className={path === "/upload" ? "active" : ""}
+            onClick={() => navigate("/upload")}
+          >
+            Upload
+          </button>
+          <button
+            className={path === "/" || versionMatch ? "active" : ""}
+            onClick={() => navigate("/")}
+          >
+            Review
+          </button>
+          <button
+            className={path === "/reconcile" ? "active" : ""}
+            onClick={() => navigate("/reconcile")}
+          >
+            Reconcile
+          </button>
+        </nav>
         <div className="user-chip">
           <span>{user.username}</span>
           <small>{user.role}</small>
@@ -63,7 +85,11 @@ export function App() {
         </div>
       </header>
       <main>
-        {versionMatch ? (
+        {path === "/upload" ? (
+          <UploadPage onNavigate={navigate} />
+        ) : path === "/reconcile" ? (
+          <ReconciliationPage />
+        ) : versionMatch ? (
           <ReviewDocumentPage
             versionId={decodeURIComponent(versionMatch[1])}
             onNavigate={navigate}

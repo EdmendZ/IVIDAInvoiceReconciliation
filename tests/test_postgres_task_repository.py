@@ -41,4 +41,4 @@ def test_repository_round_trip() -> None:
     assert loaded.task_id == task.task_id
     assert loaded.document_type == DocumentType.INVOICE
     assert loaded.status == ExtractionStatus.UPLOADED
-
+    assert repository.list_recent() == [loaded]

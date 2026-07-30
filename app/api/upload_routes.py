@@ -1,8 +1,23 @@
 from typing import Annotated
 
-from fastapi import APIRouter, Depends, File, Form, HTTPException, UploadFile, status
+from fastapi import (
+    APIRouter,
+    Depends,
+    File,
+    Form,
+    HTTPException,
+    Query,
+    UploadFile,
+    status,
+)
 
-from app.api.dependencies import get_document_upload_service
+from app.api.auth_dependencies import require_reviewer
+from app.api.dependencies import (
+    get_document_upload_service,
+    get_run_repository,
+)
+from app.domain.admin_users import AuthenticatedUser
+from app.services.ports import ExtractionRunRepository
 from app.core.config import get_settings
 from app.domain.documents import DocumentType
 from app.domain.extraction_tasks import ExtractionTask
@@ -13,6 +28,26 @@ from app.services.document_upload_service import (
 )
 
 router = APIRouter(prefix="/api", tags=["document extraction"])
+
+
+@router.get("/extraction-tasks")
+def list_extraction_tasks(
+    limit: int = Query(default=50, ge=1, le=200),
+    service: DocumentUploadService = Depends(get_document_upload_service),
+    run_repository: ExtractionRunRepository = Depends(get_run_repository),
+    user: AuthenticatedUser = Depends(require_reviewer),
+) -> list[dict]:
+    del user
+    result: list[dict] = []
+    for task in service.list_tasks(limit):
+        run = run_repository.get_latest_for_task(task.task_id)
+        result.append(
+            {
+                "task": task.model_dump(mode="json"),
+                "latest_run": run.model_dump(mode="json") if run else None,
+            }
+        )
+    return result
 
 
 @router.post(
@@ -66,4 +101,3 @@ def get_extraction_task(
             status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
             detail="Task storage is temporarily unavailable",
         ) from exc
-

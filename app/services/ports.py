@@ -32,6 +32,8 @@ class ExtractionTaskRepository(Protocol):
 
     def get(self, task_id: str) -> ExtractionTask | None: ...
 
+    def list_recent(self, limit: int = 100) -> list[ExtractionTask]: ...
+
     def update_status(
         self,
         task_id: str,
@@ -44,6 +46,8 @@ class ExtractionRunRepository(Protocol):
     def create(self, run: ExtractionRun) -> None: ...
 
     def get(self, run_id: str) -> ExtractionRun | None: ...
+
+    def get_latest_for_task(self, task_id: str) -> ExtractionRun | None: ...
 
     def claim_next(
         self,
