@@ -25,6 +25,10 @@ class ReviewConflict(RuntimeError):
     pass
 
 
+class DocumentTypeConfirmationMismatch(RuntimeError):
+    pass
+
+
 class ReviewService:
     def __init__(
         self,
@@ -72,13 +76,7 @@ class ReviewService:
         reason: str,
     ) -> DocumentVersion:
         current = self._require_version(version_id)
-        latest = self._reviews.get_latest_version(current.task_id)
-        if (
-            current.status != DocumentVersionStatus.DRAFT
-            or latest is None
-            or latest.version_id != current.version_id
-        ):
-            raise ReviewConflict("A newer or immutable version exists")
+        self._require_editable_latest(current)
         document = self._validate_document(
             current.document_type,
             document_json,
@@ -100,14 +98,53 @@ class ReviewService:
         )
         return new_version
 
+    def reclassify(
+        self,
+        version_id: str,
+        target_document_type: DocumentType,
+        user: AuthenticatedUser,
+        *,
+        reason: str,
+    ) -> DocumentVersion:
+        current = self._require_version(version_id)
+        self._require_editable_latest(current)
+        if target_document_type == current.document_type:
+            raise ReviewConflict("Document already has the selected type")
+        payload = dict(current.document_json)
+        payload["document_type"] = target_document_type.value
+        document = self._validate_document(target_document_type, payload)
+        new_version = self._reviews.create_version(
+            task_id=current.task_id,
+            source_draft_id=current.source_draft_id,
+            document_type=target_document_type.value,
+            document_json=document.model_dump(mode="json"),
+            created_by=user.user_id,
+        )
+        self._reviews.append_action(
+            version_id=new_version.version_id,
+            actor_user_id=user.user_id,
+            action="document_reclassified",
+            field_path="document_type",
+            old_value=current.document_type.value,
+            new_value=target_document_type.value,
+            reason=reason.strip() or "Reviewer corrected document type",
+        )
+        return new_version
+
     def approve(
         self,
         version_id: str,
         user: AuthenticatedUser,
         *,
         reason: str,
+        confirmed_document_type: DocumentType,
     ) -> DocumentVersion:
         current = self._require_version(version_id)
+        self._require_editable_latest(current)
+        if confirmed_document_type != current.document_type:
+            raise DocumentTypeConfirmationMismatch(
+                "Confirmed document type does not match the reviewed version"
+            )
         document = self._validate_document(
             current.document_type,
             current.document_json,
@@ -174,7 +211,9 @@ class ReviewService:
 
     def list_queue(self) -> list[dict]:
         versions = self._reviews.list_versions()
-        by_task = {version.task_id: version for version in versions}
+        by_task: dict[str, DocumentVersion] = {}
+        for version in versions:
+            by_task.setdefault(version.task_id, version)
         result: list[dict] = []
         for bundle in self._drafts.list_latest():
             version = by_task.get(bundle.draft.task_id)
@@ -186,12 +225,23 @@ class ReviewService:
                     "status": (
                         version.status.value if version else "ready_for_review"
                     ),
-                    "document_type": bundle.draft.document_type.value,
-                    "document_number": bundle.draft.normalized_json.get(
-                        "document_number"
+                    "document_type": (
+                        version.document_type.value
+                        if version
+                        else bundle.draft.document_type.value
+                    ),
+                    "document_number": (
+                        version.document_json.get("document_number")
+                        if version
+                        else bundle.draft.normalized_json.get("document_number")
                     ),
                     "supplier": (
-                        bundle.draft.normalized_json.get("supplier") or {}
+                        (
+                            version.document_json.get("supplier")
+                            if version
+                            else bundle.draft.normalized_json.get("supplier")
+                        )
+                        or {}
                     ).get("name"),
                     "validation_state": bundle.draft.validation_state.value,
                     "blocking_count": sum(
@@ -212,6 +262,15 @@ class ReviewService:
         if version is None:
             raise ReviewVersionNotFound(version_id)
         return version
+
+    def _require_editable_latest(self, current: DocumentVersion) -> None:
+        latest = self._reviews.get_latest_version(current.task_id)
+        if (
+            current.status != DocumentVersionStatus.DRAFT
+            or latest is None
+            or latest.version_id != current.version_id
+        ):
+            raise ReviewConflict("A newer or immutable version exists")
 
     @staticmethod
     def _validate_document(document_type: DocumentType, payload: dict):

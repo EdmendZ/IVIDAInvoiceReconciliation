@@ -25,7 +25,12 @@ from app.infra.postgres_review_repository import (
     PostgresReviewRepository,
 )
 from app.infra.postgres_task_repository import PostgresExtractionTaskRepository
-from app.services.review_service import ReviewService, UnresolvedBlockingIssues
+from app.services.review_service import (
+    DocumentTypeConfirmationMismatch,
+    ReviewConflict,
+    ReviewService,
+    UnresolvedBlockingIssues,
+)
 from app.services.validation_service import ValidationService
 
 
@@ -119,7 +124,12 @@ def _build_service():
 def test_approval_creates_immutable_approved_version() -> None:
     service, repository, user, task_id = _build_service()
     version = service.start_review(task_id, user)
-    approved = service.approve(version.version_id, user, reason="Verified")
+    approved = service.approve(
+        version.version_id,
+        user,
+        reason="Verified",
+        confirmed_document_type=DocumentType.INVOICE,
+    )
     assert approved.status.value == "approved"
     assert approved.approved_by == user.user_id
     with pytest.raises(ApprovedVersionImmutable):
@@ -140,4 +150,51 @@ def test_blocking_arithmetic_issue_prevents_approval() -> None:
         reason="Entered printed total",
     )
     with pytest.raises(UnresolvedBlockingIssues):
-        service.approve(edited.version_id, user, reason="Checked")
+        service.approve(
+            edited.version_id,
+            user,
+            reason="Checked",
+            confirmed_document_type=DocumentType.INVOICE,
+        )
+
+
+def test_reclassify_creates_audited_new_version() -> None:
+    service, repository, user, task_id = _build_service()
+    version = service.start_review(task_id, user)
+
+    reclassified = service.reclassify(
+        version.version_id,
+        DocumentType.RECEIVE_NOTE,
+        user,
+        reason="Source is a goods received note",
+    )
+
+    assert reclassified.version_number == 2
+    assert reclassified.document_type == DocumentType.RECEIVE_NOTE
+    assert reclassified.document_json["document_type"] == "receive_note"
+    assert service.list_queue()[0]["document_type"] == "receive_note"
+    actions = repository.list_actions(reclassified.version_id)
+    assert [item.action for item in actions] == ["document_reclassified"]
+    assert actions[0].old_value == "invoice"
+    assert actions[0].new_value == "receive_note"
+
+    with pytest.raises(ReviewConflict):
+        service.approve(
+            version.version_id,
+            user,
+            reason="Trying the obsolete version",
+            confirmed_document_type=DocumentType.INVOICE,
+        )
+
+
+def test_approval_requires_matching_type_confirmation() -> None:
+    service, _, user, task_id = _build_service()
+    version = service.start_review(task_id, user)
+
+    with pytest.raises(DocumentTypeConfirmationMismatch):
+        service.approve(
+            version.version_id,
+            user,
+            reason="Wrong confirmation",
+            confirmed_document_type=DocumentType.RECEIVE_NOTE,
+        )

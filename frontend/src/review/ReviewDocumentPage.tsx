@@ -7,6 +7,7 @@ type Detail = {
     version_id: string;
     version_number: number;
     status: string;
+    document_type: "invoice" | "receive_note";
     document_json: Record<string, unknown>;
   };
   evidence: Array<{
@@ -37,10 +38,16 @@ export function ReviewDocumentPage({
   const [editor, setEditor] = useState("");
   const [message, setMessage] = useState("");
   const [busy, setBusy] = useState(false);
+  const [selectedType, setSelectedType] = useState<
+    "invoice" | "receive_note"
+  >("invoice");
+  const [typeConfirmed, setTypeConfirmed] = useState(false);
 
   useEffect(() => {
     if (detail.data) {
       setEditor(JSON.stringify(detail.data.version.document_json, null, 2));
+      setSelectedType(detail.data.version.document_type);
+      setTypeConfirmed(false);
     }
   }, [detail.data]);
 
@@ -79,11 +86,58 @@ export function ReviewDocumentPage({
     try {
       await api(`/api/review/versions/${versionId}/${action}`, {
         method: "POST",
-        body: JSON.stringify({ reason }),
+        body: JSON.stringify(
+          action === "approve"
+            ? {
+                reason,
+                confirmed_document_type: detail.data?.version.document_type,
+              }
+            : { reason },
+        ),
       });
       onNavigate("/");
     } catch (problem) {
       setMessage(problem instanceof Error ? problem.message : "Action failed");
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function reclassify() {
+    if (!detail.data || selectedType === detail.data.version.document_type) {
+      return;
+    }
+    const currentLabel =
+      detail.data.version.document_type === "invoice"
+        ? "Invoice"
+        : "Receive Note";
+    const nextLabel =
+      selectedType === "invoice" ? "Invoice" : "Receive Note";
+    if (
+      !window.confirm(
+        `Change document type from ${currentLabel} to ${nextLabel}? A new audited version will be created.`,
+      )
+    ) {
+      return;
+    }
+    setBusy(true);
+    setMessage("");
+    try {
+      const next = await api<{ version_id: string }>(
+        `/api/review/versions/${versionId}/reclassify`,
+        {
+          method: "POST",
+          body: JSON.stringify({
+            document_type: selectedType,
+            reason: "Reviewer corrected document type from source evidence",
+          }),
+        },
+      );
+      onNavigate(`/review/${next.version_id}`, true);
+    } catch (problem) {
+      setMessage(
+        problem instanceof Error ? problem.message : "Reclassification failed",
+      );
     } finally {
       setBusy(false);
     }
@@ -111,6 +165,63 @@ export function ReviewDocumentPage({
           {detail.data.version.status}
         </span>
       </div>
+      <section className="type-control-card" aria-labelledby="document-type-title">
+        <div>
+          <span className="eyebrow">CLASSIFICATION CONTROL</span>
+          <h3 id="document-type-title">Confirm the source document type</h3>
+          <p>
+            Approval confirms this classification. If it is wrong, reclassify
+            the draft before approving it.
+          </p>
+        </div>
+        <div className="type-control-actions">
+          <label>
+            Document type
+            <select
+              value={selectedType}
+              disabled={busy || detail.data.version.status !== "draft"}
+              onChange={(event) => {
+                setSelectedType(
+                  event.target.value as "invoice" | "receive_note",
+                );
+                setTypeConfirmed(false);
+              }}
+            >
+              <option value="invoice">Invoice</option>
+              <option value="receive_note">Receive Note</option>
+            </select>
+          </label>
+          <button
+            disabled={
+              busy ||
+              detail.data.version.status !== "draft" ||
+              selectedType === detail.data.version.document_type
+            }
+            onClick={reclassify}
+          >
+            Reclassify as new version
+          </button>
+        </div>
+        {selectedType === detail.data.version.document_type ? (
+          <label className="type-confirmation">
+            <input
+              type="checkbox"
+              checked={typeConfirmed}
+              disabled={busy || detail.data.version.status !== "draft"}
+              onChange={(event) => setTypeConfirmed(event.target.checked)}
+            />
+            I checked the source and confirm this is a{" "}
+            <strong>
+              {selectedType === "invoice" ? "Invoice" : "Receive Note"}
+            </strong>
+            .
+          </label>
+        ) : (
+          <div className="type-warning">
+            Save the new classification before approval.
+          </div>
+        )}
+      </section>
       <div className="review-layout">
         <aside className="source-panel">
           <h3>Source evidence</h3>
@@ -161,6 +272,8 @@ export function ReviewDocumentPage({
           disabled={
             busy ||
             blockers.length > 0 ||
+            !typeConfirmed ||
+            selectedType !== detail.data.version.document_type ||
             detail.data.version.status !== "draft"
           }
           onClick={() => decide("approve")}

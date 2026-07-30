@@ -5,11 +5,13 @@ from app.api.auth_dependencies import require_reviewer
 from app.api.dependencies import get_review_service
 from app.domain.admin_users import AuthenticatedUser
 from app.domain.document_versions import DocumentVersionStatus
+from app.domain.documents import DocumentType
 from app.infra.postgres_review_repository import (
     ApprovedVersionImmutable,
     ReviewVersionNotFound,
 )
 from app.services.review_service import (
+    DocumentTypeConfirmationMismatch,
     ReviewConflict,
     ReviewService,
     UnresolvedBlockingIssues,
@@ -25,6 +27,15 @@ class EditRequest(BaseModel):
 
 class DecisionRequest(BaseModel):
     reason: str = ""
+
+
+class ApprovalRequest(DecisionRequest):
+    confirmed_document_type: DocumentType
+
+
+class ReclassifyRequest(BaseModel):
+    document_type: DocumentType
+    reason: str = "Reviewer corrected document type"
 
 
 @router.get("/tasks")
@@ -91,10 +102,28 @@ def save_edit(
         raise HTTPException(status_code=409, detail=str(exc)) from exc
 
 
+@router.post("/versions/{version_id}/reclassify")
+def reclassify(
+    version_id: str,
+    request: ReclassifyRequest,
+    service: ReviewService = Depends(get_review_service),
+    user: AuthenticatedUser = Depends(require_reviewer),
+) -> dict:
+    try:
+        return service.reclassify(
+            version_id,
+            request.document_type,
+            user,
+            reason=request.reason,
+        ).model_dump(mode="json")
+    except ReviewConflict as exc:
+        raise HTTPException(status_code=409, detail=str(exc)) from exc
+
+
 @router.post("/versions/{version_id}/approve")
 def approve(
     version_id: str,
-    request: DecisionRequest,
+    request: ApprovalRequest,
     service: ReviewService = Depends(get_review_service),
     user: AuthenticatedUser = Depends(require_reviewer),
 ) -> dict:
@@ -103,8 +132,14 @@ def approve(
             version_id,
             user,
             reason=request.reason,
+            confirmed_document_type=request.confirmed_document_type,
         ).model_dump(mode="json")
-    except (UnresolvedBlockingIssues, ApprovedVersionImmutable) as exc:
+    except (
+        DocumentTypeConfirmationMismatch,
+        ReviewConflict,
+        UnresolvedBlockingIssues,
+        ApprovedVersionImmutable,
+    ) as exc:
         raise HTTPException(status_code=409, detail=str(exc)) from exc
 
 
