@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { createContext, useContext, useMemo, useState } from "react";
 
 type Evidence = {
   field_path: string;
@@ -6,7 +6,15 @@ type Evidence = {
   page: number | null;
 };
 
+type FieldIssue = {
+  rule_code: string;
+  severity: "blocking" | "warning";
+  field_path: string;
+  message: string;
+};
+
 type JsonRecord = Record<string, unknown>;
+const IssueContext = createContext<FieldIssue[]>([]);
 
 function isRecord(value: unknown): value is JsonRecord {
   return Boolean(value) && typeof value === "object" && !Array.isArray(value);
@@ -73,6 +81,10 @@ function evidencePath(path: Array<string | number>): string {
   }, "");
 }
 
+function canonicalIssuePath(path: string): string {
+  return path.replace(/\.(\d+)(?=\.|$)/g, "[$1]");
+}
+
 function EvidenceHint({
   fieldPath,
   evidence,
@@ -120,8 +132,19 @@ function Field({
   const value = textValue(atPath(document, path));
   const fieldPath = evidencePath(path);
   const inputId = `document-${fieldPath.replace(/[^a-zA-Z0-9]+/g, "-")}`;
+  const issues = useContext(IssueContext).filter(
+    (issue) => canonicalIssuePath(issue.field_path) === fieldPath,
+  );
+  const fieldSeverity = issues.some((issue) => issue.severity === "blocking")
+    ? "blocking"
+    : issues.length
+      ? "warning"
+      : "";
   return (
-    <label className="structured-field" htmlFor={inputId}>
+    <label
+      className={`structured-field ${fieldSeverity}`}
+      htmlFor={inputId}
+    >
       <span>
         {label}
         {required && <b aria-label="required">*</b>}
@@ -136,6 +159,14 @@ function Field({
         }
       />
       <EvidenceHint fieldPath={fieldPath} evidence={evidence} />
+      {issues.map((issue, index) => (
+        <small
+          className={`field-validation ${issue.severity}`}
+          key={`${issue.rule_code}-${index}`}
+        >
+          {issue.message}
+        </small>
+      ))}
     </label>
   );
 }
@@ -143,10 +174,12 @@ function Field({
 export function StructuredDocumentEditor({
   editor,
   evidence,
+  issues,
   onChange,
 }: {
   editor: string;
   evidence: Evidence[];
+  issues: FieldIssue[];
   onChange: (value: string) => void;
 }) {
   const [mode, setMode] = useState<"form" | "json">("form");
@@ -193,7 +226,8 @@ export function StructuredDocumentEditor({
   }
 
   return (
-    <div className="structured-editor">
+    <IssueContext.Provider value={issues}>
+      <div className="structured-editor">
       <div className="editor-mode-tabs">
         <button
           className={mode === "form" ? "active" : ""}
@@ -420,6 +454,7 @@ export function StructuredDocumentEditor({
           </section>
         </div>
       )}
-    </div>
+      </div>
+    </IssueContext.Provider>
   );
 }

@@ -84,6 +84,20 @@ def get_review_version(
         raise HTTPException(status_code=404, detail="Version not found") from exc
 
 
+@router.post("/versions/{version_id}/validate")
+def preview_validation(
+    version_id: str,
+    request: EditRequest,
+    service: ReviewService = Depends(get_review_service),
+    user: AuthenticatedUser = Depends(require_reviewer),
+) -> dict:
+    del user
+    try:
+        return service.preview_validation(version_id, request.document)
+    except ReviewVersionNotFound as exc:
+        raise HTTPException(status_code=404, detail="Version not found") from exc
+
+
 @router.patch("/versions/{version_id}")
 def save_edit(
     version_id: str,

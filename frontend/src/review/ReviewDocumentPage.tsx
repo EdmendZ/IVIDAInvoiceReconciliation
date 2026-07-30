@@ -21,8 +21,24 @@ type Detail = {
     severity: "blocking" | "warning";
     field_path: string;
     message: string;
+    measured_difference?: string | null;
   }>;
   actions: Array<{ action: string; reason: string | null; created_at: string }>;
+};
+
+type LiveIssue = {
+  rule_code: string;
+  severity: "blocking" | "warning";
+  field_path: string;
+  message: string;
+  measured_difference: string | null;
+};
+
+type ValidationPreview = {
+  schema_valid: boolean;
+  blocking_count: number;
+  warning_count: number;
+  issues: LiveIssue[];
 };
 
 export function ReviewDocumentPage({
@@ -43,6 +59,10 @@ export function ReviewDocumentPage({
     "invoice" | "receive_note"
   >("invoice");
   const [typeConfirmed, setTypeConfirmed] = useState(false);
+  const [validationPreview, setValidationPreview] =
+    useState<ValidationPreview | null>(null);
+  const [validationBusy, setValidationBusy] = useState(false);
+  const [validationError, setValidationError] = useState("");
 
   useEffect(() => {
     if (detail.data) {
@@ -52,9 +72,69 @@ export function ReviewDocumentPage({
     }
   }, [detail.data]);
 
-  const blockers = useMemo(
-    () => detail.data?.issues.filter((issue) => issue.severity === "blocking") ?? [],
-    [detail.data],
+  useEffect(() => {
+    if (!detail.data || detail.data.version.status !== "draft") return;
+    let document: Record<string, unknown>;
+    try {
+      const parsed: unknown = JSON.parse(editor);
+      if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) {
+        throw new Error("Document must be a JSON object");
+      }
+      document = parsed as Record<string, unknown>;
+    } catch {
+      setValidationPreview({
+        schema_valid: false,
+        blocking_count: 1,
+        warning_count: 0,
+        issues: [
+          {
+            rule_code: "JSON_INVALID",
+            severity: "blocking",
+            field_path: "document",
+            message: "Document JSON is invalid",
+            measured_difference: null,
+          },
+        ],
+      });
+      setValidationBusy(false);
+      return;
+    }
+
+    const controller = new AbortController();
+    const timer = window.setTimeout(async () => {
+      setValidationBusy(true);
+      setValidationError("");
+      try {
+        const preview = await api<ValidationPreview>(
+          `/api/review/versions/${versionId}/validate`,
+          {
+            method: "POST",
+            body: JSON.stringify({ document }),
+            signal: controller.signal,
+          },
+        );
+        setValidationPreview(preview);
+      } catch (problem) {
+        if (problem instanceof Error && problem.name === "AbortError") return;
+        setValidationError(
+          problem instanceof Error
+            ? problem.message
+            : "Live validation failed",
+        );
+        setValidationPreview(null);
+      } finally {
+        if (!controller.signal.aborted) setValidationBusy(false);
+      }
+    }, 450);
+    return () => {
+      window.clearTimeout(timer);
+      controller.abort();
+    };
+  }, [detail.data, editor, versionId]);
+
+  const displayedIssues = useMemo(
+    () => validationPreview?.issues ?? detail.data?.issues ?? [],
+    [detail.data, validationPreview],
   );
 
   async function save() {
@@ -246,20 +326,39 @@ export function ReviewDocumentPage({
           <StructuredDocumentEditor
             editor={editor}
             evidence={detail.data.evidence}
+            issues={displayedIssues}
             onChange={setEditor}
           />
         </div>
         <aside className="issues-panel">
-          <h3>Validation</h3>
-          {detail.data.issues.map((issue) => (
-            <article className={`issue ${issue.severity}`} key={issue.rule_code}>
+          <div className="validation-heading">
+            <h3>Live validation</h3>
+            {validationBusy && <span>Checking…</span>}
+          </div>
+          {validationPreview && (
+            <div className="validation-summary">
+              <strong>{validationPreview.blocking_count}</strong> blocking ·{" "}
+              <strong>{validationPreview.warning_count}</strong> warning
+            </div>
+          )}
+          {validationError && (
+            <div className="error-banner">{validationError}</div>
+          )}
+          {displayedIssues.map((issue, index) => (
+            <article
+              className={`issue ${issue.severity}`}
+              key={`${issue.rule_code}-${issue.field_path}-${index}`}
+            >
               <strong>{issue.rule_code}</strong>
               <span>{issue.field_path}</span>
               <p>{issue.message}</p>
+              {issue.measured_difference && (
+                <small>Difference: {issue.measured_difference}</small>
+              )}
             </article>
           ))}
-          {!detail.data.issues.length && (
-            <div className="success-banner">No validation issues.</div>
+          {!displayedIssues.length && !validationBusy && (
+            <div className="success-banner">All current checks passed.</div>
           )}
         </aside>
       </div>
@@ -277,7 +376,9 @@ export function ReviewDocumentPage({
           className="primary"
           disabled={
             busy ||
-            blockers.length > 0 ||
+            validationBusy ||
+            !validationPreview ||
+            validationPreview.blocking_count > 0 ||
             !typeConfirmed ||
             selectedType !== detail.data.version.document_type ||
             detail.data.version.status !== "draft"

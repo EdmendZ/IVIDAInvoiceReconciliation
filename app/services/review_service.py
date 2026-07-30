@@ -1,5 +1,7 @@
 from typing import Protocol
 
+from pydantic import ValidationError
+
 from app.domain.admin_users import AuthenticatedUser
 from app.domain.document_drafts import DraftBundle
 from app.domain.document_versions import (
@@ -201,6 +203,44 @@ class ReviewService:
                 if bundle
                 else []
             ),
+        }
+
+    def preview_validation(
+        self,
+        version_id: str,
+        document_json: dict,
+    ) -> dict:
+        current = self._require_version(version_id)
+        try:
+            document = self._validate_document(
+                current.document_type,
+                document_json,
+            )
+        except ValidationError as exc:
+            issues = [
+                {
+                    "rule_code": "SCHEMA_INVALID",
+                    "severity": "blocking",
+                    "field_path": ".".join(str(part) for part in error["loc"]),
+                    "message": error["msg"],
+                    "measured_difference": None,
+                }
+                for error in exc.errors(include_url=False)
+            ]
+            return {
+                "schema_valid": False,
+                "blocking_count": len(issues),
+                "warning_count": 0,
+                "issues": issues,
+            }
+        report = self._validator.validate(document)
+        return {
+            "schema_valid": True,
+            "blocking_count": report.blocking_count,
+            "warning_count": report.warning_count,
+            "issues": [
+                issue.model_dump(mode="json") for issue in report.issues
+            ],
         }
 
     def list_versions(

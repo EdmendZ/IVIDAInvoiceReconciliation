@@ -198,3 +198,24 @@ def test_approval_requires_matching_type_confirmation() -> None:
             reason="Wrong confirmation",
             confirmed_document_type=DocumentType.RECEIVE_NOTE,
         )
+
+
+def test_validation_preview_returns_financial_and_schema_issues() -> None:
+    service, _, user, task_id = _build_service()
+    version = service.start_review(task_id, user)
+    mismatched = dict(version.document_json)
+    mismatched["total"] = "99.00"
+
+    financial = service.preview_validation(version.version_id, mismatched)
+
+    assert financial["schema_valid"] is True
+    assert financial["blocking_count"] == 1
+    assert financial["issues"][0]["rule_code"] == "TOTAL_MISMATCH"
+
+    invalid = dict(version.document_json)
+    invalid["items"] = []
+    schema = service.preview_validation(version.version_id, invalid)
+
+    assert schema["schema_valid"] is False
+    assert schema["blocking_count"] == 1
+    assert schema["issues"][0]["rule_code"] == "SCHEMA_INVALID"
