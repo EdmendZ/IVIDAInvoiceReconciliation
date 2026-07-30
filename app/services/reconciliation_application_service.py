@@ -3,12 +3,15 @@ from typing import Protocol
 from uuid import uuid4
 
 from app.domain.document_versions import DocumentVersion
+from app.domain.document_versions import DocumentVersionStatus
 from app.domain.documents import DocumentType, Invoice, ReceiveNote
 from app.domain.reconciliation import (
     ReconciliationRequest,
     ReconciliationTolerance,
 )
+from app.domain.reconciliation_candidates import ReconciliationCandidate
 from app.domain.reconciliation_records import ReconciliationRecord
+from app.services.candidate_matching_service import assess_candidate
 from app.services.reconciliation_service import reconcile
 
 
@@ -18,6 +21,12 @@ class DocumentNotApproved(RuntimeError):
 
 class ApprovedVersionReader(Protocol):
     def get_approved_version(self, version_id: str) -> DocumentVersion | None: ...
+
+    def list_versions(
+        self,
+        *,
+        status: DocumentVersionStatus | None = None,
+    ) -> list[DocumentVersion]: ...
 
 
 class ReconciliationWriter(Protocol):
@@ -33,6 +42,34 @@ class ReconciliationApplicationService:
     ) -> None:
         self._reviews = review_repository
         self._reconciliations = reconciliation_repository
+
+    def list_candidates(
+        self,
+        approved_invoice_version_id: str,
+    ) -> list[ReconciliationCandidate]:
+        invoice_version = self._require_approved(
+            approved_invoice_version_id,
+            DocumentType.INVOICE,
+        )
+        invoice = Invoice.model_validate(invoice_version.document_json)
+        candidates = [
+            assess_candidate(
+                invoice=invoice,
+                receive_note=ReceiveNote.model_validate(version.document_json),
+                receive_note_version_id=version.version_id,
+            )
+            for version in self._reviews.list_versions(
+                status=DocumentVersionStatus.APPROVED
+            )
+            if version.document_type == DocumentType.RECEIVE_NOTE
+        ]
+        return sorted(
+            candidates,
+            key=lambda candidate: (
+                -candidate.score,
+                candidate.document_number,
+            ),
+        )
 
     def compare(
         self,

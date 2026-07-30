@@ -76,6 +76,24 @@ class ApprovedReconciliationRequest(BaseModel):
     receive_note_version_ids: list[str] = Field(min_length=1)
 
 
+@router.get("/reconciliations/candidates")
+def list_reconciliation_candidates(
+    invoice_version_id: str,
+    service: ReconciliationApplicationService = Depends(
+        get_reconciliation_application_service
+    ),
+    user: AuthenticatedUser = Depends(require_reviewer),
+) -> list[dict]:
+    del user
+    try:
+        return [
+            candidate.model_dump(mode="json")
+            for candidate in service.list_candidates(invoice_version_id)
+        ]
+    except DocumentNotApproved as exc:
+        raise HTTPException(status_code=409, detail=str(exc)) from exc
+
+
 @router.post("/reconciliations")
 def create_reconciliation(
     request: ApprovedReconciliationRequest,

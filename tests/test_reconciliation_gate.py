@@ -23,6 +23,13 @@ class VersionReader:
             return version
         return None
 
+    def list_versions(self, *, status=None):
+        return [
+            version
+            for version in self.versions.values()
+            if status is None or version.status == status
+        ]
+
 
 class RecordWriter:
     def __init__(self) -> None:
@@ -121,3 +128,31 @@ def test_approved_versions_create_persistent_result() -> None:
     assert record.result.summary.total_lines == 1
     assert record.result.summary.requires_review is False
     assert writer.records == [record]
+
+
+def test_candidates_only_include_approved_receive_notes() -> None:
+    invoice = _version(
+        "invoice-approved",
+        DocumentType.INVOICE,
+        DocumentVersionStatus.APPROVED,
+    )
+    approved_note = _version(
+        "note-approved",
+        DocumentType.RECEIVE_NOTE,
+        DocumentVersionStatus.APPROVED,
+    )
+    draft_note = _version(
+        "note-draft",
+        DocumentType.RECEIVE_NOTE,
+        DocumentVersionStatus.DRAFT,
+    )
+    service = ReconciliationApplicationService(
+        review_repository=VersionReader([invoice, approved_note, draft_note]),
+        reconciliation_repository=RecordWriter(),
+    )
+
+    candidates = service.list_candidates(invoice.version_id)
+
+    assert [item.receive_note_version_id for item in candidates] == [
+        approved_note.version_id
+    ]

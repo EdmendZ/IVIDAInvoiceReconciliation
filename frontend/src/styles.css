@@ -261,7 +261,7 @@ button:disabled { cursor: not-allowed; opacity: .5; }
   display: grid;
   gap: 7px;
   margin-top: 8px;
-  max-height: 180px;
+  max-height: 360px;
   overflow-y: auto;
 }
 .check-option {
@@ -277,6 +277,62 @@ button:disabled { cursor: not-allowed; opacity: .5; }
 .check-option input { width: auto; }
 .check-option span { display: grid; font-weight: 400; }
 .check-option small { color: #76827d; }
+.candidate-guidance {
+  color: #718078;
+  font-size: 12px;
+  line-height: 1.45;
+  margin: 6px 0 0;
+}
+.candidate-option {
+  align-items: flex-start;
+  border-left: 4px solid #cbd6d1;
+}
+.candidate-option.high { border-left-color: #2b9577; }
+.candidate-option.medium { border-left-color: #d1a63b; }
+.candidate-option.low { border-left-color: #c66b5d; }
+.candidate-option input { margin-top: 4px; }
+.candidate-main { min-width: 0; width: 100%; }
+.candidate-title {
+  align-items: center;
+  display: flex !important;
+  gap: 7px;
+}
+.recommended-badge,
+.score-badge {
+  border-radius: 999px;
+  font-size: 10px;
+  padding: 3px 7px;
+}
+.recommended-badge { background: #dff3e9; color: #176849; }
+.score-badge { margin-left: auto; }
+.score-badge.high { background: #dff3e9; color: #176849; }
+.score-badge.medium { background: #fff1cb; color: #7c5d10; }
+.score-badge.low { background: #fbe3df; color: #983d30; }
+.candidate-signals {
+  color: #596760;
+  font-size: 11px;
+  margin-top: 6px;
+}
+.candidate-signals summary {
+  color: #216b59;
+  cursor: pointer;
+  font-weight: 700;
+}
+.candidate-signals ul {
+  display: grid;
+  gap: 3px;
+  list-style: none;
+  margin: 7px 0 0;
+  padding: 0;
+}
+.candidate-signals li {
+  display: flex;
+  gap: 8px;
+  justify-content: space-between;
+}
+.candidate-signals li.match b { color: #24745a; }
+.candidate-signals li.conflict { color: #9a4135; }
+.candidate-signals li.unknown { color: #7b8681; }
 .empty-inline { color: #7c8883; font-size: 13px; padding: 10px; }
 .compare-button { min-height: 44px; }
 .info-banner { background: #e9f1f7; border-radius: 9px; color: #375b76; margin-top: 18px; padding: 14px; }

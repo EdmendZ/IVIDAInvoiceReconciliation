@@ -48,6 +48,25 @@ type ReconciliationRecord = {
   };
 };
 
+type CandidateSignal = {
+  code: string;
+  outcome: "match" | "conflict" | "unknown";
+  message: string;
+  weight: number;
+};
+
+type ReconciliationCandidate = {
+  receive_note_version_id: string;
+  document_number: string;
+  purchase_order_number: string | null;
+  supplier_name: string | null;
+  document_date: string | null;
+  score: number;
+  confidence: "high" | "medium" | "low";
+  recommended: boolean;
+  signals: CandidateSignal[];
+};
+
 export function ReconciliationPage() {
   const versions = useQuery({
     queryKey: ["approved-versions"],
@@ -59,6 +78,14 @@ export function ReconciliationPage() {
   const [result, setResult] = useState<ReconciliationRecord | null>(null);
   const [error, setError] = useState("");
   const [busy, setBusy] = useState(false);
+  const candidates = useQuery({
+    queryKey: ["reconciliation-candidates", invoiceId],
+    queryFn: () =>
+      api<ReconciliationCandidate[]>(
+        `/api/reconciliations/candidates?invoice_version_id=${encodeURIComponent(invoiceId)}`,
+      ),
+    enabled: Boolean(invoiceId),
+  });
 
   const invoices = useMemo(
     () => versions.data?.filter((item) => item.document_type === "invoice") ?? [],
@@ -106,7 +133,12 @@ export function ReconciliationPage() {
           <select
             id="invoice-version"
             value={invoiceId}
-            onChange={(event) => setInvoiceId(event.target.value)}
+            onChange={(event) => {
+              setInvoiceId(event.target.value);
+              setNoteIds([]);
+              setResult(null);
+              setError("");
+            }}
           >
             <option value="">Select an invoice</option>
             {invoices.map((version) => (
@@ -118,34 +150,82 @@ export function ReconciliationPage() {
           </select>
         </div>
         <fieldset>
-          <legend>Approved Receive Notes</legend>
+          <legend>Suggested Receive Notes</legend>
+          <p className="candidate-guidance">
+            Suggestions are ranked by PO, supplier, location, currency, date,
+            and item overlap. A reviewer must still confirm the selection.
+          </p>
           <div className="note-options">
-            {receiveNotes.map((version) => (
-              <label className="check-option" key={version.version_id}>
+            {!invoiceId && (
+              <div className="empty-inline">
+                Select an Invoice to calculate matching candidates.
+              </div>
+            )}
+            {invoiceId && candidates.isLoading && (
+              <div className="empty-inline">Scoring approved Receive Notes…</div>
+            )}
+            {candidates.data?.map((candidate) => (
+              <label
+                className={`check-option candidate-option ${candidate.confidence}`}
+                key={candidate.receive_note_version_id}
+              >
                 <input
                   type="checkbox"
-                  checked={noteIds.includes(version.version_id)}
+                  checked={noteIds.includes(candidate.receive_note_version_id)}
                   onChange={(event) =>
                     setNoteIds((current) =>
                       event.target.checked
-                        ? [...current, version.version_id]
-                        : current.filter((id) => id !== version.version_id),
+                        ? [...current, candidate.receive_note_version_id]
+                        : current.filter(
+                            (id) => id !== candidate.receive_note_version_id,
+                          ),
                     )
                   }
                 />
-                <span>
-                  <strong>
-                    {version.document_json.document_number || "Unnamed note"}
-                  </strong>
+                <span className="candidate-main">
+                  <span className="candidate-title">
+                    <strong>{candidate.document_number}</strong>
+                    {candidate.recommended && (
+                      <b className="recommended-badge">Recommended</b>
+                    )}
+                    <b className={`score-badge ${candidate.confidence}`}>
+                      {candidate.score}/100
+                    </b>
+                  </span>
                   <small>
-                    {version.document_json.purchase_order_number || "No PO"} · v
-                    {version.version_number}
+                    {candidate.purchase_order_number || "No PO"} ·{" "}
+                    {candidate.supplier_name || "Unknown supplier"} ·{" "}
+                    {candidate.document_date || "No date"}
                   </small>
+                  <details
+                    className="candidate-signals"
+                    onClick={(event) => event.stopPropagation()}
+                  >
+                    <summary>Why this score</summary>
+                    <ul>
+                      {candidate.signals.map((signal) => (
+                        <li className={signal.outcome} key={signal.code}>
+                          <span>{signal.message}</span>
+                          <b>{signal.weight > 0 ? `+${signal.weight}` : signal.weight}</b>
+                        </li>
+                      ))}
+                    </ul>
+                  </details>
                 </span>
               </label>
             ))}
-            {!receiveNotes.length && (
+            {invoiceId &&
+              !candidates.isLoading &&
+              !candidates.data?.length &&
+              !candidates.isError && (
               <div className="empty-inline">No approved Receive Notes.</div>
+            )}
+            {candidates.isError && (
+              <div className="error-banner">
+                {candidates.error instanceof Error
+                  ? candidates.error.message
+                  : "Could not calculate candidates"}
+              </div>
             )}
           </div>
         </fieldset>
