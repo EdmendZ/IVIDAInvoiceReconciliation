@@ -1,3 +1,5 @@
+"""人工审核 Version 与追加式 Action 的 PostgreSQL 实现。"""
+
 from datetime import UTC, datetime
 from uuid import uuid4
 
@@ -21,6 +23,8 @@ class ReviewVersionNotFound(LookupError):
 
 
 class PostgresReviewRepository:
+    """持久化不可覆盖的版本快照与审核动作。"""
+
     def __init__(self, session_factory: sessionmaker[Session]) -> None:
         self._session_factory = session_factory
 
@@ -33,6 +37,12 @@ class PostgresReviewRepository:
         document_json: dict,
         created_by: str,
     ) -> DocumentVersion:
+        """为 Task 创建下一个版本号。
+
+        当前 max+1 依赖唯一约束检测并发冲突，符合单审核人 Pilot；高并发环境
+        应增加任务级锁、序列化事务或唯一冲突重试。
+        """
+
         with self._session_factory() as session:
             current = session.execute(
                 select(func.max(DocumentVersionRow.version_number)).where(
@@ -97,8 +107,11 @@ class PostgresReviewRepository:
             return [self._to_version(row) for row in rows]
 
     def approve(self, version_id: str, user_id: str) -> DocumentVersion:
+        """只允许 draft -> approved 的单向条件更新。"""
+
         now = datetime.now(UTC)
         with self._session_factory() as session:
+            # 状态写入 WHERE：并发重复批准时最多一个事务更新成功。
             result = session.execute(
                 update(DocumentVersionRow)
                 .where(
@@ -121,6 +134,8 @@ class PostgresReviewRepository:
         return version
 
     def reject(self, version_id: str) -> DocumentVersion:
+        """只允许 draft -> rejected，已批准/驳回版本保持不可变。"""
+
         with self._session_factory() as session:
             result = session.execute(
                 update(DocumentVersionRow)
@@ -150,6 +165,8 @@ class PostgresReviewRepository:
         new_value=None,
         reason: str | None = None,
     ) -> ReviewAction:
+        """追加一条审计动作；不修改或折叠历史 Action。"""
+
         item = ReviewAction(
             action_id=str(uuid4()),
             version_id=version_id,

@@ -13,7 +13,9 @@
         "docs/business/03-document-lifecycle.md",
         "docs/ai/04-extraction-pipeline.md",
         "docs/operations/08-api-ui-and-local-run.md",
-        "docs/architecture/14-source-code-walkthrough.md"
+        "docs/architecture/14-source-code-walkthrough.md",
+        "docs/architecture/decisions/0002-postgresql-backed-worker-queue.md",
+        "docs/interview/17-code-reading-exercises.md"
       ]
     },
     {
@@ -27,7 +29,9 @@
       ],
       "documents": [
         "docs/business/05-review-and-versioning.md",
-        "docs/reference/11-api-contracts.md"
+        "docs/reference/11-api-contracts.md",
+        "docs/architecture/decisions/0003-human-approved-immutable-versions.md",
+        "docs/interview/17-code-reading-exercises.md"
       ]
     },
     {
@@ -47,11 +51,15 @@
         "app/domain/reconciliation*.py",
         "app/services/candidate_matching_service.py",
         "app/services/reconciliation*.py",
+        "app/infra/postgres_reconciliation_repository.py",
         "frontend/src/reconcile/**"
       ],
       "documents": [
         "docs/business/06-reconciliation-rules.md",
-        "docs/architecture/14-source-code-walkthrough.md"
+        "docs/architecture/14-source-code-walkthrough.md",
+        "docs/architecture/decisions/0004-deterministic-reconciliation.md",
+        "docs/tutorial/16-end-to-end-worked-example.md",
+        "docs/interview/17-code-reading-exercises.md"
       ]
     },
     {
@@ -72,7 +80,8 @@
         "docs/ai/04-extraction-pipeline.md",
         "docs/ai/09-testing-and-evaluation.md",
         "docs/interview/model-selection.md",
-        "docs/architecture/14-source-code-walkthrough.md"
+        "docs/architecture/14-source-code-walkthrough.md",
+        "docs/architecture/decisions/0001-split-parser-and-normalizer.md"
       ]
     },
     {
@@ -85,7 +94,8 @@
       "documents": [
         "docs/architecture/07-data-and-infrastructure.md",
         "docs/postgresql-setup.md",
-        "docs/reference/12-database-dictionary.md"
+        "docs/reference/12-database-dictionary.md",
+        "docs/architecture/decisions/0005-postgresql-and-minio-storage.md"
       ]
     },
     {

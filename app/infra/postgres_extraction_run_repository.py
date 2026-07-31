@@ -1,3 +1,5 @@
+"""ExtractionRun 的 PostgreSQL 状态机与 Worker 领取实现。"""
+
 from datetime import UTC, datetime
 from decimal import Decimal
 
@@ -11,6 +13,8 @@ from app.infra.database_models import ExtractionRunRow
 
 
 class PostgresExtractionRunRepository:
+    """用条件查询、行锁和短租约协调持久化异步任务。"""
+
     def __init__(self, session_factory: sessionmaker[Session]) -> None:
         self._session_factory = session_factory
 
@@ -49,6 +53,8 @@ class PostgresExtractionRunRepository:
         lease_seconds: int,
         now: datetime,
     ) -> ExtractionRun | None:
+        """原子领取一条到期且租约空闲的 Run。"""
+
         eligible = (
             ExtractionRunStatus.QUEUED.value,
             ExtractionRunStatus.PARSING.value,
@@ -72,11 +78,14 @@ class PostgresExtractionRunRepository:
                 .order_by(ExtractionRunRow.created_at)
                 .limit(1)
             )
+            # PostgreSQL 中锁住候选行并跳过其他 Worker 已锁定的任务。
+            # SQLite 测试环境没有等价语义，因此只验证单 Worker 行为。
             if session.bind is not None and session.bind.dialect.name == "postgresql":
                 statement = statement.with_for_update(skip_locked=True)
             row = session.execute(statement).scalar_one_or_none()
             if row is None:
                 return None
+            # 租约允许 Worker 崩溃后任务重新可领取；当前 Pilot 尚无 fencing token。
             row.lease_owner = worker_id
             row.lease_expires_at = now + timedelta(seconds=lease_seconds)
             session.commit()
@@ -106,6 +115,8 @@ class PostgresExtractionRunRepository:
         next_attempt_at: datetime,
         increment_attempt: bool = False,
     ) -> None:
+        """释放租约并把 Run 安排到未来，避免 Worker 忙等远端 API。"""
+
         with self._session_factory() as session:
             values: dict = {
                 "status": ExtractionRunStatus.PARSING.value,
@@ -247,6 +258,8 @@ class PostgresExtractionRunRepository:
         requested_by: str,
         requested_at: datetime,
     ) -> ExtractionRun | None:
+        """幂等记录取消；queued 可立即完成，活动阶段等待 Worker 边界。"""
+
         with self._session_factory() as session:
             row = session.get(ExtractionRunRow, run_id)
             if row is None:
@@ -262,6 +275,7 @@ class PostgresExtractionRunRepository:
             }
             if row.status not in active:
                 return self._to_domain(row)
+            # 保留第一次取消请求的主体和时间，重复点击不会覆盖审计信息。
             row.cancel_requested_at = row.cancel_requested_at or requested_at
             row.cancel_requested_by = row.cancel_requested_by or requested_by
             if row.status == ExtractionRunStatus.QUEUED.value:

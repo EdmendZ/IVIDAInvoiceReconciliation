@@ -31,6 +31,10 @@
 - [PostgreSQL 数据字典](reference/12-database-dictionary.md)
 - [错误码与分层排障](operations/13-error-codes-and-troubleshooting.md)
 - [源码调用链导读](architecture/14-source-code-walkthrough.md)
+- [统一术语表](reference/15-glossary.md)
+- [完整业务算例](tutorial/16-end-to-end-worked-example.md)
+- [面试源码练习](interview/17-code-reading-exercises.md)
+- [架构决策记录](architecture/decisions/README.md)
 
 已有的专题材料：
 
