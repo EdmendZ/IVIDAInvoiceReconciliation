@@ -21,6 +21,27 @@ IVIDA 发票（Invoice）与收货单（Receive Note）比对原型。该项目�
 
 ## 启动
 
+### 推荐：一键启动本机演示
+
+```powershell
+cd E:\ZephyrLLM\Projects\IVIDAInvoiceReconciliation
+.\start_local_demo.ps1
+```
+
+脚本会启动 API、Extraction Worker 和前端，验证 `8200`、`5274`
+端口及健康检查，然后打开 <http://127.0.0.1:5274>。日志保存在
+`logs/local-demo/`。
+
+停止时运行：
+
+```powershell
+.\stop_local_demo.ps1
+```
+
+停止脚本只处理启动器记录且可验证属于本项目的进程，不会按端口盲目结束其他应用。
+
+### 分别启动组件
+
 ```powershell
 cd E:\ZephyrLLM\Projects\IVIDAInvoiceReconciliation
 Copy-Item .env.example .env
