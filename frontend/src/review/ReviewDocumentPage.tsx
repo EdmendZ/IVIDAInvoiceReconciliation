@@ -2,6 +2,12 @@ import { useEffect, useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { api } from "../api/client";
 import { StructuredDocumentEditor } from "./StructuredDocumentEditor";
+import {
+  type ModelRun,
+  presentCost,
+  presentLatency,
+  presentTokens,
+} from "./modelRunPresentation";
 
 type Detail = {
   version: {
@@ -24,6 +30,7 @@ type Detail = {
     measured_difference?: string | null;
   }>;
   actions: Array<{ action: string; reason: string | null; created_at: string }>;
+  model_run: ModelRun | null;
 };
 
 type LiveIssue = {
@@ -313,6 +320,56 @@ export function ReviewDocumentPage({
       <div className="review-layout">
         <aside className="source-panel">
           <h3>Source evidence</h3>
+          {detail.data.model_run && (
+            <details className="model-run-panel">
+              <summary>Model run</summary>
+              <dl>
+                <div>
+                  <dt>Parser</dt>
+                  <dd>
+                    {detail.data.model_run.parser_provider ?? "Unknown"} /{" "}
+                    {detail.data.model_run.parser_model ?? "Unknown"}
+                  </dd>
+                </div>
+                <div>
+                  <dt>Normalizer</dt>
+                  <dd>
+                    {detail.data.model_run.normalizer_provider ?? "Unknown"} /{" "}
+                    {detail.data.model_run.normalizer_model ?? "Unknown"}
+                  </dd>
+                </div>
+                <div>
+                  <dt>Prompt</dt>
+                  <dd>
+                    {detail.data.model_run.prompt_version ?? "Not recorded"}
+                  </dd>
+                </div>
+                <div>
+                  <dt>Tokens</dt>
+                  <dd>
+                    {presentTokens(
+                      detail.data.model_run.input_tokens,
+                      detail.data.model_run.output_tokens,
+                    )}
+                  </dd>
+                </div>
+                <div>
+                  <dt>Normalization</dt>
+                  <dd>
+                    {presentLatency(
+                      detail.data.model_run.normalization_latency_ms,
+                    )}
+                  </dd>
+                </div>
+                <div>
+                  <dt>Estimated cost</dt>
+                  <dd>
+                    {presentCost(detail.data.model_run.estimated_cost_aud)}
+                  </dd>
+                </div>
+              </dl>
+            </details>
+          )}
           {detail.data.evidence.map((item, index) => (
             <article className="evidence" key={`${item.field_path}-${index}`}>
               <strong>{item.field_path}</strong>

@@ -69,6 +69,7 @@ def get_review_service() -> ReviewService:
     return ReviewService(
         review_repository=get_review_repository(),
         draft_repository=get_draft_repository(),
+        run_repository=get_run_repository(),
         validation_service=ValidationService(),
     )
 

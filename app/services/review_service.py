@@ -15,7 +15,7 @@ from app.infra.postgres_review_repository import (
     PostgresReviewRepository,
     ReviewVersionNotFound,
 )
-from app.services.ports import DocumentDraftRepository
+from app.services.ports import DocumentDraftRepository, ExtractionRunRepository
 from app.services.validation_service import ValidationService
 
 
@@ -37,10 +37,12 @@ class ReviewService:
         *,
         review_repository: PostgresReviewRepository,
         draft_repository: DocumentDraftRepository,
+        run_repository: ExtractionRunRepository,
         validation_service: ValidationService,
     ) -> None:
         self._reviews = review_repository
         self._drafts = draft_repository
+        self._runs = run_repository
         self._validator = validation_service
 
     def start_review(
@@ -190,6 +192,7 @@ class ReviewService:
     def get_detail(self, version_id: str) -> dict:
         version, actions = self.get(version_id)
         bundle = self._drafts.get_for_task(version.task_id)
+        run = self._runs.get(bundle.draft.run_id) if bundle else None
         return {
             "version": version.model_dump(mode="json"),
             "actions": [item.model_dump(mode="json") for item in actions],
@@ -202,6 +205,26 @@ class ReviewService:
                 [item.model_dump(mode="json") for item in bundle.issues]
                 if bundle
                 else []
+            ),
+            "model_run": (
+                {
+                    "run_id": run.run_id,
+                    "parser_provider": run.parser_provider or run.provider,
+                    "parser_model": run.parser_model or run.model_name,
+                    "normalizer_provider": run.normalizer_provider,
+                    "normalizer_model": run.normalizer_model,
+                    "prompt_version": run.prompt_version,
+                    "normalization_latency_ms": run.normalization_latency_ms,
+                    "input_tokens": run.input_tokens,
+                    "output_tokens": run.output_tokens,
+                    "estimated_cost_aud": (
+                        str(run.estimated_cost_aud)
+                        if run.estimated_cost_aud is not None
+                        else None
+                    ),
+                }
+                if run
+                else None
             ),
         }
 

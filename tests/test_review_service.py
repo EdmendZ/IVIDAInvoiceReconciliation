@@ -71,6 +71,14 @@ def _build_service():
         provider="mineru",
         model_name="vlm",
         status=ExtractionRunStatus.READY_FOR_REVIEW,
+        parser_provider="mineru",
+        parser_model="vlm",
+        normalizer_provider="openai-compatible",
+        normalizer_model="qwen-test",
+        prompt_version="sha256:1234567890abcdef",
+        normalization_latency_ms=1250,
+        input_tokens=100,
+        output_tokens=50,
         started_at=now,
         created_at=now,
     )
@@ -111,6 +119,7 @@ def _build_service():
     service = ReviewService(
         review_repository=reviews,
         draft_repository=drafts,
+        run_repository=PostgresExtractionRunRepository(factory),
         validation_service=ValidationService(),
     )
     authenticated = AuthenticatedUser(
@@ -119,6 +128,19 @@ def _build_service():
         role=user.role,
     )
     return service, reviews, authenticated, task.task_id
+
+
+def test_review_detail_exposes_safe_model_provenance() -> None:
+    service, _, user, task_id = _build_service()
+    version = service.start_review(task_id, user)
+
+    detail = service.get_detail(version.version_id)
+
+    assert detail["model_run"]["parser_model"] == "vlm"
+    assert detail["model_run"]["normalizer_model"] == "qwen-test"
+    assert detail["model_run"]["prompt_version"] == "sha256:1234567890abcdef"
+    assert detail["model_run"]["input_tokens"] == 100
+    assert "base_url" not in detail["model_run"]
 
 
 def test_approval_creates_immutable_approved_version() -> None:
