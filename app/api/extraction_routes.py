@@ -1,10 +1,12 @@
 from fastapi import APIRouter, Depends, HTTPException, status
 
+from app.api.auth_dependencies import require_reviewer
 from app.api.dependencies import (
     get_draft_repository,
     get_extraction_service,
     get_parse_repository,
 )
+from app.domain.admin_users import AuthenticatedUser
 from app.domain.extraction_runs import ExtractionRun
 from app.services.document_upload_service import ExtractionTaskNotFound
 from app.services.extraction_service import (
@@ -25,7 +27,9 @@ router = APIRouter(prefix="/api", tags=["document extraction"])
 def start_extraction(
     task_id: str,
     service: ExtractionService = Depends(get_extraction_service),
+    user: AuthenticatedUser = Depends(require_reviewer),
 ) -> ExtractionRun:
+    del user
     try:
         run = service.queue(task_id)
     except ExtractionTaskNotFound as exc:
@@ -45,7 +49,9 @@ def start_extraction(
 def get_extraction_run(
     run_id: str,
     service: ExtractionService = Depends(get_extraction_service),
+    user: AuthenticatedUser = Depends(require_reviewer),
 ) -> ExtractionRun:
+    del user
     try:
         return service.get_run(run_id)
     except ExtractionRunNotFound as exc:
@@ -61,7 +67,9 @@ def get_extraction_result(
     service: ExtractionService = Depends(get_extraction_service),
     parse_repository: ParseResultRepository = Depends(get_parse_repository),
     draft_repository: DocumentDraftRepository = Depends(get_draft_repository),
+    user: AuthenticatedUser = Depends(require_reviewer),
 ) -> dict:
+    del user
     try:
         run = service.get_run(run_id)
     except ExtractionRunNotFound as exc:

@@ -2,7 +2,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from app.api.extraction_routes import router as extraction_router
-from app.api.routes import router
+from app.api.routes import diagnostic_router, router
 from app.api.upload_routes import router as upload_router
 from app.api.auth_routes import router as auth_router
 from app.api.review_routes import router as review_router
@@ -27,3 +27,5 @@ app.include_router(upload_router)
 app.include_router(extraction_router)
 app.include_router(auth_router)
 app.include_router(review_router)
+if settings.app_env.lower() == "dev":
+    app.include_router(diagnostic_router)

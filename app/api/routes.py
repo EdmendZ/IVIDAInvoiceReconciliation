@@ -13,6 +13,7 @@ from app.services.reconciliation_application_service import (
 )
 
 router = APIRouter(prefix="/api")
+diagnostic_router = APIRouter(prefix="/api", tags=["development diagnostics"])
 
 
 @router.get("/health")
@@ -25,7 +26,7 @@ def health() -> dict[str, str]:
     }
 
 
-@router.get("/reconciliations/example")
+@diagnostic_router.get("/reconciliations/example")
 def reconciliation_example() -> dict:
     return {
         "invoice": {
@@ -66,7 +67,10 @@ def reconciliation_example() -> dict:
     }
 
 
-@router.post("/reconciliations/compare", response_model=ReconciliationResult)
+@diagnostic_router.post(
+    "/reconciliations/compare",
+    response_model=ReconciliationResult,
+)
 def compare_documents(request: ReconciliationRequest) -> ReconciliationResult:
     return reconcile(request)
 

@@ -8,6 +8,7 @@ from app.main import app
 from app.services.document_upload_service import DocumentUploadService
 from app.services.extraction_provider import ExtractionProviderResult
 from app.services.extraction_service import ExtractionService
+from tests.auth_helpers import reviewer_client
 from tests.fakes import (
     InMemoryExtractionRunRepository,
     InMemoryExtractionTaskRepository,
@@ -63,25 +64,33 @@ def test_start_and_query_extraction() -> None:
     previous_extraction = app.dependency_overrides.get(get_extraction_service)
     app.dependency_overrides[get_document_upload_service] = lambda: upload_service
     app.dependency_overrides[get_extraction_service] = lambda: extraction_service
-    client = TestClient(app)
     try:
-        upload_response = client.post(
-            "/api/documents/upload",
-            data={"document_type": "invoice"},
-            files={"file": ("invoice.pdf", b"%PDF-1.7 fixture", "application/pdf")},
-        )
-        task_id = upload_response.json()["task_id"]
+        with reviewer_client(app) as client:
+            upload_response = client.post(
+                "/api/documents/upload",
+                data={"document_type": "invoice"},
+                files={
+                    "file": (
+                        "invoice.pdf",
+                        b"%PDF-1.7 fixture",
+                        "application/pdf",
+                    )
+                },
+            )
+            task_id = upload_response.json()["task_id"]
 
-        start_response = client.post(f"/api/extraction-tasks/{task_id}/extract")
+            start_response = client.post(
+                f"/api/extraction-tasks/{task_id}/extract"
+            )
 
-        assert start_response.status_code == 202
-        run_id = start_response.json()["run_id"]
-        run_response = client.get(f"/api/extraction-runs/{run_id}")
-        task_response = client.get(f"/api/extraction-tasks/{task_id}")
-        assert run_response.status_code == 200
-        assert run_response.json()["status"] == "queued"
-        assert run_response.json()["normalized_output"] is None
-        assert task_response.json()["status"] == "extracting"
+            assert start_response.status_code == 202
+            run_id = start_response.json()["run_id"]
+            run_response = client.get(f"/api/extraction-runs/{run_id}")
+            task_response = client.get(f"/api/extraction-tasks/{task_id}")
+            assert run_response.status_code == 200
+            assert run_response.json()["status"] == "queued"
+            assert run_response.json()["normalized_output"] is None
+            assert task_response.json()["status"] == "extracting"
     finally:
         if previous_upload is None:
             app.dependency_overrides.pop(get_document_upload_service, None)

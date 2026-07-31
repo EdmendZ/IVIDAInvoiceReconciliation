@@ -15,6 +15,7 @@ from app.domain.parse_results import ParseResultRecord
 from app.main import app
 from app.services.extraction_provider import DisabledExtractionProvider
 from app.services.extraction_service import ExtractionService
+from tests.auth_helpers import reviewer_client
 from tests.fakes import (
     InMemoryDocumentDraftRepository,
     InMemoryExtractionRunRepository,
@@ -82,13 +83,14 @@ def test_result_api_returns_draft_evidence_and_disables_approval() -> None:
     app.dependency_overrides[get_parse_repository] = lambda: parses
     app.dependency_overrides[get_draft_repository] = lambda: drafts
     try:
-        response = TestClient(app).get(
-            f"/api/extraction-runs/{run.run_id}/result"
-        )
-        assert response.status_code == 200
-        body = response.json()
-        assert body["draft"]["document_number"] == "SCF-INV-260701"
-        assert body["evidence"][0]["field_path"] == "document_number"
-        assert body["approval_allowed"] is False
+        with reviewer_client(app) as client:
+            response = client.get(
+                f"/api/extraction-runs/{run.run_id}/result"
+            )
+            assert response.status_code == 200
+            body = response.json()
+            assert body["draft"]["document_number"] == "SCF-INV-260701"
+            assert body["evidence"][0]["field_path"] == "document_number"
+            assert body["approval_allowed"] is False
     finally:
         app.dependency_overrides.clear()

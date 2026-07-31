@@ -60,7 +60,9 @@ async def upload_document(
     file: Annotated[UploadFile, File()],
     purchase_order_hint: Annotated[str | None, Form()] = None,
     service: DocumentUploadService = Depends(get_document_upload_service),
+    user: AuthenticatedUser = Depends(require_reviewer),
 ) -> ExtractionTask:
+    del user
     max_bytes = get_settings().upload_max_bytes
     data = await file.read(max_bytes + 1)
     try:
@@ -88,7 +90,9 @@ async def upload_document(
 def get_extraction_task(
     task_id: str,
     service: DocumentUploadService = Depends(get_document_upload_service),
+    user: AuthenticatedUser = Depends(require_reviewer),
 ) -> ExtractionTask:
+    del user
     try:
         return service.get_task(task_id)
     except ExtractionTaskNotFound as exc:
