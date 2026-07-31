@@ -1,6 +1,7 @@
 import { FormEvent, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { api, uploadDocument } from "../api/client";
+import { canCancelRun, presentTaskStatus } from "./taskPresentation";
 
 type ExtractionTask = {
   task_id: string;
@@ -19,12 +20,21 @@ type ExtractionRun = {
   phase_error_code: string | null;
   error_message: string | null;
   attempt_count: number;
+  cancel_requested_at: string | null;
+  remote_may_continue: boolean;
   created_at: string;
 };
 
 type TaskListItem = {
   task: ExtractionTask;
   latest_run: ExtractionRun | null;
+};
+
+type RuntimeStatus = {
+  api: "up";
+  worker: "online" | "offline";
+  worker_last_seen_at: string | null;
+  worker_version: string | null;
 };
 
 export function UploadPage({
@@ -45,6 +55,11 @@ export function UploadPage({
     queryFn: () => api<TaskListItem[]>("/api/extraction-tasks?limit=50"),
     refetchInterval: 3000,
   });
+  const runtime = useQuery({
+    queryKey: ["runtime-status"],
+    queryFn: () => api<RuntimeStatus>("/api/runtime/status"),
+    refetchInterval: 5000,
+  });
 
   const startExtraction = useMutation({
     mutationFn: (taskId: string) =>
@@ -56,6 +71,23 @@ export function UploadPage({
     },
     onError: (problem) => {
       setMessage(problem instanceof Error ? problem.message : "Unable to start");
+    },
+  });
+  const cancelExtraction = useMutation({
+    mutationFn: (runId: string) =>
+      api<ExtractionRun>(`/api/extraction-runs/${runId}/cancel`, {
+        method: "POST",
+      }),
+    onSuccess: async (run) => {
+      await queryClient.invalidateQueries({ queryKey: ["extraction-tasks"] });
+      setMessage(
+        run.status === "cancelled"
+          ? "任务已取消。"
+          : "已请求取消；当前外部调用结束后将停止后续处理。",
+      );
+    },
+    onError: (problem) => {
+      setMessage(problem instanceof Error ? problem.message : "取消失败");
     },
   });
 
@@ -90,6 +122,23 @@ export function UploadPage({
           <h2>Upload procurement documents</h2>
           <p>PDF, PNG and JPEG files up to 25 MB are accepted.</p>
         </div>
+      </div>
+
+      <div
+        className={`runtime-banner ${
+          runtime.data?.worker === "online" ? "online" : "offline"
+        }`}
+      >
+        <strong>
+          {runtime.data?.worker === "online"
+            ? "处理服务在线"
+            : "处理服务离线"}
+        </strong>
+        <span>
+          {runtime.data?.worker === "online"
+            ? "新任务将自动进入 MinerU 解析和模型字段提取。"
+            : "文件仍可安全上传，但任务会保持排队，直到 Worker 启动。"}
+        </span>
       </div>
 
       <div className="intake-layout">
@@ -179,6 +228,7 @@ export function UploadPage({
         {tasks.data?.map(({ task, latest_run: run }) => {
           const displayStatus = run?.status ?? task.status;
           const failed = displayStatus === "failed";
+          const workerOnline = runtime.data?.worker === "online";
           return (
             <article className="task-row" key={task.task_id}>
               <div className={`task-icon ${task.document_type}`}>
@@ -193,8 +243,11 @@ export function UploadPage({
               </div>
               <div className="task-progress">
                 <span className={`status ${displayStatus}`}>
-                  {displayStatus.replaceAll("_", " ")}
+                  {presentTaskStatus(displayStatus, workerOnline)}
                 </span>
+                {run?.cancel_requested_at && displayStatus !== "cancelled" && (
+                  <small>正在等待当前外部调用结束后取消</small>
+                )}
                 {failed && (
                   <small>
                     {run?.phase_error_code || task.error_message || "Failed"}
@@ -213,6 +266,23 @@ export function UploadPage({
                 {task.status === "ready_for_review" && (
                   <button className="primary" onClick={() => onNavigate("/")}>
                     Review
+                  </button>
+                )}
+                {run && canCancelRun(run.status) && (
+                  <button
+                    className="danger-link"
+                    disabled={cancelExtraction.isPending}
+                    onClick={() => {
+                      if (
+                        window.confirm(
+                          "确认取消此任务？原件和处理记录会保留。",
+                        )
+                      ) {
+                        cancelExtraction.mutate(run.run_id);
+                      }
+                    }}
+                  >
+                    取消
                   </button>
                 )}
               </div>

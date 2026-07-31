@@ -79,6 +79,8 @@ h2 { font-family: Georgia, serif; font-size: 36px; margin: 5px 0; }
 .status { background: #edf1ef; color: #52605a; }
 .status.approved { background: #dff3e6; color: #136b36; }
 .status.rejected, .status.failed { background: #fee8e5; color: #a33a2a; }
+.status.cancelled { background: #ecefed; color: #58635e; }
+.runtime-banner{align-items:center;border-radius:10px;display:flex;gap:12px;margin:0 0 22px;padding:13px 16px}.runtime-banner span{font-size:13px}.runtime-banner.online{background:#e4f5e9;color:#1a6e3a}.runtime-banner.offline{background:#fff1cb;color:#765813}.danger-link{background:#fff;border-color:#d8a096;color:#a33a2a;margin-left:7px}
 .issue-counts { border-top: 1px solid #edf0ee; color: #7a8681; font-size: 13px; padding-top: 15px; }
 .issue-counts .blocking { color: #b53c2c; font-weight: 700; }
 
