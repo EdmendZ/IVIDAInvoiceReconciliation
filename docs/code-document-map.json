@@ -62,6 +62,7 @@
         "docs/architecture/14-source-code-walkthrough.md",
         "docs/architecture/decisions/0004-deterministic-reconciliation.md",
         "docs/tutorial/16-end-to-end-worked-example.md",
+        "docs/tutorial/19-pycharm-debug-walkthrough.md",
         "docs/interview/17-code-reading-exercises.md",
         "docs/reference/18-code-comment-guide.md"
       ]

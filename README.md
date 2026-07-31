@@ -148,6 +148,15 @@ PostgreSQL 和 MinIO 可以使用现有服务器；database 与 bucket 必须使
 完整启动顺序、恢复和备份说明见
 [docs/operations/review-workflow.md](docs/operations/review-workflow.md)。
 
+## 不连接外部服务学习业务规则
+
+在 PyCharm 中直接右键运行根目录的 `demo_business_flow.py`，可以观察一张
+Invoice 与两张分批 Receive Notes 的候选匹配和一对多核对。该脚本不读取
+`.env`，不连接 PostgreSQL、MinIO、MinerU 或模型 API。
+
+断点位置和变量观察顺序见
+[PyCharm 断点调试业务流程](docs/tutorial/19-pycharm-debug-walkthrough.md)。
+
 ## 面试材料
 
 - [项目故事](docs/interview/project-story.md)
