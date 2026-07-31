@@ -17,7 +17,9 @@ IVIDA 发票（Invoice）与收货单（Receive Note）比对原型。该项目�
 - PostgreSQL、MinIO 和模型供应商的独立配置命名
 - 健康检查、示例接口和自动化测试
 
-当前已具备抽取编排框架，但 `MODEL_PROVIDER` 默认仍为 `disabled`，尚未连接真实 OCR/视觉模型。比对接口的输入仍是已经结构化或人工审核后的 JSON。
+当前已接通 MinerU 文档解析和 OpenAI-compatible 结构化模型，并保留
+`MODEL_PROVIDER=disabled` 作为未配置环境的安全默认值。模型只生成审核草稿；
+最终比对只接受人工批准后的不可变版本。
 
 ## 启动
 
@@ -111,6 +113,23 @@ PostgreSQL 和 MinIO 可以使用现有服务器；database 与 bucket 必须使
 ## 评测数据
 
 项目本地包含一套澳洲披萨门店采购合成评测集，位于 `evaluation_data/`，并已被 Git 忽略。生成器、场景说明和校验方式见 [docs/evaluation-dataset.md](docs/evaluation-dataset.md)。
+
+评测命令会缓存 MinerU 解析结果，再计算结构化字段准确率、行项目 F1、
+证据覆盖率、延迟和估算成本：
+
+```powershell
+.\.venv\Scripts\python.exe -m app.cli.evaluate_extraction `
+  --variant baseline `
+  --max-documents 1
+```
+
+使用 `app.cli.compare_evaluations` 可以比较不同 Prompt 或模型的
+`summary.json`，而不重复调用 MinerU。
+
+模型选择不是写死的：先用同一份 MinerU 缓存分别评测 Max、Plus 或 Flash，
+再按 Schema 通过率、字段准确率、行项目 F1、证据覆盖率、延迟和成本选择。
+当前单文档结果只是链路冒烟测试，不作为生产模型结论。具体依据见
+[docs/interview/model-selection.md](docs/interview/model-selection.md)。
 
 ## 人工审核与对账
 

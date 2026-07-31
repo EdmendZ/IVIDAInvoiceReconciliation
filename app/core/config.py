@@ -46,6 +46,13 @@ class Settings(BaseSettings):
     normalization_api_key: str = Field(default="", repr=False)
     normalization_model: str = ""
     normalization_timeout_seconds: int = Field(default=120, ge=10, le=600)
+    normalization_max_retries: int = Field(default=0, ge=0, le=5)
+    normalization_enable_thinking: bool = False
+    normalization_max_output_tokens: int | None = Field(
+        default=None,
+        ge=256,
+        le=65536,
+    )
     normalization_input_cost_aud_per_million: float | None = Field(
         default=None,
         ge=0,

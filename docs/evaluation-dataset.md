@@ -26,6 +26,10 @@ evaluation_data/
 │  └─ pdf/
 ├─ gold/
 │  └─ 每个单据的人工标准 JSON 和 reconciliation_request.json
+├─ cache/
+│  └─ 按 PDF SHA-256 保存 MinerU 结果和未完成远端任务
+├─ results/
+│  └─ 每次评测的逐文档 JSONL、汇总 JSON 和 Markdown 报告
 └─ rendered/
    └─ PDF 页面 PNG 与视觉检查总览
 ```
@@ -53,3 +57,48 @@ uv run python tools\validate_evaluation_dataset.py
 
 真实客户文件只能在完成脱敏和内部批准后加入，并且仍应保留在 Git 忽略目录内。
 
+## 抽取评测
+
+第一次运行会调用 MinerU 和结构化模型：
+
+```powershell
+.\.venv\Scripts\python.exe -m app.cli.evaluate_extraction `
+  --manifest evaluation_data\manifest.json `
+  --variant qwen3.7-max-baseline `
+  --max-documents 1
+```
+
+确认单文档结果后，移除 `--max-documents 1` 即可评测全部 17 份 PDF。
+
+MinerU 结果按原件 SHA-256 缓存。进程中断时，远端 Job ID 会保存为
+`*.pending.json`；重新运行将继续轮询该任务，不重复提交。更换 Prompt
+或结构化模型时会直接复用 MinerU 缓存。
+
+每次评测输出：
+
+- Schema 通过率
+- 字段 micro accuracy
+- 行项目 F1
+- 字段证据覆盖率
+- P50/P95 结构化延迟
+- 配置价格后的平均及总 AUD 成本
+- 逐字段错误明细
+
+单份文档发生 MinerU、网络、JSON 或 Schema 错误时，评测不会整批中断。
+`documents.jsonl` 会记录失败阶段、稳定错误类型和消息，Schema 通过率会将
+该文档计为失败，后续文档继续运行。保存的预测 JSON 和证据路径可以用于离线
+复算指标，无需再次调用模型。
+
+## 模型对比
+
+分别运行 baseline 和 candidate 后，比较两个 `summary.json`：
+
+```powershell
+.\.venv\Scripts\python.exe -m app.cli.compare_evaluations `
+  evaluation_data\results\RUN_A\summary.json `
+  evaluation_data\results\RUN_B\summary.json `
+  --max-cost-aud-per-document 0.10
+```
+
+对比器先应用每单成本约束，再按字段准确率、行项目 F1 和证据覆盖率排序。
+所有结论只适用于当前合成数据集，不能直接外推客户 ROI。

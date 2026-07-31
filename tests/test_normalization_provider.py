@@ -14,8 +14,10 @@ from app.infra.openai_normalization_provider import (
 class FakeCompletions:
     def __init__(self, payload: dict) -> None:
         self.payload = payload
+        self.last_request = None
 
     def create(self, **kwargs):
+        self.last_request = kwargs
         return SimpleNamespace(
             choices=[
                 SimpleNamespace(
@@ -29,8 +31,10 @@ class FakeCompletions:
 
 
 def _client(payload: dict):
+    completions = FakeCompletions(payload)
     return SimpleNamespace(
-        chat=SimpleNamespace(completions=FakeCompletions(payload))
+        chat=SimpleNamespace(completions=completions),
+        completions_fixture=completions,
     )
 
 
@@ -73,8 +77,9 @@ def _payload(purchase_order_number="PO-100") -> dict:
 
 
 def test_invoice_response_becomes_valid_document() -> None:
+    client = _client(_payload())
     provider = OpenAINormalizationProvider(
-        client=_client(_payload()),
+        client=client,
         model_name="normalizer-test",
     )
     result = provider.normalize(
@@ -85,6 +90,29 @@ def test_invoice_response_becomes_valid_document() -> None:
     assert result.evidence[0].field_path == "document_number"
     assert result.input_tokens == 100
     assert provider.prompt_version.startswith("sha256:")
+    assert client.completions_fixture.last_request["extra_body"] == {
+        "enable_thinking": False
+    }
+    assert "max_completion_tokens" not in client.completions_fixture.last_request
+
+
+def test_explicit_output_limit_is_forwarded_for_non_json_compatible_models() -> None:
+    client = _client(_payload())
+    provider = OpenAINormalizationProvider(
+        client=client,
+        model_name="normalizer-test",
+        max_output_tokens=4096,
+    )
+
+    provider.normalize(
+        document_type=DocumentType.INVOICE,
+        parse_result=_parse_result(),
+    )
+
+    assert (
+        client.completions_fixture.last_request["max_completion_tokens"]
+        == 4096
+    )
 
 
 def test_missing_identifier_must_be_null_not_empty_string() -> None:

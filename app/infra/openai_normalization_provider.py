@@ -34,12 +34,16 @@ class OpenAINormalizationProvider:
         timeout_seconds: int = 120,
         input_cost_aud_per_million: Decimal | None = None,
         output_cost_aud_per_million: Decimal | None = None,
+        enable_thinking: bool = False,
+        max_output_tokens: int | None = None,
     ) -> None:
         self._client = client
         self.model_name = model_name
         self._timeout_seconds = timeout_seconds
         self._input_cost = input_cost_aud_per_million
         self._output_cost = output_cost_aud_per_million
+        self._enable_thinking = enable_thinking
+        self._max_output_tokens = max_output_tokens
         prompt_dir = Path(__file__).parents[1] / "resources" / "prompts"
         self._system_prompt = (
             prompt_dir / "normalize_document_system.txt"
@@ -66,12 +70,18 @@ class OpenAINormalizationProvider:
         timeout_seconds: int = 120,
         input_cost_aud_per_million: Decimal | None = None,
         output_cost_aud_per_million: Decimal | None = None,
+        max_retries: int = 0,
+        enable_thinking: bool = False,
+        max_output_tokens: int | None = None,
     ) -> "OpenAINormalizationProvider":
         if not api_key or not model_name:
             raise ValueError("Normalization API key and model are required")
         from openai import OpenAI
 
-        options: dict[str, Any] = {"api_key": api_key}
+        options: dict[str, Any] = {
+            "api_key": api_key,
+            "max_retries": max_retries,
+        }
         if base_url:
             options["base_url"] = base_url
         return cls(
@@ -80,6 +90,8 @@ class OpenAINormalizationProvider:
             timeout_seconds=timeout_seconds,
             input_cost_aud_per_million=input_cost_aud_per_million,
             output_cost_aud_per_million=output_cost_aud_per_million,
+            enable_thinking=enable_thinking,
+            max_output_tokens=max_output_tokens,
         )
 
     def normalize(
@@ -108,15 +120,21 @@ class OpenAINormalizationProvider:
             ),
         )
         try:
-            response = self._client.chat.completions.create(
-                model=self.model_name,
-                temperature=0,
-                response_format={"type": "json_object"},
-                messages=[
+            request: dict[str, Any] = {
+                "model": self.model_name,
+                "temperature": 0,
+                "response_format": {"type": "json_object"},
+                "extra_body": {"enable_thinking": self._enable_thinking},
+                "messages": [
                     {"role": "system", "content": self._system_prompt},
                     {"role": "user", "content": user_prompt},
                 ],
-                timeout=self._timeout_seconds,
+                "timeout": self._timeout_seconds,
+            }
+            if self._max_output_tokens is not None:
+                request["max_completion_tokens"] = self._max_output_tokens
+            response = self._client.chat.completions.create(
+                **request,
             )
             raw_text = response.choices[0].message.content or ""
             raw = json.loads(raw_text)

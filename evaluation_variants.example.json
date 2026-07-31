@@ -1,0 +1,20 @@
+{
+  "variants": [
+    {
+      "name": "baseline",
+      "normalization_model_env": "NORMALIZATION_MODEL",
+      "normalization_base_url_env": "NORMALIZATION_BASE_URL",
+      "normalization_api_key_env": "NORMALIZATION_API_KEY",
+      "system_prompt": "app/resources/prompts/normalize_document_system.txt",
+      "user_prompt": "app/resources/prompts/normalize_document_user.txt"
+    },
+    {
+      "name": "candidate",
+      "normalization_model_env": "CANDIDATE_NORMALIZATION_MODEL",
+      "normalization_base_url_env": "CANDIDATE_NORMALIZATION_BASE_URL",
+      "normalization_api_key_env": "CANDIDATE_NORMALIZATION_API_KEY",
+      "system_prompt": "app/resources/prompts/normalize_document_system.txt",
+      "user_prompt": "app/resources/prompts/normalize_document_user.txt"
+    }
+  ]
+}
