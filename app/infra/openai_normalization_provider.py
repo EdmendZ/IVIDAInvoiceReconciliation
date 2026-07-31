@@ -1,3 +1,9 @@
+"""OpenAI-compatible 文本模型到 NormalizationProvider 的适配器。
+
+模型输出必须先解析为 Envelope，再通过目标单据 Pydantic Schema；合法 JSON
+并不自动代表合法业务文档。
+"""
+
 from __future__ import annotations
 
 import json
@@ -15,6 +21,8 @@ from app.services.prompt_version import prompt_version
 
 
 class NormalizationSchemaError(ValueError):
+    """模型返回内容不是可接受的结构化业务文档。"""
+
     pass
 
 
@@ -24,6 +32,8 @@ class NormalizedDocumentEnvelope(BaseModel):
 
 
 class OpenAINormalizationProvider:
+    """将 MinerU 文本归一化为 Document + Evidence。"""
+
     provider_name = "openai-compatible"
 
     def __init__(
@@ -100,6 +110,8 @@ class OpenAINormalizationProvider:
         document_type: DocumentType,
         parse_result: ParseResult,
     ) -> NormalizationResult:
+        """构造受 Schema 约束的请求，并严格验证模型响应。"""
+
         document_model = (
             Invoice if document_type == DocumentType.INVOICE else ReceiveNote
         )
@@ -120,6 +132,7 @@ class OpenAINormalizationProvider:
             ),
         )
         try:
+            # JSON Mode 减少格式漂移；Pydantic 仍是最终的 Schema 信任边界。
             request: dict[str, Any] = {
                 "model": self.model_name,
                 "temperature": 0,
@@ -131,6 +144,7 @@ class OpenAINormalizationProvider:
                 ],
                 "timeout": self._timeout_seconds,
             }
+            # 默认不设上限，避免长商品表在 JSON 中间被截断。
             if self._max_output_tokens is not None:
                 request["max_completion_tokens"] = self._max_output_tokens
             response = self._client.chat.completions.create(
@@ -188,6 +202,8 @@ class OpenAINormalizationProvider:
         input_tokens: int | None,
         output_tokens: int | None,
     ) -> Decimal | None:
+        """只在 Token 和明确 AUD 费率都存在时估算，未知成本保持 None。"""
+
         if (
             input_tokens is None
             or output_tokens is None

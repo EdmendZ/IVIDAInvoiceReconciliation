@@ -25,6 +25,13 @@
 | 9 | [测试与模型评测](ai/09-testing-and-evaluation.md) | 如何证明业务规则和模型效果不是“看起来能跑”？ |
 | 10 | [面试复习手册](interview/10-interview-handbook.md) | 面试官可能追问什么，应该如何回答？ |
 
+源码级参考：
+
+- [API 契约参考](reference/11-api-contracts.md)
+- [PostgreSQL 数据字典](reference/12-database-dictionary.md)
+- [错误码与分层排障](operations/13-error-codes-and-troubleshooting.md)
+- [源码调用链导读](architecture/14-source-code-walkthrough.md)
+
 已有的专题材料：
 
 - [五分钟演示脚本](interview/demo-script.md)

@@ -1,3 +1,9 @@
+"""HTTP 用例层的 Run 排队、查询和取消服务。
+
+真实长任务由 ExtractionWorker 推进；这里不在请求线程内等待 MinerU/LLM。
+保留的 execute 方法是同步 Provider Contract 的兼容路径，不是当前 UI 主链路。
+"""
+
 from __future__ import annotations
 
 from datetime import UTC, datetime
@@ -25,6 +31,8 @@ class ExtractionStateConflict(RuntimeError):
 
 
 class ExtractionService:
+    """管理 Run 的生命周期入口，但不承担异步阶段编排。"""
+
     def __init__(
         self,
         *,
@@ -39,6 +47,8 @@ class ExtractionService:
         self._provider = provider
 
     def queue(self, task_id: str) -> ExtractionRun:
+        """为可处理 Task 创建一次新的、可审计的 Run。"""
+
         task = self._task_repository.get(task_id)
         if task is None:
             raise ExtractionTaskNotFound(task_id)
@@ -58,6 +68,7 @@ class ExtractionService:
             started_at=now,
             created_at=now,
         )
+        # 先创建 Run 再标记 Task extracting，确保状态指向一个真实处理尝试。
         self._run_repository.create(run)
         self._task_repository.update_status(
             task.task_id,
@@ -66,6 +77,8 @@ class ExtractionService:
         return run
 
     def execute(self, task_id: str, run_id: str) -> None:
+        """执行旧的同步 Provider Contract；当前生产路径使用独立 Worker。"""
+
         task = self._task_repository.get(task_id)
         if task is None:
             self._run_repository.fail(run_id, "Extraction task no longer exists")
@@ -119,6 +132,8 @@ class ExtractionService:
         return run
 
     def cancel(self, run_id: str, *, requested_by: str) -> ExtractionRun:
+        """请求协作式取消；已进入终态或审核阶段的 Run 不允许取消。"""
+
         current = self.get_run(run_id)
         cancellable = {
             ExtractionRunStatus.QUEUED,

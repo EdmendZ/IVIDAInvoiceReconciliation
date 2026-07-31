@@ -1,3 +1,9 @@
+"""批准版本门禁与核对结果持久化。
+
+纯算法位于 reconciliation_service.py；本服务负责确认输入可信、类型正确，并
+把参与版本 ID 与结果保存下来。
+"""
+
 from datetime import UTC, datetime
 from typing import Protocol
 from uuid import uuid4
@@ -34,6 +40,8 @@ class ReconciliationWriter(Protocol):
 
 
 class ReconciliationApplicationService:
+    """连接人工批准数据与确定性核对规则的应用服务。"""
+
     def __init__(
         self,
         *,
@@ -47,6 +55,8 @@ class ReconciliationApplicationService:
         self,
         approved_invoice_version_id: str,
     ) -> list[ReconciliationCandidate]:
+        """为一张已批准 Invoice 对全部已批准 Receive Notes 排序。"""
+
         invoice_version = self._require_approved(
             approved_invoice_version_id,
             DocumentType.INVOICE,
@@ -79,6 +89,8 @@ class ReconciliationApplicationService:
         created_by: str,
         tolerance: ReconciliationTolerance | None = None,
     ) -> ReconciliationRecord:
+        """核对一个 Invoice Version 与一个或多个 Receive Note Versions。"""
+
         if not approved_receive_note_version_ids:
             raise ValueError("At least one Receive Note version is required")
         invoice_version = self._require_approved(
@@ -89,6 +101,7 @@ class ReconciliationApplicationService:
             self._require_approved(version_id, DocumentType.RECEIVE_NOTE)
             for version_id in approved_receive_note_version_ids
         ]
+        # 在纯算法前重新构建 Pydantic 领域对象，避免数据库 JSON 绕过 Schema。
         result = reconcile(
             ReconciliationRequest(
                 invoice=Invoice.model_validate(invoice_version.document_json),
@@ -117,6 +130,8 @@ class ReconciliationApplicationService:
         version_id: str,
         expected_type: DocumentType,
     ) -> DocumentVersion:
+        """同时校验批准状态和业务类型，阻止 Draft/误分类版本进入财务结果。"""
+
         version = self._reviews.get_approved_version(version_id)
         if version is None or version.document_type != expected_type:
             raise DocumentNotApproved(

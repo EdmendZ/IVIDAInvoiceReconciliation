@@ -1,3 +1,5 @@
+"""单张业务文档内部的确定性财务一致性校验。"""
+
 from decimal import Decimal
 
 from app.domain.documents import BusinessDocument
@@ -9,6 +11,8 @@ from app.domain.validation import (
 
 
 class ValidationService:
+    """生成 Warning/Blocking Issue，不修改文档也不决定最终核对结果。"""
+
     def __init__(
         self,
         *,
@@ -19,6 +23,8 @@ class ValidationService:
         self._document_tolerance = document_tolerance
 
     def validate(self, document: BusinessDocument) -> ValidationReport:
+        """验证行金额、税额、小计和总额，并保留可解释差值。"""
+
         issues: list[ValidationIssue] = []
         if not document.purchase_order_number:
             issues.append(
@@ -32,6 +38,7 @@ class ValidationService:
 
         calculated_subtotal = Decimal("0")
         calculated_tax = Decimal("0")
+        # 行金额不完整时不能断言 subtotal 错误，否则会把“未知”误判成“不一致”。
         has_all_line_totals = True
         for index, item in enumerate(document.items):
             expected_line_total = (
@@ -77,6 +84,7 @@ class ValidationService:
                     )
                 )
 
+        # 只有所有行金额都已知，才比较行金额之和与文档小计。
         if (
             has_all_line_totals
             and document.subtotal is not None

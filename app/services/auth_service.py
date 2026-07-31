@@ -1,3 +1,5 @@
+"""后台审核账号与短期 Session 的认证服务。"""
+
 import hashlib
 import secrets
 from datetime import UTC, datetime, timedelta
@@ -30,6 +32,8 @@ class AdminRepository(Protocol):
 
 
 class AuthService:
+    """使用 Argon2 保存密码 Hash，并且只在数据库保存 Session Token Hash。"""
+
     def __init__(
         self,
         repository: AdminRepository,
@@ -73,6 +77,7 @@ class AuthService:
             self._hasher.verify(user.password_hash, password)
         except VerifyMismatchError as exc:
             raise InvalidCredentials("Invalid username or password") from exc
+        # 浏览器持有原 Token；数据库只保存 Hash，数据库泄露时不能直接复用会话。
         token = secrets.token_urlsafe(48)
         now = datetime.now(UTC)
         self._repository.create_session(

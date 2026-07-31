@@ -1,3 +1,5 @@
+"""根据最近一次 Worker 心跳解释队列处理能力。"""
+
 from datetime import UTC, datetime, timedelta
 
 from app.domain.worker_runtime import RuntimeStatus
@@ -5,6 +7,8 @@ from app.services.ports import WorkerRuntimeRepository
 
 
 class RuntimeStatusService:
+    """心跳超时即显示 offline，但不将它包装成完整监控系统。"""
+
     def __init__(
         self,
         repository: WorkerRuntimeRepository,

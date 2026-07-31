@@ -12,7 +12,8 @@
       "documents": [
         "docs/business/03-document-lifecycle.md",
         "docs/ai/04-extraction-pipeline.md",
-        "docs/operations/08-api-ui-and-local-run.md"
+        "docs/operations/08-api-ui-and-local-run.md",
+        "docs/architecture/14-source-code-walkthrough.md"
       ]
     },
     {
@@ -25,7 +26,19 @@
         "frontend/src/review/**"
       ],
       "documents": [
-        "docs/business/05-review-and-versioning.md"
+        "docs/business/05-review-and-versioning.md",
+        "docs/reference/11-api-contracts.md"
+      ]
+    },
+    {
+      "name": "validation-rules",
+      "code_patterns": [
+        "app/domain/validation.py",
+        "app/services/validation_service.py"
+      ],
+      "documents": [
+        "docs/business/05-review-and-versioning.md",
+        "docs/operations/13-error-codes-and-troubleshooting.md"
       ]
     },
     {
@@ -37,7 +50,8 @@
         "frontend/src/reconcile/**"
       ],
       "documents": [
-        "docs/business/06-reconciliation-rules.md"
+        "docs/business/06-reconciliation-rules.md",
+        "docs/architecture/14-source-code-walkthrough.md"
       ]
     },
     {
@@ -57,7 +71,8 @@
       "documents": [
         "docs/ai/04-extraction-pipeline.md",
         "docs/ai/09-testing-and-evaluation.md",
-        "docs/interview/model-selection.md"
+        "docs/interview/model-selection.md",
+        "docs/architecture/14-source-code-walkthrough.md"
       ]
     },
     {
@@ -69,7 +84,8 @@
       ],
       "documents": [
         "docs/architecture/07-data-and-infrastructure.md",
-        "docs/postgresql-setup.md"
+        "docs/postgresql-setup.md",
+        "docs/reference/12-database-dictionary.md"
       ]
     },
     {
@@ -78,6 +94,8 @@
         "app/api/**",
         "app/main.py",
         "app/core/config.py",
+        "app/services/auth_service.py",
+        "app/services/runtime_status_service.py",
         "frontend/src/**",
         "scripts/**",
         "run_api.py",
@@ -88,6 +106,8 @@
       ],
       "documents": [
         "docs/operations/08-api-ui-and-local-run.md",
+        "docs/operations/13-error-codes-and-troubleshooting.md",
+        "docs/reference/11-api-contracts.md",
         "docs/operations/review-workflow.md",
         "README.md"
       ]

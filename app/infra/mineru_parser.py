@@ -1,3 +1,9 @@
+"""MinerU Precision SDK 到 AsyncDocumentParser Contract 的适配器。
+
+适配器将 SDK 状态、产物和异常转换成项目稳定领域对象，避免 Worker 直接依赖
+第三方 SDK 的字段与异常文本。
+"""
+
 from __future__ import annotations
 
 import io
@@ -18,6 +24,8 @@ from app.infra.external_errors import ExternalServiceError
 
 
 class MinerUPrecisionParser:
+    """提交/轮询式文档解析 Provider。"""
+
     provider_name = "mineru"
 
     def __init__(
@@ -61,6 +69,8 @@ class MinerUPrecisionParser:
         content_type: str,
         content: bytes,
     ) -> ParserSubmission:
+        """通过临时文件提交 bytes，并保证本地临时文件最终清理。"""
+
         del content_type
         suffix = Path(filename).suffix.lower() or ".bin"
         temporary_path = ""
@@ -68,6 +78,7 @@ class MinerUPrecisionParser:
             with tempfile.NamedTemporaryFile(delete=False, suffix=suffix) as handle:
                 handle.write(content)
                 temporary_path = handle.name
+            # SDK 仅接受路径；临时文件不会被保存为业务原件。
             batch_id = self._client.submit(
                 temporary_path,
                 model=self.model_name,
@@ -87,6 +98,8 @@ class MinerUPrecisionParser:
                     pass
 
     def poll(self, remote_job_id: str) -> ParserPollResult:
+        """把 MinerU 状态归一化为 running/succeeded/failed。"""
+
         try:
             results = self._client.get_batch(remote_job_id)
             if not results:
@@ -185,6 +198,8 @@ class MinerUPrecisionParser:
         images: Any,
         remote_task_id: str | None,
     ) -> bytes:
+        """将解析文本、blocks 和图片打包为可审计 ZIP 产物。"""
+
         output = io.BytesIO()
         with zipfile.ZipFile(output, "w", zipfile.ZIP_DEFLATED) as archive:
             archive.writestr("document.md", markdown)
@@ -216,6 +231,8 @@ class MinerUPrecisionParser:
 
     @staticmethod
     def _safe_error(exc: Exception, *, operation: str) -> ExternalServiceError:
+        """隐藏供应商异常细节，映射成稳定错误码和明确重试语义。"""
+
         name = exc.__class__.__name__.lower()
         status_code = getattr(exc, "status_code", None)
         if "timeout" in name:
