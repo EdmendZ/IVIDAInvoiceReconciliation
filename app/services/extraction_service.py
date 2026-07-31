@@ -117,3 +117,31 @@ class ExtractionService:
         if run is None:
             raise ExtractionRunNotFound(run_id)
         return run
+
+    def cancel(self, run_id: str, *, requested_by: str) -> ExtractionRun:
+        current = self.get_run(run_id)
+        cancellable = {
+            ExtractionRunStatus.QUEUED,
+            ExtractionRunStatus.SUBMITTING,
+            ExtractionRunStatus.PARSING,
+            ExtractionRunStatus.NORMALIZING,
+            ExtractionRunStatus.VALIDATING,
+            ExtractionRunStatus.CANCELLED,
+        }
+        if current.status not in cancellable:
+            raise ExtractionStateConflict(
+                f"Run in status '{current.status}' cannot be cancelled"
+            )
+        result = self._run_repository.request_cancel(
+            run_id,
+            requested_by=requested_by,
+            requested_at=datetime.now(UTC),
+        )
+        if result is None:
+            raise ExtractionRunNotFound(run_id)
+        if result.status == ExtractionRunStatus.CANCELLED:
+            self._task_repository.update_status(
+                result.task_id,
+                ExtractionStatus.CANCELLED,
+            )
+        return result

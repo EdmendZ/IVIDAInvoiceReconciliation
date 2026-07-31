@@ -68,6 +68,9 @@ class ExtractionWorker:
         if run is None:
             return False
         try:
+            if self._run_repository.is_cancel_requested(run.run_id):
+                self._cancel_run(run, stage=run.status.value)
+                return True
             if run.status == ExtractionRunStatus.QUEUED:
                 self._submit(run, now)
             elif run.status == ExtractionRunStatus.PARSING:
@@ -161,6 +164,12 @@ class ExtractionWorker:
             remote_job_id=submission.remote_job_id,
             next_attempt_at=now + timedelta(seconds=self._poll_interval_seconds),
         )
+        if self._run_repository.is_cancel_requested(run.run_id):
+            self._cancel_run(
+                run,
+                stage=ExtractionRunStatus.SUBMITTING.value,
+                remote_may_continue=True,
+            )
 
     def _poll(self, run: ExtractionRun, now: datetime) -> None:
         if not run.remote_job_id:
@@ -171,6 +180,13 @@ class ExtractionWorker:
             )
             return
         poll_result = self._parser.poll(run.remote_job_id)
+        if self._run_repository.is_cancel_requested(run.run_id):
+            self._cancel_run(
+                run,
+                stage=ExtractionRunStatus.PARSING.value,
+                remote_may_continue=True,
+            )
+            return
         if poll_result.state in {ParseState.QUEUED, ParseState.RUNNING}:
             self._run_repository.schedule_poll(
                 run.run_id,
@@ -256,6 +272,13 @@ class ExtractionWorker:
             document_type=task.document_type,
             parse_result=parse_result,
         )
+        if self._run_repository.is_cancel_requested(run.run_id):
+            self._cancel_run(
+                run,
+                stage=ExtractionRunStatus.NORMALIZING.value,
+                remote_may_continue=bool(run.remote_job_id),
+            )
+            return
         report = self._validation_service.validate(normalized.document)
         draft = DocumentDraft(
             draft_id=str(uuid4()),
@@ -319,3 +342,25 @@ class ExtractionWorker:
             ExtractionStatus.FAILED,
             error_message=message,
         )
+
+    def _cancel_run(
+        self,
+        run: ExtractionRun,
+        *,
+        stage: str,
+        remote_may_continue: bool | None = None,
+    ) -> None:
+        cancelled = self._run_repository.mark_cancelled(
+            run.run_id,
+            stage=stage,
+            remote_may_continue=(
+                bool(run.remote_job_id)
+                if remote_may_continue is None
+                else remote_may_continue
+            ),
+        )
+        if cancelled is not None:
+            self._task_repository.update_status(
+                run.task_id,
+                ExtractionStatus.CANCELLED,
+            )

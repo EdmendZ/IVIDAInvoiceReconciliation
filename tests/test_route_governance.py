@@ -31,3 +31,4 @@ def test_extraction_start_and_result_require_reviewer() -> None:
     assert client.post("/api/extraction-tasks/task-1/extract").status_code == 401
     assert client.get("/api/extraction-runs/run-1").status_code == 401
     assert client.get("/api/extraction-runs/run-1/result").status_code == 401
+    assert client.post("/api/extraction-runs/run-1/cancel").status_code == 401

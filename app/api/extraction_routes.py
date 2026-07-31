@@ -98,3 +98,23 @@ def get_extraction_result(
         ),
         "approval_allowed": False,
     }
+
+
+@router.post("/extraction-runs/{run_id}/cancel", response_model=ExtractionRun)
+def cancel_extraction_run(
+    run_id: str,
+    service: ExtractionService = Depends(get_extraction_service),
+    user: AuthenticatedUser = Depends(require_reviewer),
+) -> ExtractionRun:
+    try:
+        return service.cancel(run_id, requested_by=user.user_id)
+    except ExtractionRunNotFound as exc:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Extraction run not found",
+        ) from exc
+    except ExtractionStateConflict as exc:
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail=str(exc),
+        ) from exc

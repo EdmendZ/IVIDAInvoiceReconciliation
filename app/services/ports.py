@@ -112,6 +112,24 @@ class ExtractionRunRepository(Protocol):
         error_code: str | None = None,
     ) -> None: ...
 
+    def request_cancel(
+        self,
+        run_id: str,
+        *,
+        requested_by: str,
+        requested_at: datetime,
+    ) -> ExtractionRun | None: ...
+
+    def is_cancel_requested(self, run_id: str) -> bool: ...
+
+    def mark_cancelled(
+        self,
+        run_id: str,
+        *,
+        stage: str,
+        remote_may_continue: bool,
+    ) -> ExtractionRun | None: ...
+
 
 class ParseResultRepository(Protocol):
     def create(self, result: ParseResultRecord) -> None: ...

@@ -228,6 +228,60 @@ class InMemoryExtractionRunRepository:
             }
         )
 
+    def request_cancel(
+        self,
+        run_id: str,
+        *,
+        requested_by: str,
+        requested_at: datetime,
+    ) -> ExtractionRun | None:
+        run = self.runs.get(run_id)
+        if run is None:
+            return None
+        changes = {
+            "cancel_requested_at": run.cancel_requested_at or requested_at,
+            "cancel_requested_by": run.cancel_requested_by or requested_by,
+        }
+        if run.status == ExtractionRunStatus.QUEUED:
+            changes.update(
+                status=ExtractionRunStatus.CANCELLED,
+                cancel_completed_at=requested_at,
+                cancelled_stage=ExtractionRunStatus.QUEUED.value,
+                completed_at=requested_at,
+                lease_owner=None,
+            )
+        updated = run.model_copy(update=changes)
+        self.runs[run_id] = updated
+        return updated
+
+    def is_cancel_requested(self, run_id: str) -> bool:
+        run = self.runs.get(run_id)
+        return bool(run and run.cancel_requested_at is not None)
+
+    def mark_cancelled(
+        self,
+        run_id: str,
+        *,
+        stage: str,
+        remote_may_continue: bool,
+    ) -> ExtractionRun | None:
+        run = self.runs.get(run_id)
+        if run is None:
+            return None
+        now = datetime.now(UTC)
+        updated = run.model_copy(
+            update={
+                "status": ExtractionRunStatus.CANCELLED,
+                "cancel_completed_at": now,
+                "cancelled_stage": stage,
+                "remote_may_continue": remote_may_continue,
+                "completed_at": now,
+                "lease_owner": None,
+            }
+        )
+        self.runs[run_id] = updated
+        return updated
+
 
 class InMemoryParseResultRepository:
     def __init__(self) -> None:

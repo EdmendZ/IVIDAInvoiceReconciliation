@@ -120,6 +120,28 @@ class ExtractionRunRow(Base):
         DateTime(timezone=True),
         nullable=True,
     )
+    cancel_requested_at: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True),
+        nullable=True,
+    )
+    cancel_requested_by: Mapped[str | None] = mapped_column(
+        String(36),
+        ForeignKey("admin_users.user_id", ondelete="RESTRICT"),
+        nullable=True,
+    )
+    cancel_completed_at: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True),
+        nullable=True,
+    )
+    cancelled_stage: Mapped[str | None] = mapped_column(
+        String(64),
+        nullable=True,
+    )
+    remote_may_continue: Mapped[bool] = mapped_column(
+        Boolean,
+        nullable=False,
+        default=False,
+    )
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True),
         nullable=False,

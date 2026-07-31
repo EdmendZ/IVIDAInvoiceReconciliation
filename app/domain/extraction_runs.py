@@ -14,6 +14,7 @@ class ExtractionRunStatus(StrEnum):
     READY_FOR_REVIEW = "ready_for_review"
     SUCCEEDED = "succeeded"
     FAILED = "failed"
+    CANCELLED = "cancelled"
 
 
 class ExtractionRun(BaseModel):
@@ -37,4 +38,9 @@ class ExtractionRun(BaseModel):
     lease_expires_at: datetime | None = None
     started_at: datetime
     completed_at: datetime | None = None
+    cancel_requested_at: datetime | None = None
+    cancel_requested_by: str | None = None
+    cancel_completed_at: datetime | None = None
+    cancelled_stage: str | None = None
+    remote_may_continue: bool = False
     created_at: datetime

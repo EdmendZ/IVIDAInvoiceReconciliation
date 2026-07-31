@@ -219,6 +219,70 @@ class PostgresExtractionRunRepository:
             )
             session.commit()
 
+    def request_cancel(
+        self,
+        run_id: str,
+        *,
+        requested_by: str,
+        requested_at: datetime,
+    ) -> ExtractionRun | None:
+        with self._session_factory() as session:
+            row = session.get(ExtractionRunRow, run_id)
+            if row is None:
+                return None
+            if row.status == ExtractionRunStatus.CANCELLED.value:
+                return self._to_domain(row)
+            active = {
+                ExtractionRunStatus.QUEUED.value,
+                ExtractionRunStatus.SUBMITTING.value,
+                ExtractionRunStatus.PARSING.value,
+                ExtractionRunStatus.NORMALIZING.value,
+                ExtractionRunStatus.VALIDATING.value,
+            }
+            if row.status not in active:
+                return self._to_domain(row)
+            row.cancel_requested_at = row.cancel_requested_at or requested_at
+            row.cancel_requested_by = row.cancel_requested_by or requested_by
+            if row.status == ExtractionRunStatus.QUEUED.value:
+                row.status = ExtractionRunStatus.CANCELLED.value
+                row.cancel_completed_at = requested_at
+                row.cancelled_stage = ExtractionRunStatus.QUEUED.value
+                row.completed_at = requested_at
+                row.lease_owner = None
+                row.lease_expires_at = None
+            session.commit()
+            session.refresh(row)
+            return self._to_domain(row)
+
+    def is_cancel_requested(self, run_id: str) -> bool:
+        with self._session_factory() as session:
+            row = session.get(ExtractionRunRow, run_id)
+            return bool(row and row.cancel_requested_at is not None)
+
+    def mark_cancelled(
+        self,
+        run_id: str,
+        *,
+        stage: str,
+        remote_may_continue: bool,
+    ) -> ExtractionRun | None:
+        now = datetime.now(UTC)
+        with self._session_factory() as session:
+            row = session.get(ExtractionRunRow, run_id)
+            if row is None:
+                return None
+            if row.status != ExtractionRunStatus.CANCELLED.value:
+                row.status = ExtractionRunStatus.CANCELLED.value
+                row.cancel_completed_at = now
+                row.cancelled_stage = stage
+                row.remote_may_continue = remote_may_continue
+                row.completed_at = now
+                row.lease_owner = None
+                row.lease_expires_at = None
+                session.commit()
+                session.refresh(row)
+            return self._to_domain(row)
+
     def _update(self, run_id: str, **values) -> None:
         with self._session_factory() as session:
             session.execute(
