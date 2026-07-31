@@ -143,3 +143,10 @@ PostgreSQL 和 MinIO 可以使用现有服务器；database 与 bucket 必须使
 
 完整启动顺序、恢复和备份说明见
 [docs/operations/review-workflow.md](docs/operations/review-workflow.md)。
+
+## 面试材料
+
+- [项目故事](docs/interview/project-story.md)
+- [五分钟演示脚本](docs/interview/demo-script.md)
+- [架构与责任边界](docs/interview/architecture.md)
+- [模型选择记录](docs/interview/model-selection.md)
