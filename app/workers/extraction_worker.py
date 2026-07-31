@@ -1,3 +1,9 @@
+"""可恢复的异步文档处理状态机。
+
+Worker 每次只推进一个持久化 Run 的一个阶段。阶段间状态都写入 PostgreSQL，
+因此 API/Worker 重启不会依赖进程内 BackgroundTasks 恢复工作。
+"""
+
 from __future__ import annotations
 
 import logging
@@ -28,6 +34,8 @@ logger = logging.getLogger(__name__)
 
 
 class ExtractionWorker:
+    """编排 MinerU 解析、LLM 归一化、规则校验和 Draft 落库。"""
+
     def __init__(
         self,
         *,
@@ -60,7 +68,10 @@ class ExtractionWorker:
         self._worker_version = worker_version
 
     def run_once(self, worker_id: str) -> bool:
+        """领取并推进一个 Run；返回 False 表示当前没有到期任务。"""
+
         now = datetime.now(UTC)
+        # claim_next 必须在 Repository 内原子领取，避免两个 Worker 读取同一 Run。
         run = self._run_repository.claim_next(
             worker_id=worker_id,
             lease_seconds=self._lease_seconds,
@@ -69,6 +80,7 @@ class ExtractionWorker:
         if run is None:
             return False
         try:
+            # 取消只在阶段边界生效，避免一半写入 Draft、一半仍在远端执行。
             if self._run_repository.is_cancel_requested(run.run_id):
                 self._cancel_run(run, stage=run.status.value)
                 return True
@@ -102,6 +114,8 @@ class ExtractionWorker:
             return True
 
     def run_forever(self, *, worker_id: str, idle_seconds: float = 2) -> None:
+        """持续处理任务，并用独立轻量线程报告 Worker 存活状态。"""
+
         stop_heartbeat = threading.Event()
         heartbeat_thread: threading.Thread | None = None
         if self._runtime_repository is not None:
@@ -146,6 +160,8 @@ class ExtractionWorker:
             stop.wait(self._heartbeat_interval_seconds)
 
     def _submit(self, run: ExtractionRun, now: datetime) -> None:
+        """向 MinerU 提交原件并持久化远端 Job ID，而不是阻塞等待。"""
+
         task = self._task_repository.get(run.task_id)
         if task is None:
             self._fail(
@@ -173,6 +189,8 @@ class ExtractionWorker:
             )
 
     def _poll(self, run: ExtractionRun, now: datetime) -> None:
+        """轮询 MinerU；未完成时重新调度，完成时保存可复用解析产物。"""
+
         if not run.remote_job_id:
             self._fail(
                 run,
@@ -217,6 +235,7 @@ class ExtractionWorker:
             f"{task.document_type.value}/{task.task_id}/runs/{run.run_id}/"
             "mineru/result.zip"
         )
+        # ZIP 体积较大且无需关系查询，进入 MinIO；Markdown/表格进入 PostgreSQL。
         self._storage.put(
             artifact_key,
             result.artifact_archive,
@@ -241,6 +260,8 @@ class ExtractionWorker:
         )
 
     def _normalize(self, run: ExtractionRun, now: datetime) -> None:
+        """把解析产物转换为业务 Schema，验证后生成机器 Draft。"""
+
         if (
             self._normalizer is None
             or self._draft_repository is None
@@ -269,6 +290,7 @@ class ExtractionWorker:
             tables=record.tables,
             page_count=record.page_count,
         )
+        # 在调用前记录模型和 Prompt；即使调用失败，也能定位失败发生在哪个版本。
         self._run_repository.set_model_provenance(
             run.run_id,
             parser_provider=parse_result.provider,
@@ -292,6 +314,7 @@ class ExtractionWorker:
                 remote_may_continue=bool(run.remote_job_id),
             )
             return
+        # LLM 只给候选值，确定性校验决定 Draft 是否带有阻断问题。
         report = self._validation_service.validate(normalized.document)
         draft = DocumentDraft(
             draft_id=str(uuid4()),
@@ -335,9 +358,12 @@ class ExtractionWorker:
         exc: ExternalServiceError,
         now: datetime,
     ) -> None:
+        """对显式标记为可重试的外部错误执行有限指数退避。"""
+
         if not exc.retryable or run.attempt_count >= 3:
             self._fail(run, code=exc.code, message=exc.safe_message)
             return
+        # 重试由业务状态机记录，避免 SDK 隐式重试造成调用次数和成本不可见。
         delay = min(60, 2 ** (run.attempt_count + 1))
         self._run_repository.schedule_poll(
             run.run_id,

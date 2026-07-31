@@ -1,3 +1,5 @@
+"""机器 Draft 到人工批准 Version 的治理边界。"""
+
 from typing import Protocol
 
 from pydantic import ValidationError
@@ -32,6 +34,8 @@ class DocumentTypeConfirmationMismatch(RuntimeError):
 
 
 class ReviewService:
+    """负责版本创建、重分类、校验、批准以及审核动作记录。"""
+
     def __init__(
         self,
         *,
@@ -50,6 +54,8 @@ class ReviewService:
         task_id: str,
         user: AuthenticatedUser,
     ) -> DocumentVersion:
+        """幂等地从机器 Draft 创建首个人工审核版本。"""
+
         latest = self._reviews.get_latest_version(task_id)
         if latest is not None:
             return latest
@@ -79,6 +85,8 @@ class ReviewService:
         *,
         reason: str,
     ) -> DocumentVersion:
+        """验证修改并创建新版本；从不覆盖已有 Version JSON。"""
+
         current = self._require_version(version_id)
         self._require_editable_latest(current)
         document = self._validate_document(
@@ -143,6 +151,8 @@ class ReviewService:
         reason: str,
         confirmed_document_type: DocumentType,
     ) -> DocumentVersion:
+        """在最新版本、类型确认和无阻断问题的前提下批准。"""
+
         current = self._require_version(version_id)
         self._require_editable_latest(current)
         if confirmed_document_type != current.document_type:
@@ -153,6 +163,7 @@ class ReviewService:
             current.document_type,
             current.document_json,
         )
+        # 前端 Live Validation 仅改善体验；批准时必须在服务端重新验证。
         report = self._validator.validate(document)
         if report.blocking_count:
             raise UnresolvedBlockingIssues(
@@ -190,6 +201,8 @@ class ReviewService:
         return version, self._reviews.list_actions(version_id)
 
     def get_detail(self, version_id: str) -> dict:
+        """组合版本、Evidence、Issue、动作和安全的模型溯源信息。"""
+
         version, actions = self.get(version_id)
         bundle = self._drafts.get_for_task(version.task_id)
         run = self._runs.get(bundle.draft.run_id) if bundle else None

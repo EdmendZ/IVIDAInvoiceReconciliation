@@ -1,3 +1,9 @@
+"""上传原件的信任边界。
+
+浏览器提供的文件名和 MIME 都不可信；服务使用文件签名重新识别格式，并确保
+MinIO 写入与任务创建失败时不会留下无法追踪的孤立对象。
+"""
+
 from __future__ import annotations
 
 import hashlib
@@ -27,6 +33,8 @@ _DOCUMENT_SIGNATURES: tuple[tuple[bytes, str, set[str]], ...] = (
 
 
 def _safe_filename(filename: str) -> str:
+    """移除路径和危险字符；对象键不能直接使用客户端传入的路径。"""
+
     basename = Path(filename.replace("\\", "/")).name.strip()
     if not basename:
         raise DocumentValidationError("Filename is required")
@@ -35,6 +43,8 @@ def _safe_filename(filename: str) -> str:
 
 
 def _detect_document_type(filename: str, data: bytes) -> str:
+    """根据 Magic Bytes 识别内容，并拒绝扩展名伪装。"""
+
     extension = Path(filename).suffix.casefold()
     for signature, content_type, extensions in _DOCUMENT_SIGNATURES:
         if data.startswith(signature):
@@ -64,6 +74,8 @@ class DocumentUploadService:
         data: bytes,
         purchase_order_hint: str | None = None,
     ) -> ExtractionTask:
+        """验证并持久化一份原件，返回文件级的长期 Task。"""
+
         if not data:
             raise DocumentValidationError("Uploaded document is empty")
         if len(data) > self._max_bytes:
@@ -92,6 +104,7 @@ class DocumentUploadService:
             updated_at=now,
         )
 
+        # 先保存原件再创建数据库记录；若数据库失败，补偿删除对象，避免孤儿文件。
         self._storage.put(object_key, data, detected_content_type)
         try:
             self._repository.create(task)

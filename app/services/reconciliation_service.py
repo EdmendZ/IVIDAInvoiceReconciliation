@@ -1,3 +1,9 @@
+"""Invoice 与一张或多张 Receive Note 的纯确定性核对规则。
+
+本模块不访问数据库，也不调用模型；相同输入始终得到相同结果，便于单元测试、
+审计和复算。批准版本门禁位于 reconciliation_application_service.py。
+"""
+
 from __future__ import annotations
 
 import re
@@ -29,6 +35,8 @@ def _normalized_text(value: str) -> str:
 
 
 def _match_key(item: LineItem) -> str:
+    """优先用 SKU；供应商未提供 SKU 时才退化到标准化描述。"""
+
     if item.sku and item.sku.strip():
         return f"sku:{_normalized_text(item.sku)}"
     return f"description:{_normalized_text(item.description)}"
@@ -43,6 +51,8 @@ def _item_amount(item: LineItem) -> Decimal | None:
 
 
 def _aggregate(items: list[LineItem]) -> dict[str, _AggregatedLine]:
+    """按商品键聚合分批收货，并计算数量加权单价。"""
+
     grouped: dict[str, list[LineItem]] = defaultdict(list)
     for item in items:
         grouped[_match_key(item)].append(item)
@@ -51,6 +61,7 @@ def _aggregate(items: list[LineItem]) -> dict[str, _AggregatedLine]:
     for key, matching_items in grouped.items():
         quantity = sum((item.quantity for item in matching_items), Decimal("0"))
         amounts = [_item_amount(item) for item in matching_items]
+        # 任一行金额未知时保持未知，不能用 0 制造虚假的“完全匹配”。
         amount = None if any(value is None for value in amounts) else sum(amounts, Decimal("0"))
         price_extensions = [
             item.quantity * item.unit_price
@@ -84,6 +95,8 @@ def _classify(
     received_line: _AggregatedLine | None,
     request: ReconciliationRequest,
 ) -> tuple[MatchStatus, list[str]]:
+    """根据业务容差分类；缺少一侧商品时使用专门状态而非普通 mismatch。"""
+
     if invoice_line is None:
         return MatchStatus.RECEIVE_NOTE_ONLY, ["Item exists only on receive note"]
     if received_line is None:
@@ -118,6 +131,9 @@ def _classify(
 
 
 def reconcile(request: ReconciliationRequest) -> ReconciliationResult:
+    """先聚合所有收货单，再逐商品比较并生成可解释汇总。"""
+
+    # 一对多的关键：不能把每张 Receive Note 单独与整张 Invoice 比较。
     invoice_lines = _aggregate(request.invoice.items)
     received_items = [item for note in request.receive_notes for item in note.items]
     received_lines = _aggregate(received_items)

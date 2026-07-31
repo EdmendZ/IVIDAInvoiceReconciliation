@@ -1,3 +1,9 @@
+"""Invoice 与 Receive Note 共用的规范化业务模型。
+
+这些模型是模型输出、人工审核和最终核对之间的稳定契约。基础设施层可以变化，
+但进入业务规则的数据必须先通过这里的类型和数值约束。
+"""
+
 from __future__ import annotations
 
 from datetime import date
@@ -31,6 +37,8 @@ class LineItem(BaseModel):
 
 
 class BusinessDocument(BaseModel):
+    """两类采购单据的公共字段，而不是数据库记录本身。"""
+
     model_config = ConfigDict(str_strip_whitespace=True)
 
     document_type: DocumentType
@@ -52,6 +60,8 @@ class BusinessDocument(BaseModel):
 
 
 class Invoice(BusinessDocument):
+    """供应商要求付款的商业发票。"""
+
     document_type: DocumentType = DocumentType.INVOICE
 
     @model_validator(mode="after")
@@ -62,6 +72,8 @@ class Invoice(BusinessDocument):
 
 
 class ReceiveNote(BusinessDocument):
+    """门店实际收货事实的记录，可多张共同对应一张发票。"""
+
     document_type: DocumentType = DocumentType.RECEIVE_NOTE
 
     @model_validator(mode="after")

@@ -1,3 +1,9 @@
+"""可复现的抽取评测运行器。
+
+MinerU 结果按原件哈希缓存；每份文档独立记录失败，避免只统计成功样本造成
+幸存者偏差。输出保存预测 JSON，指标可在不重复调用模型的情况下离线复算。
+"""
+
 from __future__ import annotations
 
 import json
@@ -22,6 +28,8 @@ class EvaluationParseFailed(RuntimeError):
 
 
 class ExtractionEvaluationRunner:
+    """在合成 Gold 数据集上执行 Parser + Normalizer 并聚合指标。"""
+
     def __init__(
         self,
         *,
@@ -183,6 +191,8 @@ class ExtractionEvaluationRunner:
         parser_model: str,
         latency_ms: int = 0,
     ) -> DocumentEvaluation:
+        """把单文档异常转换为评测结果，让后续文档继续运行。"""
+
         error_code = getattr(error, "code", None)
         return DocumentEvaluation(
             case_id=case_id,

@@ -1,0 +1,176 @@
+# API、前端与本机运行
+
+## 一键启动
+
+在 PowerShell 中：
+
+```powershell
+Set-Location E:\ZephyrLLM\Projects\IVIDAInvoiceReconciliation
+.\start_local_demo.ps1
+```
+
+访问：
+
+- 前端：<http://127.0.0.1:5274>
+- API 文档：<http://127.0.0.1:8200/docs>
+- 健康检查：<http://127.0.0.1:8200/api/health>
+
+停止：
+
+```powershell
+.\stop_local_demo.ps1
+```
+
+启动器会记录自己创建的进程，不会仅凭端口号盲目结束其他程序。
+
+## 三个前端工作区
+
+### Upload
+
+实现：`frontend/src/upload/UploadPage.tsx`
+
+操作流程：
+
+1. 选择 Invoice 或 Receive Note；
+2. 可填写采购订单提示；
+3. 上传 PDF/PNG/JPEG；
+4. 创建 Extraction Run；
+5. 观察 Worker 和任务状态；
+6. 可对处理中任务请求取消。
+
+状态文案来自 `taskPresentation.ts`，它会结合 Worker online/offline 解释 queued。
+
+### Review
+
+实现：
+
+- `ReviewQueuePage.tsx`；
+- `ReviewDocumentPage.tsx`；
+- `StructuredDocumentEditor.tsx`。
+
+审核人员查看原文证据、结构化字段和 Validation Issue。`Model run` 面板展示
+模型溯源，不展示 API Key 或 Base URL。
+
+### Reconcile
+
+实现：`frontend/src/reconcile/ReconciliationPage.tsx`
+
+只能选择批准版本。先选择 Invoice，再查看解释性 Receive Note 候选，最后选择
+一张或多张执行核对。
+
+## API 分组
+
+| 路径前缀 | 职责 |
+|---|---|
+| `/api/auth` | 登录、登出和当前管理员 |
+| `/api/documents` | 上传原件 |
+| `/api/extraction-*` | 创建、查询、取消抽取 |
+| `/api/review` | 草稿审核、版本编辑、批准/驳回 |
+| `/api/reconciliations` | 候选、批准版本核对和历史结果 |
+| `/api/runtime` | API、数据库、MinIO、Worker 状态 |
+
+业务路由要求 reviewer/admin 身份。开发环境才注册原始 JSON 对比等诊断接口。
+
+## 认证
+
+管理员密码使用 Argon2 Hash 存储，浏览器通过 Session Cookie 访问业务接口。
+前端收到 401 时回到登录页。
+
+创建账号：
+
+```powershell
+.\.venv\Scripts\python.exe -m app.cli.create_admin `
+  --username reviewer `
+  --role reviewer
+```
+
+命令会安全读取密码，不应把明文密码提交到 `.env`、SQL 文件或文档。
+
+## 环境变量分组
+
+`.env.example` 按职责分为：
+
+- APP/CORS/上传限制；
+- PostgreSQL；
+- MinIO；
+- MinerU；
+- Normalization 模型；
+- Worker 心跳。
+
+`MINIO_ACCESS_KEY` 类似账号标识，`MINIO_SECRET_KEY` 类似密码。
+`MINIO_SECURE=true` 表示通过 HTTPS/TLS 连接 MinIO；本机 HTTP 环境通常为
+false，公网生产环境应使用 TLS。
+
+## 分别启动
+
+API：
+
+```powershell
+.\.venv\Scripts\python.exe run_api.py
+```
+
+Worker：
+
+```powershell
+.\.venv\Scripts\python.exe run_extraction_worker.py
+```
+
+前端：
+
+```powershell
+Set-Location frontend
+npm run dev
+```
+
+必须同时有 API 和 Worker。只有 API 时上传可以成功，但 Run 会一直 queued。
+
+## PyCharm 运行
+
+1. 将解释器设置为项目 `.venv\Scripts\python.exe`；
+2. 工作目录设置为项目根目录；
+3. API 运行 `run_api.py`；
+4. Worker 另开一个 Run Configuration，运行 `run_extraction_worker.py`；
+5. 前端通过 npm 配置运行 `frontend/package.json` 的 `dev`。
+
+## 常见故障
+
+### 端口已占用
+
+`Errno 10048` 表示端口已有监听进程，不一定是错误的僵尸进程。先检查：
+
+```powershell
+Get-NetTCPConnection -LocalPort 8200 -State Listen
+```
+
+如果健康检查正常，说明 API 可能已经启动，不应再开第二份。
+
+### queued 很久
+
+检查：
+
+1. UI 的 Worker 状态；
+2. Worker 日志；
+3. MinerU Token；
+4. Run 的 `next_attempt_at` 和 error code；
+5. PostgreSQL/MinIO 是否可达。
+
+### 前端显示图片失败
+
+前端通过 Vite Proxy 请求 API/MinIO 代理路径。若终端出现
+`ECONNREFUSED 127.0.0.1:<api-port>`，说明代理目标 API 没启动或端口配置错误。
+
+### 127.0.0.1 拒绝连接
+
+127.0.0.1 是当前电脑的回环地址。拒绝连接通常表示目标端口没有服务监听，不是
+浏览器“无法连接自己”。
+
+## 演示前检查
+
+- `.env` 存在且无占位密码；
+- API 健康检查 200；
+- Worker online；
+- 前端可以登录；
+- 使用合成测试文件；
+- Review 有 Evidence 和 Model Run；
+- 已准备一张 Invoice 加两张 Receive Note 的一对多案例；
+- 终端和截图不显示 Token、密码或真实财务数据。

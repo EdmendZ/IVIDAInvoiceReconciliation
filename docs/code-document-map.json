@@ -1,0 +1,96 @@
+{
+  "groups": [
+    {
+      "name": "document-lifecycle-and-worker",
+      "code_patterns": [
+        "app/domain/extraction_*.py",
+        "app/services/document_upload_service.py",
+        "app/services/extraction_service.py",
+        "app/workers/**",
+        "app/infra/postgres_extraction_run_repository.py"
+      ],
+      "documents": [
+        "docs/business/03-document-lifecycle.md",
+        "docs/ai/04-extraction-pipeline.md",
+        "docs/operations/08-api-ui-and-local-run.md"
+      ]
+    },
+    {
+      "name": "review-and-versioning",
+      "code_patterns": [
+        "app/domain/document_drafts.py",
+        "app/domain/document_versions.py",
+        "app/services/review_service.py",
+        "app/infra/postgres_review_repository.py",
+        "frontend/src/review/**"
+      ],
+      "documents": [
+        "docs/business/05-review-and-versioning.md"
+      ]
+    },
+    {
+      "name": "reconciliation",
+      "code_patterns": [
+        "app/domain/reconciliation*.py",
+        "app/services/candidate_matching_service.py",
+        "app/services/reconciliation*.py",
+        "frontend/src/reconcile/**"
+      ],
+      "documents": [
+        "docs/business/06-reconciliation-rules.md"
+      ]
+    },
+    {
+      "name": "model-and-evaluation",
+      "code_patterns": [
+        "app/domain/normalization.py",
+        "app/domain/parsing.py",
+        "app/infra/mineru_parser.py",
+        "app/infra/openai_normalization_provider.py",
+        "app/resources/prompts/**",
+        "app/evaluation/**",
+        "app/cli/evaluate_extraction.py",
+        "app/cli/compare_evaluations.py",
+        "tools/generate_evaluation_dataset.py",
+        "tools/validate_evaluation_dataset.py"
+      ],
+      "documents": [
+        "docs/ai/04-extraction-pipeline.md",
+        "docs/ai/09-testing-and-evaluation.md",
+        "docs/interview/model-selection.md"
+      ]
+    },
+    {
+      "name": "data-and-infrastructure",
+      "code_patterns": [
+        "app/infra/database*.py",
+        "app/infra/minio_storage.py",
+        "migrations/**"
+      ],
+      "documents": [
+        "docs/architecture/07-data-and-infrastructure.md",
+        "docs/postgresql-setup.md"
+      ]
+    },
+    {
+      "name": "api-ui-and-operations",
+      "code_patterns": [
+        "app/api/**",
+        "app/main.py",
+        "app/core/config.py",
+        "frontend/src/**",
+        "scripts/**",
+        "run_api.py",
+        "run_extraction_worker.py",
+        "start_local_demo.ps1",
+        "stop_local_demo.ps1",
+        ".env.example"
+      ],
+      "documents": [
+        "docs/operations/08-api-ui-and-local-run.md",
+        "docs/operations/review-workflow.md",
+        "README.md"
+      ]
+    }
+  ]
+}

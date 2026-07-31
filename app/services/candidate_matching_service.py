@@ -1,3 +1,8 @@
+"""为已批准 Receive Note 生成可解释候选分数。
+
+分数是业务启发式规则，不是经过校准的概率；推荐仅帮助审核人员缩小选择范围。
+"""
+
 from __future__ import annotations
 
 import re
@@ -100,6 +105,8 @@ def assess_candidate(
     receive_note: ReceiveNote,
     receive_note_version_id: str,
 ) -> ReconciliationCandidate:
+    """用身份、币种、日期和商品重叠信号评估一张收货单。"""
+
     signals: list[CandidateSignal] = []
     score = 0
     same_document_number = (
@@ -207,6 +214,7 @@ def assess_candidate(
             )
         )
 
+    # 限制到 UI 友好的区间，但保留每个 signal 的原始权重用于解释。
     bounded_score = max(0, min(100, score))
     blocking_codes = {
         "same_document_number",
@@ -214,6 +222,7 @@ def assess_candidate(
         "currency_mismatch",
         "no_item_overlap",
     }
+    # 高总分不能覆盖关键业务冲突，例如同号或采购订单明确不一致。
     has_blocking_conflict = any(
         signal.code in blocking_codes for signal in signals
     )
