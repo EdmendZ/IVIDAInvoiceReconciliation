@@ -145,6 +145,7 @@ class PostgresExtractionRunRepository:
         input_tokens: int | None,
         output_tokens: int | None,
         estimated_cost_aud: str | None,
+        normalization_latency_ms: int,
     ) -> None:
         self._update(
             run_id,
@@ -157,11 +158,31 @@ class PostgresExtractionRunRepository:
                 if estimated_cost_aud is not None
                 else None
             ),
+            normalization_latency_ms=normalization_latency_ms,
             completed_at=datetime.now(UTC),
             error_message=None,
             phase_error_code=None,
             lease_owner=None,
             lease_expires_at=None,
+        )
+
+    def set_model_provenance(
+        self,
+        run_id: str,
+        *,
+        parser_provider: str,
+        parser_model: str,
+        normalizer_provider: str,
+        normalizer_model: str,
+        prompt_version: str,
+    ) -> None:
+        self._update(
+            run_id,
+            parser_provider=parser_provider,
+            parser_model=parser_model,
+            normalizer_provider=normalizer_provider,
+            normalizer_model=normalizer_model,
+            prompt_version=prompt_version,
         )
 
     def complete(

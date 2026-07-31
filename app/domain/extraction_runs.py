@@ -43,4 +43,10 @@ class ExtractionRun(BaseModel):
     cancel_completed_at: datetime | None = None
     cancelled_stage: str | None = None
     remote_may_continue: bool = False
+    parser_provider: str | None = None
+    parser_model: str | None = None
+    normalizer_provider: str | None = None
+    normalizer_model: str | None = None
+    prompt_version: str | None = None
+    normalization_latency_ms: int | None = Field(default=None, ge=0)
     created_at: datetime

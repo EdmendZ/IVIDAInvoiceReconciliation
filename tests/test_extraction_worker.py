@@ -55,6 +55,7 @@ class FakeParser:
 class FakeNormalizer:
     provider_name = "fixture"
     model_name = "fixture-v1"
+    prompt_version = "sha256:fixture"
 
     def normalize(self, **kwargs) -> NormalizationResult:
         return NormalizationResult(
@@ -142,5 +143,12 @@ def test_worker_submits_then_polls_and_persists_result() -> None:
     bundle = drafts.get_for_run(run.run_id)
     assert bundle is not None
     assert bundle.draft.normalized_json["document_number"] == "INV-1"
-    assert runs.get(run.run_id).status == ExtractionRunStatus.READY_FOR_REVIEW
+    completed = runs.get(run.run_id)
+    assert completed.status == ExtractionRunStatus.READY_FOR_REVIEW
+    assert completed.parser_provider == "mineru"
+    assert completed.parser_model == "vlm"
+    assert completed.normalizer_provider == "fixture"
+    assert completed.normalizer_model == "fixture-v1"
+    assert completed.prompt_version == "sha256:fixture"
+    assert completed.normalization_latency_ms is not None
     assert tasks.get(task.task_id).status.value == "ready_for_review"

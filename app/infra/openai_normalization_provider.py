@@ -11,6 +11,7 @@ from app.domain.documents import DocumentType, Invoice, ReceiveNote
 from app.domain.normalization import FieldEvidence, NormalizationResult
 from app.domain.parsing import ParseResult
 from app.infra.external_errors import ExternalServiceError
+from app.services.prompt_version import prompt_version
 
 
 class NormalizationSchemaError(ValueError):
@@ -46,6 +47,14 @@ class OpenAINormalizationProvider:
         self._user_template = (
             prompt_dir / "normalize_document_user.txt"
         ).read_text(encoding="utf-8")
+        self._prompt_version = prompt_version(
+            self._system_prompt,
+            self._user_template,
+        )
+
+    @property
+    def prompt_version(self) -> str:
+        return self._prompt_version
 
     @classmethod
     def create(

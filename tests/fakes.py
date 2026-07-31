@@ -165,6 +165,7 @@ class InMemoryExtractionRunRepository:
         input_tokens: int | None,
         output_tokens: int | None,
         estimated_cost_aud: str | None,
+        normalization_latency_ms: int = 0,
     ) -> None:
         self.runs[run_id] = self.runs[run_id].model_copy(
             update={
@@ -177,8 +178,29 @@ class InMemoryExtractionRunRepository:
                     if estimated_cost_aud is not None
                     else None
                 ),
+                "normalization_latency_ms": normalization_latency_ms,
                 "completed_at": datetime.now(UTC),
                 "lease_owner": None,
+            }
+        )
+
+    def set_model_provenance(
+        self,
+        run_id: str,
+        *,
+        parser_provider: str,
+        parser_model: str,
+        normalizer_provider: str,
+        normalizer_model: str,
+        prompt_version: str,
+    ) -> None:
+        self.runs[run_id] = self.runs[run_id].model_copy(
+            update={
+                "parser_provider": parser_provider,
+                "parser_model": parser_model,
+                "normalizer_provider": normalizer_provider,
+                "normalizer_model": normalizer_model,
+                "prompt_version": prompt_version,
             }
         )
 

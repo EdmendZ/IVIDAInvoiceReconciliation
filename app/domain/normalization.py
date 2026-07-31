@@ -36,6 +36,9 @@ class NormalizationProvider(Protocol):
     @property
     def model_name(self) -> str: ...
 
+    @property
+    def prompt_version(self) -> str: ...
+
     def normalize(
         self,
         *,

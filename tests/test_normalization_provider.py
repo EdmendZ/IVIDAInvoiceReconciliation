@@ -84,6 +84,7 @@ def test_invoice_response_becomes_valid_document() -> None:
     assert result.document.document_number == "SCF-INV-260701"
     assert result.evidence[0].field_path == "document_number"
     assert result.input_tokens == 100
+    assert provider.prompt_version.startswith("sha256:")
 
 
 def test_missing_identifier_must_be_null_not_empty_string() -> None:

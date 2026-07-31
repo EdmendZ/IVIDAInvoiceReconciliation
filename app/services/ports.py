@@ -90,6 +90,18 @@ class ExtractionRunRepository(Protocol):
         input_tokens: int | None,
         output_tokens: int | None,
         estimated_cost_aud: str | None,
+        normalization_latency_ms: int,
+    ) -> None: ...
+
+    def set_model_provenance(
+        self,
+        run_id: str,
+        *,
+        parser_provider: str,
+        parser_model: str,
+        normalizer_provider: str,
+        normalizer_model: str,
+        prompt_version: str,
     ) -> None: ...
 
     def complete(

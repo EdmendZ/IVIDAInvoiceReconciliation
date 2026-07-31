@@ -142,6 +142,30 @@ class ExtractionRunRow(Base):
         nullable=False,
         default=False,
     )
+    parser_provider: Mapped[str | None] = mapped_column(
+        String(255),
+        nullable=True,
+    )
+    parser_model: Mapped[str | None] = mapped_column(
+        String(255),
+        nullable=True,
+    )
+    normalizer_provider: Mapped[str | None] = mapped_column(
+        String(255),
+        nullable=True,
+    )
+    normalizer_model: Mapped[str | None] = mapped_column(
+        String(255),
+        nullable=True,
+    )
+    prompt_version: Mapped[str | None] = mapped_column(
+        String(255),
+        nullable=True,
+    )
+    normalization_latency_ms: Mapped[int | None] = mapped_column(
+        Integer,
+        nullable=True,
+    )
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True),
         nullable=False,

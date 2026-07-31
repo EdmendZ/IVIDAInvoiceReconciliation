@@ -1,5 +1,6 @@
 import os
 import socket
+from decimal import Decimal
 
 from app.api.dependencies import get_object_storage, get_task_repository
 from app.core.config import get_settings
@@ -33,6 +34,16 @@ def build_extraction_worker() -> ExtractionWorker:
         base_url=settings.normalization_base_url,
         model_name=settings.normalization_model,
         timeout_seconds=settings.normalization_timeout_seconds,
+        input_cost_aud_per_million=(
+            Decimal(str(settings.normalization_input_cost_aud_per_million))
+            if settings.normalization_input_cost_aud_per_million is not None
+            else None
+        ),
+        output_cost_aud_per_million=(
+            Decimal(str(settings.normalization_output_cost_aud_per_million))
+            if settings.normalization_output_cost_aud_per_million is not None
+            else None
+        ),
     )
     return ExtractionWorker(
         parser=parser,

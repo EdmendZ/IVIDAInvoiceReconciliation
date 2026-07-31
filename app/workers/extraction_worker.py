@@ -3,6 +3,7 @@ from __future__ import annotations
 import logging
 import threading
 import time
+from time import perf_counter
 from datetime import UTC, datetime, timedelta
 from uuid import uuid4
 
@@ -268,9 +269,21 @@ class ExtractionWorker:
             tables=record.tables,
             page_count=record.page_count,
         )
+        self._run_repository.set_model_provenance(
+            run.run_id,
+            parser_provider=parse_result.provider,
+            parser_model=parse_result.model_name,
+            normalizer_provider=self._normalizer.provider_name,
+            normalizer_model=self._normalizer.model_name,
+            prompt_version=self._normalizer.prompt_version,
+        )
+        normalization_started = perf_counter()
         normalized = self._normalizer.normalize(
             document_type=task.document_type,
             parse_result=parse_result,
+        )
+        normalization_latency_ms = round(
+            (perf_counter() - normalization_started) * 1000
         )
         if self._run_repository.is_cancel_requested(run.run_id):
             self._cancel_run(
@@ -309,6 +322,7 @@ class ExtractionWorker:
                 if normalized.estimated_cost_aud is not None
                 else None
             ),
+            normalization_latency_ms=normalization_latency_ms,
         )
         self._task_repository.update_status(
             run.task_id,
