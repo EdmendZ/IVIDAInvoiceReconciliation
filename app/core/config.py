@@ -54,6 +54,8 @@ class Settings(BaseSettings):
         default=None,
         ge=0,
     )
+    worker_heartbeat_interval_seconds: int = Field(default=10, ge=1, le=60)
+    worker_offline_after_seconds: int = Field(default=30, ge=5, le=300)
 
     @property
     def cors_origin_list(self) -> list[str]:

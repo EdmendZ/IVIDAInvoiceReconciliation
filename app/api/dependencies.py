@@ -21,6 +21,10 @@ from app.infra.postgres_reconciliation_repository import (
 from app.services.reconciliation_application_service import (
     ReconciliationApplicationService,
 )
+from app.infra.postgres_worker_runtime_repository import (
+    PostgresWorkerRuntimeRepository,
+)
+from app.services.runtime_status_service import RuntimeStatusService
 
 
 @lru_cache
@@ -96,4 +100,18 @@ def get_extraction_service() -> ExtractionService:
         task_repository=get_task_repository(),
         run_repository=get_run_repository(),
         provider=DisabledExtractionProvider(),
+    )
+
+
+@lru_cache
+def get_worker_runtime_repository() -> PostgresWorkerRuntimeRepository:
+    return PostgresWorkerRuntimeRepository(get_session_factory())
+
+
+@lru_cache
+def get_runtime_status_service() -> RuntimeStatusService:
+    settings = get_settings()
+    return RuntimeStatusService(
+        get_worker_runtime_repository(),
+        offline_after_seconds=settings.worker_offline_after_seconds,
     )

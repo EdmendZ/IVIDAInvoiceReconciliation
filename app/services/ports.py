@@ -9,6 +9,7 @@ from app.domain.parse_results import ParseResultRecord
 from app.domain.document_drafts import DocumentDraft, DraftBundle
 from app.domain.normalization import FieldEvidence
 from app.domain.validation import ValidationIssue
+from app.domain.worker_runtime import WorkerHeartbeat
 
 
 class ObjectStorage(Protocol):
@@ -131,3 +132,15 @@ class DocumentDraftRepository(Protocol):
     def get_for_task(self, task_id: str) -> DraftBundle | None: ...
 
     def list_latest(self) -> list[DraftBundle]: ...
+
+
+class WorkerRuntimeRepository(Protocol):
+    def heartbeat(
+        self,
+        *,
+        worker_id: str,
+        version: str,
+        now: datetime,
+    ) -> None: ...
+
+    def latest(self) -> WorkerHeartbeat | None: ...

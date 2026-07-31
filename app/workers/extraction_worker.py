@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import logging
+import threading
 import time
 from datetime import UTC, datetime, timedelta
 from uuid import uuid4
@@ -18,6 +19,7 @@ from app.services.ports import (
     DocumentDraftRepository,
     ObjectStorage,
     ParseResultRepository,
+    WorkerRuntimeRepository,
 )
 from app.services.validation_service import ValidationService
 
@@ -36,8 +38,11 @@ class ExtractionWorker:
         normalizer: NormalizationProvider | None = None,
         draft_repository: DocumentDraftRepository | None = None,
         validation_service: ValidationService | None = None,
+        runtime_repository: WorkerRuntimeRepository | None = None,
         poll_interval_seconds: int = 5,
         lease_seconds: int = 60,
+        heartbeat_interval_seconds: int = 10,
+        worker_version: str = "0.1.0",
     ) -> None:
         self._parser = parser
         self._storage = storage
@@ -47,8 +52,11 @@ class ExtractionWorker:
         self._normalizer = normalizer
         self._draft_repository = draft_repository
         self._validation_service = validation_service
+        self._runtime_repository = runtime_repository
         self._poll_interval_seconds = poll_interval_seconds
         self._lease_seconds = lease_seconds
+        self._heartbeat_interval_seconds = heartbeat_interval_seconds
+        self._worker_version = worker_version
 
     def run_once(self, worker_id: str) -> bool:
         now = datetime.now(UTC)
@@ -90,9 +98,48 @@ class ExtractionWorker:
             return True
 
     def run_forever(self, *, worker_id: str, idle_seconds: float = 2) -> None:
-        while True:
-            if not self.run_once(worker_id):
-                time.sleep(idle_seconds)
+        stop_heartbeat = threading.Event()
+        heartbeat_thread: threading.Thread | None = None
+        if self._runtime_repository is not None:
+            heartbeat_thread = threading.Thread(
+                target=self._heartbeat_forever,
+                args=(worker_id, stop_heartbeat),
+                daemon=True,
+                name="ivida-worker-heartbeat",
+            )
+            heartbeat_thread.start()
+        try:
+            while True:
+                if not self.run_once(worker_id):
+                    time.sleep(idle_seconds)
+        finally:
+            stop_heartbeat.set()
+            if heartbeat_thread is not None:
+                heartbeat_thread.join(timeout=2)
+
+    def record_heartbeat(self, worker_id: str) -> None:
+        if self._runtime_repository is None:
+            return
+        self._runtime_repository.heartbeat(
+            worker_id=worker_id,
+            version=self._worker_version,
+            now=datetime.now(UTC),
+        )
+
+    def _heartbeat_forever(
+        self,
+        worker_id: str,
+        stop: threading.Event,
+    ) -> None:
+        while not stop.is_set():
+            try:
+                self.record_heartbeat(worker_id)
+            except Exception:
+                logger.exception(
+                    "WORKER_HEARTBEAT_FAILED worker_id=%s",
+                    worker_id,
+                )
+            stop.wait(self._heartbeat_interval_seconds)
 
     def _submit(self, run: ExtractionRun, now: datetime) -> None:
         task = self._task_repository.get(run.task_id)

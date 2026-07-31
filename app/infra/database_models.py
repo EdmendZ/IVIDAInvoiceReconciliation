@@ -53,6 +53,25 @@ class ExtractionTaskRow(Base):
     )
 
 
+class WorkerHeartbeatRow(Base):
+    __tablename__ = "worker_heartbeats"
+
+    worker_id: Mapped[str] = mapped_column(String(255), primary_key=True)
+    version: Mapped[str] = mapped_column(String(64), nullable=False)
+    started_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True),
+        nullable=False,
+    )
+    last_seen_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True),
+        nullable=False,
+    )
+
+    __table_args__ = (
+        Index("ix_worker_heartbeats_last_seen_at", "last_seen_at"),
+    )
+
+
 class ExtractionRunRow(Base):
     __tablename__ = "extraction_runs"
 

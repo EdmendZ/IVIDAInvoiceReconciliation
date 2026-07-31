@@ -11,6 +11,9 @@ from app.infra.postgres_extraction_run_repository import (
 from app.infra.openai_normalization_provider import OpenAINormalizationProvider
 from app.infra.postgres_draft_repository import PostgresDocumentDraftRepository
 from app.infra.postgres_parse_repository import PostgresParseResultRepository
+from app.infra.postgres_worker_runtime_repository import (
+    PostgresWorkerRuntimeRepository,
+)
 from app.services.validation_service import ValidationService
 from app.workers.extraction_worker import ExtractionWorker
 
@@ -40,7 +43,9 @@ def build_extraction_worker() -> ExtractionWorker:
         normalizer=normalizer,
         draft_repository=PostgresDocumentDraftRepository(session_factory),
         validation_service=ValidationService(),
+        runtime_repository=PostgresWorkerRuntimeRepository(session_factory),
         poll_interval_seconds=settings.mineru_poll_interval_seconds,
+        heartbeat_interval_seconds=settings.worker_heartbeat_interval_seconds,
     )
 
 
