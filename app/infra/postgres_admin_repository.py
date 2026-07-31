@@ -1,3 +1,5 @@
+"""Admin User 与 Session 的 PostgreSQL Repository。"""
+
 from datetime import datetime
 
 from sqlalchemy import delete, select
@@ -8,10 +10,14 @@ from app.infra.database_models import AdminSessionRow, AdminUserRow
 
 
 class PostgresAdminRepository:
+    """只保存 Password/Token Hash，并在查询时过滤过期 Session。"""
+
     def __init__(self, session_factory: sessionmaker[Session]) -> None:
         self._session_factory = session_factory
 
     def create_user(self, user: AdminUser) -> None:
+        """插入一个已经由 AuthService Hash 密码的用户。"""
+
         with self._session_factory() as session:
             session.add(AdminUserRow(**user.model_dump(mode="python")))
             session.commit()
@@ -35,6 +41,8 @@ class PostgresAdminRepository:
         token_hash: str,
         now: datetime,
     ) -> AuthenticatedUser | None:
+        """通过 Token Hash 连接 Session/User，并要求未过期且账号 active。"""
+
         with self._session_factory() as session:
             row = session.execute(
                 select(AdminUserRow)

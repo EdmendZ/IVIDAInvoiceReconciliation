@@ -18,10 +18,14 @@ from app.services.ports import ExtractionTaskRepository, ObjectStorage
 
 
 class DocumentValidationError(ValueError):
+    """上传内容不满足大小、文件名或真实格式约束。"""
+
     pass
 
 
 class ExtractionTaskNotFound(LookupError):
+    """请求的文件级 Task 不存在。"""
+
     pass
 
 
@@ -57,6 +61,8 @@ def _detect_document_type(filename: str, data: bytes) -> str:
 
 
 class DocumentUploadService:
+    """验证原件、保存 MinIO，并创建可追踪 ExtractionTask。"""
+
     def __init__(
         self,
         storage: ObjectStorage,
@@ -114,10 +120,14 @@ class DocumentUploadService:
         return task
 
     def get_task(self, task_id: str) -> ExtractionTask:
+        """读取单个 Task，并把 Repository 的 None 转为领域错误。"""
+
         task = self._repository.get(task_id)
         if task is None:
             raise ExtractionTaskNotFound(task_id)
         return task
 
     def list_tasks(self, limit: int = 100) -> list[ExtractionTask]:
+        """按新到旧返回有限数量 Task，避免后台页面无界查询。"""
+
         return self._repository.list_recent(limit)

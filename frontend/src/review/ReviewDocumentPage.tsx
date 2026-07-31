@@ -9,6 +9,12 @@ import {
   presentTokens,
 } from "./modelRunPresentation";
 
+/**
+ * 单据审核页实现 Human-in-the-loop 边界。
+ *
+ * 模型结果先成为可修改 Draft。每次保存或重新分类都会创建不可变新版本；
+ * 只有通过实时规则校验、确认单据类型并人工批准的版本，才能进入对账候选池。
+ */
 type Detail = {
   version: {
     version_id: string;
@@ -80,6 +86,8 @@ export function ReviewDocumentPage({
   }, [detail.data]);
 
   useEffect(() => {
+    // 450ms 防抖避免用户每敲一个字符就请求后端。AbortController 取消过期请求，
+    // 防止较早响应晚到并覆盖最新 JSON 对应的校验结果。
     if (!detail.data || detail.data.version.status !== "draft") return;
     let document: Record<string, unknown>;
     try {
@@ -148,6 +156,8 @@ export function ReviewDocumentPage({
     setBusy(true);
     setMessage("");
     try {
+      // PATCH 并非原地覆盖：服务端会复制出下一版本并记录修订原因，从而保留
+      // 模型原始输出和全部人工修改轨迹。
       const document = JSON.parse(editor);
       const next = await api<{ version_id: string }>(
         `/api/review/versions/${versionId}`,
@@ -211,6 +221,8 @@ export function ReviewDocumentPage({
     setBusy(true);
     setMessage("");
     try {
+      // 文档类型影响 Schema 与后续候选集合，所以纠错也必须产生审计版本，
+      // 不能只在浏览器里改一个标签。
       const next = await api<{ version_id: string }>(
         `/api/review/versions/${versionId}/reclassify`,
         {
@@ -432,6 +444,8 @@ export function ReviewDocumentPage({
         <button
           className="primary"
           disabled={
+            // 审批是严格业务门：校验未完成、有阻断项、类型未人工确认、
+            // 类型尚未落盘或当前不是草稿，任一条件都不允许放行。
             busy ||
             validationBusy ||
             !validationPreview ||

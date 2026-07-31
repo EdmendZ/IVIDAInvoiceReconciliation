@@ -1,3 +1,5 @@
+"""DocumentDraft、Evidence 和 ValidationIssue 的聚合 Repository。"""
+
 from uuid import uuid4
 
 from sqlalchemy import select
@@ -14,6 +16,8 @@ from app.infra.database_models import (
 
 
 class PostgresDocumentDraftRepository:
+    """保证机器草稿及其证据/问题在同一事务保存。"""
+
     def __init__(self, session_factory: sessionmaker[Session]) -> None:
         self._session_factory = session_factory
 
@@ -23,6 +27,8 @@ class PostgresDocumentDraftRepository:
         evidence: list[FieldEvidence],
         issues: list[ValidationIssue],
     ) -> DocumentDraft:
+        """原子插入 Draft、全部 Evidence 和全部 Issues。"""
+
         with self._session_factory() as session:
             session.add(DocumentDraftRow(**draft.model_dump(mode="python")))
             session.add_all(
@@ -49,12 +55,17 @@ class PostgresDocumentDraftRepository:
         return draft
 
     def get_for_run(self, run_id: str) -> DraftBundle | None:
+        """按 Run 读取 Draft 聚合。"""
+
         return self._get_bundle(DocumentDraftRow.run_id == run_id)
 
     def get_for_task(self, task_id: str) -> DraftBundle | None:
+        """按 Task 读取最新机器 Draft 聚合。"""
+
         return self._get_bundle(DocumentDraftRow.task_id == task_id)
 
     def list_latest(self) -> list[DraftBundle]:
+        """为每个 Task 返回最新 Draft，避免审核队列展示历史机器快照。"""
         with self._session_factory() as session:
             task_ids = session.execute(
                 select(DocumentDraftRow.task_id).distinct()

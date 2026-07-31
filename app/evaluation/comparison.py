@@ -1,3 +1,5 @@
+"""将多个模型方案按“先满足预算，再比较质量”的规则排序。"""
+
 from __future__ import annotations
 
 from decimal import Decimal
@@ -10,6 +12,12 @@ def rank_variants(
     *,
     max_cost_aud_per_document: Decimal,
 ) -> list[RankedVariant]:
+    """生成可解释排名。
+
+    成本门槛是硬约束，准确率、行项目 F1、证据覆盖率是质量排序键。这样不会
+    因某个昂贵模型只高出极小准确率，就违背“低成本试点”的产品目标。
+    """
+
     def within_budget(summary: EvaluationSummary) -> bool:
         return (
             summary.average_cost_aud is not None
@@ -69,6 +77,7 @@ def render_comparison_markdown(
     *,
     max_cost_aud_per_document: Decimal,
 ) -> str:
+    """把机器可读排名渲染为便于评审和版本留档的 Markdown 表格。"""
     lines = [
         "# Normalization Variant Comparison",
         "",

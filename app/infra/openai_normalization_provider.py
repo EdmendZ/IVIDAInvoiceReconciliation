@@ -27,6 +27,8 @@ class NormalizationSchemaError(ValueError):
 
 
 class NormalizedDocumentEnvelope(BaseModel):
+    """模型响应外壳：业务文档与逐字段来源证据必须同时返回。"""
+
     document: dict
     evidence: list[FieldEvidence]
 
@@ -68,6 +70,7 @@ class OpenAINormalizationProvider:
 
     @property
     def prompt_version(self) -> str:
+        """返回 Prompt 内容哈希，使每次模型结果可以追溯到具体模板。"""
         return self._prompt_version
 
     @classmethod
@@ -84,6 +87,7 @@ class OpenAINormalizationProvider:
         enable_thinking: bool = False,
         max_output_tokens: int | None = None,
     ) -> "OpenAINormalizationProvider":
+        """由 OpenAI-compatible 配置创建 Provider；测试可直接注入伪客户端。"""
         if not api_key or not model_name:
             raise ValueError("Normalization API key and model are required")
         from openai import OpenAI

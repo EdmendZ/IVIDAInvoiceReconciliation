@@ -22,10 +22,14 @@ from app.services.reconciliation_service import reconcile
 
 
 class DocumentNotApproved(RuntimeError):
+    """输入版本未批准或业务类型与调用位置不一致。"""
+
     pass
 
 
 class ApprovedVersionReader(Protocol):
+    """对账用例只需要的批准版本只读视图。"""
+
     def get_approved_version(self, version_id: str) -> DocumentVersion | None: ...
 
     def list_versions(
@@ -36,6 +40,8 @@ class ApprovedVersionReader(Protocol):
 
 
 class ReconciliationWriter(Protocol):
+    """保存核对输入版本和确定性结果的最小写端口。"""
+
     def create(self, record: ReconciliationRecord) -> ReconciliationRecord: ...
 
 

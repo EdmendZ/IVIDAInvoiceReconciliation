@@ -1,3 +1,5 @@
+"""健康检查、开发诊断以及批准版本核对端点。"""
+
 from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel, Field
 
@@ -18,6 +20,8 @@ diagnostic_router = APIRouter(prefix="/api", tags=["development diagnostics"])
 
 @router.get("/health")
 def health() -> dict[str, str]:
+    """只证明 API 进程可响应，不代表 Worker/外部模型均健康。"""
+
     settings = get_settings()
     return {
         "status": "ok",
@@ -28,6 +32,8 @@ def health() -> dict[str, str]:
 
 @diagnostic_router.get("/reconciliations/example")
 def reconciliation_example() -> dict:
+    """开发环境使用的合成 JSON 示例，不读取业务数据库。"""
+
     return {
         "invoice": {
             "document_number": "INV-1001",
@@ -72,10 +78,14 @@ def reconciliation_example() -> dict:
     response_model=ReconciliationResult,
 )
 def compare_documents(request: ReconciliationRequest) -> ReconciliationResult:
+    """开发诊断：跳过批准版本门禁直接调用纯核对函数。"""
+
     return reconcile(request)
 
 
 class ApprovedReconciliationRequest(BaseModel):
+    """真实核对只接收已批准 Version ID，而不是任意 Document JSON。"""
+
     invoice_version_id: str
     receive_note_version_ids: list[str] = Field(min_length=1)
 
@@ -88,6 +98,8 @@ def list_reconciliation_candidates(
     ),
     user: AuthenticatedUser = Depends(require_reviewer),
 ) -> list[dict]:
+    """为已批准 Invoice 返回解释性 Receive Note 候选。"""
+
     del user
     try:
         return [
@@ -106,6 +118,8 @@ def create_reconciliation(
     ),
     user: AuthenticatedUser = Depends(require_reviewer),
 ) -> dict:
+    """验证批准版本、执行确定性核对并原子保存结果。"""
+
     try:
         record = service.compare(
             request.invoice_version_id,

@@ -1,3 +1,5 @@
+"""把评测结构化结果转换为可提交、可复核的 Markdown 报告。"""
+
 from app.evaluation.models import DocumentEvaluation, EvaluationSummary
 
 
@@ -5,6 +7,7 @@ def render_markdown_report(
     summary: EvaluationSummary,
     documents: list[DocumentEvaluation],
 ) -> str:
+    """渲染总览及最差样本，提醒读者合成数据不能外推为生产 SLA。"""
     worst = sorted(
         documents,
         key=lambda item: item.counts.field_accuracy,

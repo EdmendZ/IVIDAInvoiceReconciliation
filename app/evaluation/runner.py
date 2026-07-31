@@ -24,6 +24,8 @@ from app.evaluation.models import DocumentEvaluation, EvaluationSummary
 
 
 class EvaluationParseFailed(RuntimeError):
+    """MinerU 失败或轮询超时时的统一评测错误。"""
+
     pass
 
 
@@ -55,6 +57,11 @@ class ExtractionEvaluationRunner:
         output_root: Path,
         max_documents: int | None = None,
     ) -> tuple[EvaluationSummary, list[DocumentEvaluation], Path]:
+        """运行清单内样本并写出可复算结果。
+
+        返回聚合摘要、逐文档结果和本次运行目录。逐文档 JSONL 保留预测值，
+        因而修改指标算法后无需再次支付模型调用费用。
+        """
         manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
         dataset_root = manifest_path.parent
         documents: list[DocumentEvaluation] = []

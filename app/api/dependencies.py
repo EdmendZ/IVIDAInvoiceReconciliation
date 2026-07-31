@@ -1,3 +1,10 @@
+"""FastAPI 依赖装配：把业务服务需要的具体基础设施集中接线。
+
+路由只依赖服务，不应该知道 PostgreSQL、MinIO 的构造细节。这里相当于一个
+轻量级 Composition Root；`lru_cache` 保证无状态客户端和仓储在进程内复用，
+但它不承担跨进程缓存或业务数据持久化。
+"""
+
 from functools import lru_cache
 
 from app.core.config import get_settings
@@ -29,6 +36,7 @@ from app.services.runtime_status_service import RuntimeStatusService
 
 @lru_cache
 def get_object_storage() -> MinioObjectStorage:
+    """按环境配置创建 MinIO 适配器，并在当前 API 进程内复用。"""
     settings = get_settings()
     return MinioObjectStorage(
         endpoint=settings.minio_endpoint,
@@ -41,31 +49,37 @@ def get_object_storage() -> MinioObjectStorage:
 
 @lru_cache
 def get_task_repository() -> PostgresExtractionTaskRepository:
+    """返回抽取任务仓储；任务描述一份上传文件当前所处的生命周期。"""
     return PostgresExtractionTaskRepository(get_session_factory())
 
 
 @lru_cache
 def get_parse_repository() -> PostgresParseResultRepository:
+    """返回解析结果仓储；保存 MinerU 产出的原始文本与版面信息。"""
     return PostgresParseResultRepository(get_session_factory())
 
 
 @lru_cache
 def get_draft_repository() -> PostgresDocumentDraftRepository:
+    """返回结构化草稿仓储；草稿仍可被人工修订，不能直接参与对账。"""
     return PostgresDocumentDraftRepository(get_session_factory())
 
 
 @lru_cache
 def get_review_repository() -> PostgresReviewRepository:
+    """返回审核仓储；它负责不可变版本和审核动作的事务写入。"""
     return PostgresReviewRepository(get_session_factory())
 
 
 @lru_cache
 def get_run_repository() -> PostgresExtractionRunRepository:
+    """返回模型运行仓储；同一任务重试时可以产生多个 Run。"""
     return PostgresExtractionRunRepository(get_session_factory())
 
 
 @lru_cache
 def get_review_service() -> ReviewService:
+    """装配人工审核用例及其校验、草稿、版本依赖。"""
     return ReviewService(
         review_repository=get_review_repository(),
         draft_repository=get_draft_repository(),
@@ -76,6 +90,7 @@ def get_review_service() -> ReviewService:
 
 @lru_cache
 def get_reconciliation_application_service() -> ReconciliationApplicationService:
+    """装配对账入口；只读取已批准版本并写入可审计的对账记录。"""
     return ReconciliationApplicationService(
         review_repository=get_review_repository(),
         reconciliation_repository=PostgresReconciliationRepository(
@@ -86,6 +101,7 @@ def get_reconciliation_application_service() -> ReconciliationApplicationService
 
 @lru_cache
 def get_document_upload_service() -> DocumentUploadService:
+    """装配上传用例，并把最大文件大小这一基础设施策略注入服务。"""
     settings = get_settings()
     return DocumentUploadService(
         storage=get_object_storage(),
@@ -96,6 +112,11 @@ def get_document_upload_service() -> DocumentUploadService:
 
 @lru_cache
 def get_extraction_service() -> ExtractionService:
+    """装配 API 侧抽取控制服务。
+
+    真正的模型调用在 Worker 进程中完成，所以 API 使用禁用 Provider，避免
+    请求线程误触发昂贵且耗时的外部调用。
+    """
     return ExtractionService(
         storage=get_object_storage(),
         task_repository=get_task_repository(),
@@ -106,11 +127,13 @@ def get_extraction_service() -> ExtractionService:
 
 @lru_cache
 def get_worker_runtime_repository() -> PostgresWorkerRuntimeRepository:
+    """返回 Worker 心跳仓储，供 UI 判断队列是否有消费者。"""
     return PostgresWorkerRuntimeRepository(get_session_factory())
 
 
 @lru_cache
 def get_runtime_status_service() -> RuntimeStatusService:
+    """装配运行状态查询，并注入 Worker 失联判定阈值。"""
     settings = get_settings()
     return RuntimeStatusService(
         get_worker_runtime_repository(),

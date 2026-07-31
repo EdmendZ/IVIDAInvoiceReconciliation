@@ -2,6 +2,14 @@ import { useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { api } from "../api/client";
 
+/**
+ * 对账页分成两个不同决策：
+ *
+ * 1. Candidate Matching 回答“哪些收货单可能属于这张发票”，只做可解释排序；
+ * 2. Reconciliation 回答“选定单据的数量/金额是否一致”，产生可审计记录。
+ *
+ * 候选算法不会自动替用户确认关系，且两个步骤都只接收人工批准的不可变版本。
+ */
 type ApprovedVersion = {
   version_id: string;
   document_type: "invoice" | "receive_note";
@@ -102,6 +110,7 @@ export function ReconciliationPage() {
     setError("");
     setResult(null);
     try {
+      // 后端再次校验版本类型和 approved 状态，前端下拉框过滤不是安全边界。
       const record = await api<ReconciliationRecord>("/api/reconciliations", {
         method: "POST",
         body: JSON.stringify({

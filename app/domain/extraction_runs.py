@@ -1,3 +1,5 @@
+"""一次文档处理尝试的领域对象与细粒度状态机。"""
+
 from datetime import datetime
 from decimal import Decimal
 from enum import StrEnum
@@ -6,6 +8,8 @@ from pydantic import BaseModel, Field
 
 
 class ExtractionRunStatus(StrEnum):
+    """Worker 可推进的阶段和终态。"""
+
     QUEUED = "queued"
     SUBMITTING = "submitting"
     PARSING = "parsing"
@@ -18,6 +22,8 @@ class ExtractionRunStatus(StrEnum):
 
 
 class ExtractionRun(BaseModel):
+    """记录一次 Parser/Normalizer 尝试、调度、成本、错误和取消信息。"""
+
     run_id: str
     task_id: str
     provider: str

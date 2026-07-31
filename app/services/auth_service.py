@@ -18,10 +18,14 @@ from app.domain.admin_users import (
 
 
 class InvalidCredentials(ValueError):
+    """用户名、密码、账号状态任一不满足时使用的统一错误。"""
+
     pass
 
 
 class AdminRepository(Protocol):
+    """认证服务需要的用户与 Session 持久化能力。"""
+
     def create_user(self, user: AdminUser) -> None: ...
     def get_user_by_username(self, username: str) -> AdminUser | None: ...
     def create_session(self, admin_session: AdminSession) -> None: ...
@@ -52,6 +56,8 @@ class AuthService:
         password: str,
         role: AdminRole,
     ) -> AdminUser:
+        """验证最小安全要求，使用 Argon2 Hash 后创建后台账号。"""
+
         username = username.strip()
         if not username:
             raise ValueError("Username is required")
@@ -70,6 +76,8 @@ class AuthService:
         return user
 
     def login(self, username: str, password: str) -> tuple[str, AuthenticatedUser]:
+        """验证账号并返回一次性的原 Session Token 与安全用户视图。"""
+
         user = self._repository.get_user_by_username(username.strip())
         if user is None or not user.is_active:
             raise InvalidCredentials("Invalid username or password")
@@ -95,6 +103,8 @@ class AuthService:
         )
 
     def authenticate(self, token: str) -> AuthenticatedUser | None:
+        """Hash Cookie Token 后查询未过期且用户仍 active 的 Session。"""
+
         if not token:
             return None
         return self._repository.get_session_user(
@@ -103,9 +113,13 @@ class AuthService:
         )
 
     def logout(self, token: str) -> None:
+        """删除 Token Hash；空 Token 和重复登出不产生错误。"""
+
         if token:
             self._repository.delete_session(self.hash_token(token))
 
     @staticmethod
     def hash_token(token: str) -> str:
+        """生成数据库索引使用的固定长度 SHA-256 Session Hash。"""
+
         return hashlib.sha256(token.encode("utf-8")).hexdigest()

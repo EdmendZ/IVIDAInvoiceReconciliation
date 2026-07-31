@@ -51,6 +51,7 @@ class MinerUPrecisionParser:
         language: str = "en",
         timeout_seconds: int = 600,
     ) -> "MinerUPrecisionParser":
+        """延迟导入 SDK 并创建生产适配器，便于测试注入伪客户端。"""
         if not token:
             raise ValueError("MinerU API token is required")
         from mineru import MinerU

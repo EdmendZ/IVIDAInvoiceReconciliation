@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+"""Parser 输出到业务 Document 的归一化契约。"""
+
 from decimal import Decimal
 from typing import Protocol
 
@@ -10,6 +12,8 @@ from app.domain.parsing import ParseResult
 
 
 class FieldEvidence(BaseModel):
+    """一个业务字段与原文页码/文本/表格位置之间的证据映射。"""
+
     field_path: str
     value: str | None = None
     page: int | None = Field(default=None, ge=1)
@@ -21,6 +25,8 @@ class FieldEvidence(BaseModel):
 
 
 class NormalizationResult(BaseModel):
+    """规范化文档、Evidence、原始响应摘要和调用计量。"""
+
     document: BusinessDocument
     evidence: list[FieldEvidence] = Field(default_factory=list)
     raw_response: dict
@@ -30,6 +36,8 @@ class NormalizationResult(BaseModel):
 
 
 class NormalizationProvider(Protocol):
+    """可替换文本模型或本地模型的归一化接口。"""
+
     @property
     def provider_name(self) -> str: ...
 
@@ -44,4 +52,6 @@ class NormalizationProvider(Protocol):
         *,
         document_type: DocumentType,
         parse_result: ParseResult,
-    ) -> NormalizationResult: ...
+    ) -> NormalizationResult:
+        """把已经解析的文档转换为指定业务类型。"""
+        ...

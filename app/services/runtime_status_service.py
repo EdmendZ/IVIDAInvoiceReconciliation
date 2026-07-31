@@ -19,6 +19,8 @@ class RuntimeStatusService:
         self._offline_after = timedelta(seconds=offline_after_seconds)
 
     def status(self, *, now: datetime | None = None) -> RuntimeStatus:
+        """根据最后心跳与超时阈值计算 Worker online/offline。"""
+
         current = now or datetime.now(UTC)
         heartbeat = self._repository.latest()
         if heartbeat is None:

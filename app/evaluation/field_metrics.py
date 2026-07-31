@@ -1,3 +1,5 @@
+"""发票/收货单结构化结果的字段级与行项目级比较规则。"""
+
 from __future__ import annotations
 
 import re
@@ -73,6 +75,11 @@ def compare_documents(
     gold: dict,
     evidence_paths: set[str] | None = None,
 ) -> ComparisonCounts:
+    """比较预测文档和人工 Gold 数据。
+
+    普通字段按扁平路径比较；行项目优先用 SKU、缺少 SKU 时用规范化描述作为
+    业务键。证据路径也转换成同一业务键，避免模型调整行顺序后被误判为无证据。
+    """
     evidence_paths = evidence_paths or set()
     errors: list[str] = []
     correct = 0

@@ -1,3 +1,5 @@
+"""一对多核对请求、逐行差异和汇总结果的领域契约。"""
+
 from decimal import Decimal
 from enum import StrEnum
 
@@ -7,6 +9,8 @@ from app.domain.documents import Invoice, ReceiveNote
 
 
 class MatchStatus(StrEnum):
+    """一条聚合商品行相对于 Invoice 的核对分类。"""
+
     EXACT = "exact"
     WITHIN_TOLERANCE = "within_tolerance"
     MISMATCH = "mismatch"
@@ -15,18 +19,24 @@ class MatchStatus(StrEnum):
 
 
 class ReconciliationTolerance(BaseModel):
+    """数量、加权单价和金额允许的绝对差值。"""
+
     quantity: Decimal = Field(default=Decimal("0"), ge=0)
     unit_price: Decimal = Field(default=Decimal("0.01"), ge=0)
     amount: Decimal = Field(default=Decimal("0.02"), ge=0)
 
 
 class ReconciliationRequest(BaseModel):
+    """一张 Invoice 与至少一张 Receive Note 的核对输入。"""
+
     invoice: Invoice
     receive_notes: list[ReceiveNote] = Field(min_length=1)
     tolerance: ReconciliationTolerance = Field(default_factory=ReconciliationTolerance)
 
 
 class LineComparison(BaseModel):
+    """一条商品键的发票值、聚合收货值、差值与解释。"""
+
     match_key: str
     sku: str | None
     description: str
@@ -44,6 +54,8 @@ class LineComparison(BaseModel):
 
 
 class ReconciliationSummary(BaseModel):
+    """按差异类型计数，并给出是否需要人工继续处理。"""
+
     total_lines: int
     exact_lines: int
     tolerance_lines: int
@@ -54,10 +66,11 @@ class ReconciliationSummary(BaseModel):
 
 
 class ReconciliationResult(BaseModel):
+    """一次纯规则核对的完整、可序列化输出。"""
+
     invoice_number: str
     receive_note_numbers: list[str]
     purchase_order_match: bool | None
     currency_match: bool
     lines: list[LineComparison]
     summary: ReconciliationSummary
-

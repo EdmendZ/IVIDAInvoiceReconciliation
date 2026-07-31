@@ -34,6 +34,7 @@
 - [统一术语表](reference/15-glossary.md)
 - [完整业务算例](tutorial/16-end-to-end-worked-example.md)
 - [面试源码练习](interview/17-code-reading-exercises.md)
+- [源码注释与阅读地图](reference/18-code-comment-guide.md)
 - [架构决策记录](architecture/decisions/README.md)
 
 已有的专题材料：

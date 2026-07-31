@@ -23,10 +23,14 @@ from app.services.ports import (
 
 
 class ExtractionRunNotFound(LookupError):
+    """请求的处理尝试不存在。"""
+
     pass
 
 
 class ExtractionStateConflict(RuntimeError):
+    """当前 Task/Run 状态不允许请求的转换。"""
+
     pass
 
 
@@ -126,6 +130,8 @@ class ExtractionService:
             )
 
     def get_run(self, run_id: str) -> ExtractionRun:
+        """读取 Run，并把 Repository 的 None 转成稳定领域错误。"""
+
         run = self._run_repository.get(run_id)
         if run is None:
             raise ExtractionRunNotFound(run_id)

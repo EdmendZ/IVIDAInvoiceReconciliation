@@ -1,3 +1,9 @@
+"""SQLAlchemy 持久化行模型。
+
+这些 Row 只描述数据库结构；业务约束与状态语义位于 app/domain 和
+app/services，Repository 负责二者转换。
+"""
+
 from datetime import datetime
 
 from decimal import Decimal
@@ -21,6 +27,8 @@ from app.infra.database import Base
 
 
 class ExtractionTaskRow(Base):
+    """一份上传原件的文件级元数据和当前摘要状态。"""
+
     __tablename__ = "extraction_tasks"
 
     task_id: Mapped[str] = mapped_column(String(36), primary_key=True)
@@ -54,6 +62,8 @@ class ExtractionTaskRow(Base):
 
 
 class WorkerHeartbeatRow(Base):
+    """每个 Worker 的启动时间、版本与最近心跳。"""
+
     __tablename__ = "worker_heartbeats"
 
     worker_id: Mapped[str] = mapped_column(String(255), primary_key=True)
@@ -73,6 +83,8 @@ class WorkerHeartbeatRow(Base):
 
 
 class ExtractionRunRow(Base):
+    """一次处理尝试的调度、租约、模型溯源、计量和终态。"""
+
     __tablename__ = "extraction_runs"
 
     run_id: Mapped[str] = mapped_column(String(36), primary_key=True)
@@ -185,6 +197,8 @@ class ExtractionRunRow(Base):
 
 
 class ParseResultRow(Base):
+    """MinerU 文本/版面结果及其 MinIO ZIP 对象键。"""
+
     __tablename__ = "parse_results"
 
     parse_result_id: Mapped[str] = mapped_column(String(36), primary_key=True)
@@ -215,6 +229,8 @@ class ParseResultRow(Base):
 
 
 class DocumentDraftRow(Base):
+    """LLM 生成且尚未人工确认的规范化 JSON。"""
+
     __tablename__ = "document_drafts"
 
     draft_id: Mapped[str] = mapped_column(String(36), primary_key=True)
@@ -248,6 +264,8 @@ class DocumentDraftRow(Base):
 
 
 class FieldEvidenceRow(Base):
+    """Draft 字段到原文页码、文本和表格位置的映射。"""
+
     __tablename__ = "field_evidence"
 
     evidence_id: Mapped[str] = mapped_column(String(36), primary_key=True)
@@ -274,6 +292,8 @@ class FieldEvidenceRow(Base):
 
 
 class ValidationIssueRow(Base):
+    """Draft 上的 Warning/Blocking 确定性规则问题。"""
+
     __tablename__ = "validation_issues"
 
     issue_id: Mapped[str] = mapped_column(String(36), primary_key=True)
@@ -306,6 +326,8 @@ class ValidationIssueRow(Base):
 
 
 class AdminUserRow(Base):
+    """后台用户与 Argon2 Password Hash。"""
+
     __tablename__ = "admin_users"
 
     user_id: Mapped[str] = mapped_column(String(36), primary_key=True)
@@ -320,6 +342,8 @@ class AdminUserRow(Base):
 
 
 class AdminSessionRow(Base):
+    """浏览器 Session 的 Token Hash 和过期时间。"""
+
     __tablename__ = "admin_sessions"
 
     session_token_hash: Mapped[str] = mapped_column(String(64), primary_key=True)
@@ -344,6 +368,8 @@ class AdminSessionRow(Base):
 
 
 class DocumentVersionRow(Base):
+    """人工审核生成的不可覆盖业务快照。"""
+
     __tablename__ = "document_versions"
 
     version_id: Mapped[str] = mapped_column(String(36), primary_key=True)
@@ -396,6 +422,8 @@ class DocumentVersionRow(Base):
 
 
 class ReviewActionRow(Base):
+    """版本上的追加式人工操作审计记录。"""
+
     __tablename__ = "review_actions"
 
     action_id: Mapped[str] = mapped_column(String(36), primary_key=True)
@@ -429,6 +457,8 @@ class ReviewActionRow(Base):
 
 
 class ReconciliationRow(Base):
+    """一次核对的头记录、Invoice Version 和完整结果快照。"""
+
     __tablename__ = "reconciliations"
 
     reconciliation_id: Mapped[str] = mapped_column(String(36), primary_key=True)
@@ -457,6 +487,8 @@ class ReconciliationRow(Base):
 
 
 class ReconciliationReceiveNoteRow(Base):
+    """一次核对参与的多个 Receive Note Versions 连接表。"""
+
     __tablename__ = "reconciliation_receive_notes"
 
     reconciliation_id: Mapped[str] = mapped_column(
@@ -472,6 +504,8 @@ class ReconciliationReceiveNoteRow(Base):
 
 
 class ReconciliationLineResultRow(Base):
+    """为查询和统计单独保存的逐商品行核对结果。"""
+
     __tablename__ = "reconciliation_line_results"
 
     line_result_id: Mapped[str] = mapped_column(String(36), primary_key=True)

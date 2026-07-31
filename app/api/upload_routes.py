@@ -1,3 +1,5 @@
+"""文件上传、Task 列表和 Task 查询端点。"""
+
 from typing import Annotated
 
 from fastapi import (
@@ -37,6 +39,8 @@ def list_extraction_tasks(
     run_repository: ExtractionRunRepository = Depends(get_run_repository),
     user: AuthenticatedUser = Depends(require_reviewer),
 ) -> list[dict]:
+    """返回最近 Task，并组合每个 Task 的最新 Run 供 UI 展示。"""
+
     del user
     result: list[dict] = []
     for task in service.list_tasks(limit):
@@ -62,8 +66,11 @@ async def upload_document(
     service: DocumentUploadService = Depends(get_document_upload_service),
     user: AuthenticatedUser = Depends(require_reviewer),
 ) -> ExtractionTask:
+    """限制读取大小后交给上传信任边界验证和持久化。"""
+
     del user
     max_bytes = get_settings().upload_max_bytes
+    # 多读 1 byte 才能区分“刚好达到上限”和“超过上限”。
     data = await file.read(max_bytes + 1)
     try:
         return service.upload(
@@ -92,6 +99,8 @@ def get_extraction_task(
     service: DocumentUploadService = Depends(get_document_upload_service),
     user: AuthenticatedUser = Depends(require_reviewer),
 ) -> ExtractionTask:
+    """按 ID 返回文件级 Task，不混入每次 Run 的细节。"""
+
     del user
     try:
         return service.get_task(task_id)

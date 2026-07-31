@@ -14,17 +14,23 @@ from pydantic import BaseModel, ConfigDict, Field, model_validator
 
 
 class DocumentType(StrEnum):
+    """系统支持的两类采购业务单据。"""
+
     INVOICE = "invoice"
     RECEIVE_NOTE = "receive_note"
 
 
 class Party(BaseModel):
+    """供应商或门店等商业主体的最小身份信息。"""
+
     name: str
     business_number: str | None = None
     address: str | None = None
 
 
 class LineItem(BaseModel):
+    """单据商品行；quantity 必须为正，未知价格使用 None 而不是 0。"""
+
     line_number: str | None = None
     sku: str | None = None
     description: str
@@ -55,6 +61,8 @@ class BusinessDocument(BaseModel):
 
     @model_validator(mode="after")
     def normalize_currency(self) -> BusinessDocument:
+        """统一币种大小写，避免 AUD/aud 产生伪差异。"""
+
         self.currency = self.currency.upper()
         return self
 
@@ -66,6 +74,8 @@ class Invoice(BusinessDocument):
 
     @model_validator(mode="after")
     def require_invoice_type(self) -> Invoice:
+        """阻止 Receive Note Payload 被错误构造成 Invoice。"""
+
         if self.document_type != DocumentType.INVOICE:
             raise ValueError("Invoice document_type must be 'invoice'")
         return self
@@ -78,6 +88,8 @@ class ReceiveNote(BusinessDocument):
 
     @model_validator(mode="after")
     def require_receive_note_type(self) -> ReceiveNote:
+        """阻止 Invoice Payload 被错误构造成 Receive Note。"""
+
         if self.document_type != DocumentType.RECEIVE_NOTE:
             raise ValueError("ReceiveNote document_type must be 'receive_note'")
         return self

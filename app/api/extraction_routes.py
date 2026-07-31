@@ -1,3 +1,5 @@
+"""Extraction Run 的排队、查询、结果组合和取消端点。"""
+
 from fastapi import APIRouter, Depends, HTTPException, status
 
 from app.api.auth_dependencies import require_reviewer
@@ -29,6 +31,8 @@ def start_extraction(
     service: ExtractionService = Depends(get_extraction_service),
     user: AuthenticatedUser = Depends(require_reviewer),
 ) -> ExtractionRun:
+    """创建 queued Run 并立即返回 202，不在请求线程等待模型。"""
+
     del user
     try:
         run = service.queue(task_id)
@@ -51,6 +55,8 @@ def get_extraction_run(
     service: ExtractionService = Depends(get_extraction_service),
     user: AuthenticatedUser = Depends(require_reviewer),
 ) -> ExtractionRun:
+    """查询细粒度阶段、调度、错误、取消和模型计量。"""
+
     del user
     try:
         return service.get_run(run_id)
@@ -69,6 +75,8 @@ def get_extraction_result(
     draft_repository: DocumentDraftRepository = Depends(get_draft_repository),
     user: AuthenticatedUser = Depends(require_reviewer),
 ) -> dict:
+    """组合 Run、Parse、Draft、Evidence 与 Issues 供调试和审核。"""
+
     del user
     try:
         run = service.get_run(run_id)
@@ -96,6 +104,7 @@ def get_extraction_result(
             if bundle
             else []
         ),
+        # 机器 Draft 不能在此端点批准，必须进入带版本的 Review 流程。
         "approval_allowed": False,
     }
 
@@ -106,6 +115,8 @@ def cancel_extraction_run(
     service: ExtractionService = Depends(get_extraction_service),
     user: AuthenticatedUser = Depends(require_reviewer),
 ) -> ExtractionRun:
+    """记录协作式取消请求；是否立即完成取决于当前阶段。"""
+
     try:
         return service.cancel(run_id, requested_by=user.user_id)
     except ExtractionRunNotFound as exc:

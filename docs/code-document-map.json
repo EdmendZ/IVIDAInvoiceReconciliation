@@ -15,7 +15,8 @@
         "docs/operations/08-api-ui-and-local-run.md",
         "docs/architecture/14-source-code-walkthrough.md",
         "docs/architecture/decisions/0002-postgresql-backed-worker-queue.md",
-        "docs/interview/17-code-reading-exercises.md"
+        "docs/interview/17-code-reading-exercises.md",
+        "docs/reference/18-code-comment-guide.md"
       ]
     },
     {
@@ -31,7 +32,8 @@
         "docs/business/05-review-and-versioning.md",
         "docs/reference/11-api-contracts.md",
         "docs/architecture/decisions/0003-human-approved-immutable-versions.md",
-        "docs/interview/17-code-reading-exercises.md"
+        "docs/interview/17-code-reading-exercises.md",
+        "docs/reference/18-code-comment-guide.md"
       ]
     },
     {
@@ -42,7 +44,8 @@
       ],
       "documents": [
         "docs/business/05-review-and-versioning.md",
-        "docs/operations/13-error-codes-and-troubleshooting.md"
+        "docs/operations/13-error-codes-and-troubleshooting.md",
+        "docs/reference/18-code-comment-guide.md"
       ]
     },
     {
@@ -59,7 +62,8 @@
         "docs/architecture/14-source-code-walkthrough.md",
         "docs/architecture/decisions/0004-deterministic-reconciliation.md",
         "docs/tutorial/16-end-to-end-worked-example.md",
-        "docs/interview/17-code-reading-exercises.md"
+        "docs/interview/17-code-reading-exercises.md",
+        "docs/reference/18-code-comment-guide.md"
       ]
     },
     {
@@ -81,7 +85,8 @@
         "docs/ai/09-testing-and-evaluation.md",
         "docs/interview/model-selection.md",
         "docs/architecture/14-source-code-walkthrough.md",
-        "docs/architecture/decisions/0001-split-parser-and-normalizer.md"
+        "docs/architecture/decisions/0001-split-parser-and-normalizer.md",
+        "docs/reference/18-code-comment-guide.md"
       ]
     },
     {
@@ -95,7 +100,8 @@
         "docs/architecture/07-data-and-infrastructure.md",
         "docs/postgresql-setup.md",
         "docs/reference/12-database-dictionary.md",
-        "docs/architecture/decisions/0005-postgresql-and-minio-storage.md"
+        "docs/architecture/decisions/0005-postgresql-and-minio-storage.md",
+        "docs/reference/18-code-comment-guide.md"
       ]
     },
     {
@@ -119,6 +125,7 @@
         "docs/operations/13-error-codes-and-troubleshooting.md",
         "docs/reference/11-api-contracts.md",
         "docs/operations/review-workflow.md",
+        "docs/reference/18-code-comment-guide.md",
         "README.md"
       ]
     }

@@ -3,6 +3,13 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { api, uploadDocument } from "../api/client";
 import { canCancelRun, presentTaskStatus } from "./taskPresentation";
 
+/**
+ * 上传页同时承担“创建任务”和“观察异步流水线”两种职责。
+ *
+ * 上传成功只代表原件已进入 MinIO、任务元数据已进入 PostgreSQL；随后显式调用
+ * extract 创建 Run。模型工作由独立 Worker 消费，因此页面轮询任务和心跳，而
+ * 不是让浏览器一直等待一个长 HTTP 请求。
+ */
 type ExtractionTask = {
   task_id: string;
   document_type: "invoice" | "receive_note";
@@ -102,6 +109,8 @@ export function UploadPage({
       body.append("purchase_order_hint", purchaseOrder.trim());
     }
     try {
+      // 先持久化原件和 Task，再创建 Run。若第二步失败，Task 仍然保留为
+      // uploaded，用户可点 Start 重试，不需要再次上传或产生重复对象。
       const task = await uploadDocument<ExtractionTask>(body);
       await startExtraction.mutateAsync(task.task_id);
       setFile(null);
@@ -226,6 +235,8 @@ export function UploadPage({
       )}
       <div className="task-list">
         {tasks.data?.map(({ task, latest_run: run }) => {
+          // Task 是文件生命周期，Run 是某一次处理尝试。列表优先展示最新 Run，
+          // 才能正确反映重试失败、取消中等状态。
           const displayStatus = run?.status ?? task.status;
           const failed = displayStatus === "failed";
           const workerOnline = runtime.data?.worker === "online";

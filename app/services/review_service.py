@@ -22,14 +22,20 @@ from app.services.validation_service import ValidationService
 
 
 class UnresolvedBlockingIssues(RuntimeError):
+    """批准时仍存在 Blocking Validation Issue。"""
+
     pass
 
 
 class ReviewConflict(RuntimeError):
+    """版本已过期、不可变或请求转换与当前状态冲突。"""
+
     pass
 
 
 class DocumentTypeConfirmationMismatch(RuntimeError):
+    """人工确认类型与待批准 Version 类型不一致。"""
+
     pass
 
 
@@ -118,6 +124,8 @@ class ReviewService:
         *,
         reason: str,
     ) -> DocumentVersion:
+        """修正最新 Draft 的类型并创建带 old/new type 的审计版本。"""
+
         current = self._require_version(version_id)
         self._require_editable_latest(current)
         if target_document_type == current.document_type:
@@ -185,6 +193,8 @@ class ReviewService:
         *,
         reason: str,
     ) -> DocumentVersion:
+        """要求非空原因后驳回当前 Version。"""
+
         if not reason.strip():
             raise ValueError("Rejection reason is required")
         rejected = self._reviews.reject(version_id)
@@ -197,6 +207,8 @@ class ReviewService:
         return rejected
 
     def get(self, version_id: str) -> tuple[DocumentVersion, list[ReviewAction]]:
+        """同时返回 Version 与按时间排序的审核动作。"""
+
         version = self._require_version(version_id)
         return version, self._reviews.list_actions(version_id)
 
@@ -246,6 +258,8 @@ class ReviewService:
         version_id: str,
         document_json: dict,
     ) -> dict:
+        """将 Pydantic/业务规则转换成前端统一的预览结构。"""
+
         current = self._require_version(version_id)
         try:
             document = self._validate_document(
@@ -283,9 +297,13 @@ class ReviewService:
         self,
         status: DocumentVersionStatus | None = None,
     ) -> list[DocumentVersion]:
+        """按可选状态列出人工 Version。"""
+
         return self._reviews.list_versions(status=status)
 
     def list_queue(self) -> list[dict]:
+        """为审核队列组合每个 Task 最新 Version 与机器问题摘要。"""
+
         versions = self._reviews.list_versions()
         by_task: dict[str, DocumentVersion] = {}
         for version in versions:
@@ -340,6 +358,8 @@ class ReviewService:
         return version
 
     def _require_editable_latest(self, current: DocumentVersion) -> None:
+        """阻止旧版本或终态版本继续编辑，避免产生分叉历史。"""
+
         latest = self._reviews.get_latest_version(current.task_id)
         if (
             current.status != DocumentVersionStatus.DRAFT

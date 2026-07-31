@@ -16,10 +16,14 @@ from app.domain.reconciliation_candidates import (
 
 
 def _normalized_text(value: str) -> str:
+    """移除大小写、空白和标点差异，供身份/商品规则比较。"""
+
     return re.sub(r"[^a-z0-9]+", "", value.casefold())
 
 
 def _item_key(item: LineItem) -> str:
+    """候选阶段与核对阶段一致：优先 SKU，缺失时使用描述。"""
+
     if item.sku and item.sku.strip():
         return f"sku:{_normalized_text(item.sku)}"
     return f"description:{_normalized_text(item.description)}"
@@ -40,6 +44,8 @@ def _add_identity_signal(
     match_weight: int,
     conflict_weight: int,
 ) -> int:
+    """追加一个身份字段 Signal，并返回其对总分的贡献。"""
+
     if not left or not right:
         signals.append(
             CandidateSignal(
@@ -75,6 +81,8 @@ def _date_signal(
     invoice_date: date | None,
     note_date: date | None,
 ) -> tuple[int, CandidateSignal]:
+    """把单据日期绝对间隔转换为可解释权重。"""
+
     if invoice_date is None or note_date is None:
         return 0, CandidateSignal(
             code="date_missing",

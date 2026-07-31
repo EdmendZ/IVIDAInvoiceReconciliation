@@ -1,3 +1,5 @@
+"""登录、登出和当前用户查询的 HTTP 适配层。"""
+
 from pydantic import BaseModel
 from fastapi import APIRouter, Cookie, Depends, HTTPException, Response, status
 
@@ -13,6 +15,8 @@ router = APIRouter(prefix="/api/auth", tags=["review authentication"])
 
 
 class LoginRequest(BaseModel):
+    """登录请求；密码只在当前请求内交给 AuthService 验证。"""
+
     username: str
     password: str
 
@@ -23,6 +27,8 @@ def login(
     response: Response,
     service: AuthService = Depends(get_auth_service),
 ) -> AuthenticatedUser:
+    """创建数据库 Session，并把原 Token 放入 HttpOnly Cookie。"""
+
     try:
         token, user = service.login(request.username, request.password)
     except InvalidCredentials as exc:
@@ -48,10 +54,14 @@ def logout(
     ivida_review_session: str | None = Cookie(default=None),
     service: AuthService = Depends(get_auth_service),
 ) -> None:
+    """删除数据库 Session 与浏览器 Cookie；重复登出保持安全。"""
+
     service.logout(ivida_review_session or "")
     response.delete_cookie("ivida_review_session", path="/")
 
 
 @router.get("/me", response_model=AuthenticatedUser)
 def me(user: AuthenticatedUser = Depends(require_reviewer)) -> AuthenticatedUser:
+    """返回前端建立登录态所需的最小用户信息。"""
+
     return user

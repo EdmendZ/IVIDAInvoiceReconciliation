@@ -1,3 +1,5 @@
+"""WorkerHeartbeat 的 PostgreSQL Upsert 与查询实现。"""
+
 from datetime import UTC, datetime
 
 from sqlalchemy import select
@@ -8,6 +10,8 @@ from app.infra.database_models import WorkerHeartbeatRow
 
 
 class PostgresWorkerRuntimeRepository:
+    """每个 worker_id 保留一行启动时间与最后心跳。"""
+
     def __init__(self, session_factory: sessionmaker[Session]) -> None:
         self._session_factory = session_factory
 
@@ -18,6 +22,8 @@ class PostgresWorkerRuntimeRepository:
         version: str,
         now: datetime,
     ) -> None:
+        """插入新 Worker 或更新已有 Worker 的最后存活时间。"""
+
         with self._session_factory() as session:
             row = session.get(WorkerHeartbeatRow, worker_id)
             if row is None:
@@ -35,6 +41,8 @@ class PostgresWorkerRuntimeRepository:
             session.commit()
 
     def latest(self) -> WorkerHeartbeat | None:
+        """返回全体 Worker 中最近的一次心跳，供单 Worker Pilot UI 使用。"""
+
         with self._session_factory() as session:
             row = session.execute(
                 select(WorkerHeartbeatRow)

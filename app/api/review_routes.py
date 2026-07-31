@@ -1,3 +1,5 @@
+"""人工审核、版本编辑、重分类、批准和驳回端点。"""
+
 from fastapi import APIRouter, Depends, HTTPException, status
 from pydantic import BaseModel
 
@@ -21,19 +23,27 @@ router = APIRouter(prefix="/api/review", tags=["document review"])
 
 
 class EditRequest(BaseModel):
+    """保存或预校验人工修订后的完整 Document JSON。"""
+
     document: dict
     reason: str = "Reviewer correction"
 
 
 class DecisionRequest(BaseModel):
+    """批准/驳回原因；驳回时 Service 强制非空。"""
+
     reason: str = ""
 
 
 class ApprovalRequest(DecisionRequest):
+    """批准时再次提交人工确认的单据类型。"""
+
     confirmed_document_type: DocumentType
 
 
 class ReclassifyRequest(BaseModel):
+    """把最新 Draft Version 修正为另一种业务类型。"""
+
     document_type: DocumentType
     reason: str = "Reviewer corrected document type"
 
@@ -43,6 +53,8 @@ def list_review_tasks(
     service: ReviewService = Depends(get_review_service),
     user: AuthenticatedUser = Depends(require_reviewer),
 ) -> list[dict]:
+    """返回每个 Task 的最新审核状态和规则问题数量。"""
+
     del user
     return service.list_queue()
 
@@ -52,6 +64,8 @@ def list_approved_versions(
     service: ReviewService = Depends(get_review_service),
     user: AuthenticatedUser = Depends(require_reviewer),
 ) -> list[dict]:
+    """返回可进入候选匹配与核对的不可变版本。"""
+
     del user
     return [
         version.model_dump(mode="json")
@@ -65,6 +79,8 @@ def start_review(
     service: ReviewService = Depends(get_review_service),
     user: AuthenticatedUser = Depends(require_reviewer),
 ) -> dict:
+    """幂等地从机器 Draft 创建或返回首个人工 Version。"""
+
     try:
         return service.start_review(task_id, user).model_dump(mode="json")
     except ReviewVersionNotFound as exc:
@@ -77,6 +93,8 @@ def get_review_version(
     service: ReviewService = Depends(get_review_service),
     user: AuthenticatedUser = Depends(require_reviewer),
 ) -> dict:
+    """返回版本、证据、问题、动作和安全模型溯源。"""
+
     del user
     try:
         return service.get_detail(version_id)
@@ -91,6 +109,8 @@ def preview_validation(
     service: ReviewService = Depends(get_review_service),
     user: AuthenticatedUser = Depends(require_reviewer),
 ) -> dict:
+    """无持久化地验证编辑内容，供前端 Live Validation 使用。"""
+
     del user
     try:
         return service.preview_validation(version_id, request.document)
@@ -105,6 +125,8 @@ def save_edit(
     service: ReviewService = Depends(get_review_service),
     user: AuthenticatedUser = Depends(require_reviewer),
 ) -> dict:
+    """将人工修改保存为下一 Version，不覆盖当前版本。"""
+
     try:
         return service.save_edit(
             version_id,
@@ -123,6 +145,8 @@ def reclassify(
     service: ReviewService = Depends(get_review_service),
     user: AuthenticatedUser = Depends(require_reviewer),
 ) -> dict:
+    """修正 Invoice/Receive Note 类型并创建审计版本。"""
+
     try:
         return service.reclassify(
             version_id,
@@ -141,6 +165,8 @@ def approve(
     service: ReviewService = Depends(get_review_service),
     user: AuthenticatedUser = Depends(require_reviewer),
 ) -> dict:
+    """在 Service 重新校验后执行 draft -> approved。"""
+
     try:
         return service.approve(
             version_id,
@@ -164,6 +190,8 @@ def reject(
     service: ReviewService = Depends(get_review_service),
     user: AuthenticatedUser = Depends(require_reviewer),
 ) -> dict:
+    """将 Draft Version 驳回并要求记录原因。"""
+
     try:
         return service.reject(
             version_id,
