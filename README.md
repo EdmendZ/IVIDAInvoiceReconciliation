@@ -151,8 +151,8 @@ PostgreSQL 和 MinIO 可以使用现有服务器；database 与 bucket 必须使
 
 Reconciliation 是不可覆盖的规则计算快照；Case 只保存可变的人工处理状态和审计
 轨迹。`approved`、`voided` Case 不能恢复或继续编辑，需要纠正单据时应基于新的批准
-版本创建新的 Reconciliation。本仓库当前仍是本机 Pilot，不包含附件上传、通知、
-SLA/分析报表或生产部署能力。
+版本创建新的 Reconciliation。本仓库当前仍是本机 Pilot，不包含 Case 补充材料附件
+上传、通知、SLA/分析报表或生产部署能力。
 
 完整启动顺序、恢复和备份说明见
 [docs/operations/review-workflow.md](docs/operations/review-workflow.md)。
