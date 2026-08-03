@@ -95,6 +95,7 @@ class PostgresReconciliationRepository:
                         CaseItemRow(
                             item_id=item.item_id,
                             case_id=item.case_id,
+                            reconciliation_id=case.reconciliation_id,
                             item_type=item.item_type.value,
                             line_result_id=item.line_result_id,
                             resolution_type=(

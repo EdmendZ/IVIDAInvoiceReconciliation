@@ -18,6 +18,11 @@ depends_on: str | Sequence[str] | None = None
 
 
 def upgrade() -> None:
+    op.create_unique_constraint(
+        "uq_reconciliation_line_result_reconciliation",
+        "reconciliation_line_results",
+        ["line_result_id", "reconciliation_id"],
+    )
     op.create_table(
         "reconciliation_cases",
         sa.Column("case_id", sa.String(length=36), nullable=False),
@@ -59,6 +64,11 @@ def upgrade() -> None:
             "reconciliation_id",
             name="uq_reconciliation_cases_reconciliation_id",
         ),
+        sa.UniqueConstraint(
+            "case_id",
+            "reconciliation_id",
+            name="uq_reconciliation_cases_case_reconciliation",
+        ),
     )
     op.create_index(
         "ix_reconciliation_cases_status",
@@ -80,6 +90,7 @@ def upgrade() -> None:
         "case_items",
         sa.Column("item_id", sa.String(length=36), nullable=False),
         sa.Column("case_id", sa.String(length=36), nullable=False),
+        sa.Column("reconciliation_id", sa.String(length=36), nullable=False),
         sa.Column("item_type", sa.String(length=32), nullable=False),
         sa.Column("line_result_id", sa.String(length=36), nullable=True),
         sa.Column("resolution_type", sa.String(length=32), nullable=True),
@@ -111,13 +122,21 @@ def upgrade() -> None:
             name="ck_case_items_resolution_complete",
         ),
         sa.ForeignKeyConstraint(
-            ["case_id"],
-            ["reconciliation_cases.case_id"],
+            ["case_id", "reconciliation_id"],
+            [
+                "reconciliation_cases.case_id",
+                "reconciliation_cases.reconciliation_id",
+            ],
+            name="fk_case_items_case_reconciliation",
             ondelete="CASCADE",
         ),
         sa.ForeignKeyConstraint(
-            ["line_result_id"],
-            ["reconciliation_line_results.line_result_id"],
+            ["line_result_id", "reconciliation_id"],
+            [
+                "reconciliation_line_results.line_result_id",
+                "reconciliation_line_results.reconciliation_id",
+            ],
+            name="fk_case_items_line_reconciliation",
             ondelete="RESTRICT",
         ),
         sa.ForeignKeyConstraint(
@@ -126,6 +145,11 @@ def upgrade() -> None:
             ondelete="RESTRICT",
         ),
         sa.PrimaryKeyConstraint("item_id"),
+        sa.UniqueConstraint(
+            "item_id",
+            "case_id",
+            name="uq_case_items_item_case",
+        ),
     )
     op.create_index("ix_case_items_case_id", "case_items", ["case_id"])
     op.create_index(
@@ -174,8 +198,9 @@ def upgrade() -> None:
             ondelete="CASCADE",
         ),
         sa.ForeignKeyConstraint(
-            ["item_id"],
-            ["case_items.item_id"],
+            ["item_id", "case_id"],
+            ["case_items.item_id", "case_items.case_id"],
+            name="fk_case_actions_item_case",
             ondelete="RESTRICT",
         ),
         sa.ForeignKeyConstraint(
@@ -244,7 +269,16 @@ def upgrade() -> None:
         DECLARE
             parent_status text;
         BEGIN
-            IF TG_OP = 'UPDATE' THEN
+            IF TG_OP = 'INSERT' THEN
+                SELECT status INTO parent_status
+                FROM reconciliation_cases
+                WHERE case_id = NEW.case_id
+                FOR UPDATE;
+
+                IF parent_status IN ('approved', 'voided') THEN
+                    RAISE EXCEPTION 'items of terminal reconciliation cases are immutable';
+                END IF;
+            ELSIF TG_OP = 'UPDATE' THEN
                 FOR parent_status IN
                     SELECT status
                     FROM reconciliation_cases
@@ -277,7 +311,7 @@ def upgrade() -> None:
     op.execute(
         """
         CREATE TRIGGER trg_case_items_terminal_immutable
-        BEFORE UPDATE OR DELETE ON case_items
+        BEFORE INSERT OR UPDATE OR DELETE ON case_items
         FOR EACH ROW EXECUTE FUNCTION reject_terminal_case_item_mutation()
         """
     )
@@ -320,3 +354,8 @@ def downgrade() -> None:
         table_name="reconciliation_cases",
     )
     op.drop_table("reconciliation_cases")
+    op.drop_constraint(
+        "uq_reconciliation_line_result_reconciliation",
+        "reconciliation_line_results",
+        type_="unique",
+    )

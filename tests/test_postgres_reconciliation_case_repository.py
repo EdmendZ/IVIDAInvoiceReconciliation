@@ -5,7 +5,15 @@ from io import StringIO
 import pytest
 from alembic import command
 from alembic.config import Config
-from sqlalchemy import CheckConstraint, create_engine
+from sqlalchemy import (
+    CheckConstraint,
+    ForeignKeyConstraint,
+    UniqueConstraint,
+    create_engine,
+    event,
+    select,
+    update,
+)
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import sessionmaker
 from sqlalchemy.pool import StaticPool
@@ -51,12 +59,12 @@ from app.services.reconciliation_case_service import CaseError
 NOW = datetime(2026, 8, 3, 12, 0, tzinfo=UTC)
 
 
-def _factory():
-    engine = create_engine(
-        "sqlite+pysqlite:///:memory:",
-        connect_args={"check_same_thread": False},
-        poolclass=StaticPool,
-    )
+def _factory(database_url: str = "sqlite+pysqlite:///:memory:"):
+    engine_options = {"connect_args": {"check_same_thread": False}}
+    if database_url.endswith(":memory:"):
+        engine_options["poolclass"] = StaticPool
+    engine = create_engine(database_url, **engine_options)
+
     Base.metadata.create_all(engine)
     factory = sessionmaker(engine, expire_on_commit=False)
     with factory() as session:
@@ -225,6 +233,50 @@ def test_case_schema_has_required_indexes_and_item_constraints() -> None:
     }
 
 
+def test_case_schema_enforces_line_and_action_ownership() -> None:
+    case_uniques = {
+        tuple(column.name for column in constraint.columns)
+        for constraint in ReconciliationCaseRow.__table__.constraints
+        if isinstance(constraint, UniqueConstraint)
+    }
+    item_foreign_keys = {
+        (
+            tuple(element.parent.name for element in constraint.elements),
+            tuple(element.target_fullname for element in constraint.elements),
+        )
+        for constraint in CaseItemRow.__table__.constraints
+        if isinstance(constraint, ForeignKeyConstraint)
+    }
+    action_foreign_keys = {
+        (
+            tuple(element.parent.name for element in constraint.elements),
+            tuple(element.target_fullname for element in constraint.elements),
+        )
+        for constraint in CaseActionRow.__table__.constraints
+        if isinstance(constraint, ForeignKeyConstraint)
+    }
+
+    assert ("case_id", "reconciliation_id") in case_uniques
+    assert (
+        ("case_id", "reconciliation_id"),
+        (
+            "reconciliation_cases.case_id",
+            "reconciliation_cases.reconciliation_id",
+        ),
+    ) in item_foreign_keys
+    assert (
+        ("line_result_id", "reconciliation_id"),
+        (
+            "reconciliation_line_results.line_result_id",
+            "reconciliation_line_results.reconciliation_id",
+        ),
+    ) in item_foreign_keys
+    assert (
+        ("item_id", "case_id"),
+        ("case_items.item_id", "case_items.case_id"),
+    ) in action_foreign_keys
+
+
 def test_case_orm_metadata_creates_on_sqlite() -> None:
     engine = create_engine("sqlite+pysqlite:///:memory:")
 
@@ -280,6 +332,61 @@ def test_terminal_item_trigger_locks_parent_cases_in_stable_order() -> None:
         "order by case_id for update"
     ) in trigger_function_sql
     assert "where case_id = old.case_id for update" in trigger_function_sql
+    assert "where case_id = new.case_id for update" in trigger_function_sql
+    assert (
+        "before insert or update or delete on case_items"
+        in " ".join(sql.lower().split())
+    )
+
+
+def test_cross_reconciliation_item_and_cross_case_action_are_rejected_on_sqlite() -> None:
+    factory = _factory()
+    writer = PostgresReconciliationRepository(factory)
+    first = _persistence_bundle(
+        reconciliation_id="recon-owner-a",
+        case_id="case-owner-a",
+        invoice_number="INV-A",
+        created_at=NOW,
+        include_line_difference=True,
+    )
+    second = _persistence_bundle(
+        reconciliation_id="recon-owner-b",
+        case_id="case-owner-b",
+        invoice_number="INV-B",
+        created_at=NOW,
+        include_line_difference=True,
+    )
+    writer.create(first)
+    writer.create(second)
+
+    with factory.kw["bind"].connect() as connection:
+        connection.exec_driver_sql("PRAGMA foreign_keys=ON")
+
+    with factory() as session, pytest.raises(IntegrityError):
+        session.add(
+            CaseItemRow(
+                item_id="cross-reconciliation-item",
+                case_id="case-owner-a",
+                reconciliation_id="recon-owner-a",
+                item_type="line",
+                line_result_id="line-case-owner-b",
+                updated_at=NOW,
+            )
+        )
+        session.commit()
+
+    with factory() as session, pytest.raises(IntegrityError):
+        session.add(
+            CaseActionRow(
+                action_id="cross-case-action",
+                case_id="case-owner-a",
+                item_id="item-case-owner-b",
+                actor_user_id="reviewer-1",
+                action=CaseActionType.RESOLUTION_CHANGED.value,
+                created_at=NOW,
+            )
+        )
+        session.commit()
 
 
 def test_get_bundle_and_detail_return_stable_action_order_and_actor_names() -> None:
@@ -335,6 +442,72 @@ def test_get_bundle_and_detail_return_stable_action_order_and_actor_names() -> N
         "alice",
         "alice",
         "bob",
+    ]
+
+
+def test_get_detail_retries_when_revision_changes_between_selects(tmp_path) -> None:
+    factory = _factory(f"sqlite+pysqlite:///{tmp_path / 'consistent-detail.db'}")
+    engine = factory.kw["bind"]
+    with engine.connect() as connection:
+        connection.exec_driver_sql("PRAGMA journal_mode=WAL")
+    persistence = _persistence_bundle(
+        reconciliation_id="recon-consistent",
+        case_id="case-consistent",
+        invoice_number="INV-CONSISTENT",
+        created_at=NOW,
+    )
+    PostgresReconciliationRepository(factory).create(persistence)
+    fired = False
+
+    @event.listens_for(engine, "after_cursor_execute")
+    def _concurrent_claim(
+        connection,
+        cursor,
+        statement,
+        parameters,
+        context,
+        executemany,
+    ) -> None:
+        del connection, cursor, parameters, context, executemany
+        nonlocal fired
+        normalized = " ".join(statement.lower().split())
+        if fired or "join reconciliations" not in normalized:
+            return
+        fired = True
+        with factory() as writer:
+            writer.execute(
+                update(ReconciliationCaseRow)
+                .where(ReconciliationCaseRow.case_id == "case-consistent")
+                .values(
+                    status=CaseStatus.IN_PROGRESS.value,
+                    assignee_user_id="reviewer-1",
+                    revision=2,
+                    claimed_at=NOW + timedelta(minutes=1),
+                )
+            )
+            writer.add(
+                CaseActionRow(
+                    action_id="concurrent-claim",
+                    case_id="case-consistent",
+                    actor_user_id="reviewer-1",
+                    action=CaseActionType.CLAIMED.value,
+                    new_value="reviewer-1",
+                    created_at=NOW + timedelta(minutes=1),
+                )
+            )
+            writer.commit()
+
+    detail = PostgresReconciliationCaseRepository(factory).get_detail(
+        "case-consistent"
+    )
+
+    assert fired is True
+    assert detail is not None
+    assert detail.case.revision == 2
+    assert detail.case.status == CaseStatus.IN_PROGRESS
+    assert [view.action.action_id for view in detail.actions] == [
+        "created-case-consistent",
+        "concurrent-claim",
     ]
 
 
@@ -451,6 +624,123 @@ def test_save_case_mutation_updates_one_item_and_rejects_stale_revision() -> Non
         "action-claim",
         "action-resolution",
     ]
+
+
+def test_mutation_detail_is_anchored_to_the_committed_bundle() -> None:
+    factory = _factory()
+    persistence = _persistence_bundle(
+        reconciliation_id="recon-anchored",
+        case_id="case-anchored",
+        invoice_number="INV-ANCHORED",
+        created_at=NOW,
+    )
+    PostgresReconciliationRepository(factory).create(persistence)
+    repository = PostgresReconciliationCaseRepository(factory)
+    original = repository.get_bundle("case-anchored")
+    assert original is not None
+    claimed_at = NOW + timedelta(minutes=1)
+    claimed = repository.save_case_mutation(
+        original.model_copy(
+            update={
+                "case": original.case.model_copy(
+                    update={
+                        "status": CaseStatus.IN_PROGRESS,
+                        "assignee_user_id": "reviewer-1",
+                        "claimed_at": claimed_at,
+                    }
+                )
+            }
+        ),
+        CaseAction(
+            action_id="anchored-claim",
+            case_id="case-anchored",
+            actor_user_id="reviewer-1",
+            action=CaseActionType.CLAIMED,
+            new_value="reviewer-1",
+            created_at=claimed_at,
+        ),
+        expected_revision=1,
+    )
+    repository.save_case_mutation(
+        claimed.model_copy(
+            update={
+                "case": claimed.case.model_copy(
+                    update={"assignee_user_id": "reviewer-2"}
+                )
+            }
+        ),
+        CaseAction(
+            action_id="later-reassign",
+            case_id="case-anchored",
+            actor_user_id="reviewer-1",
+            action=CaseActionType.REASSIGNED,
+            old_value="reviewer-1",
+            new_value="reviewer-2",
+            created_at=NOW + timedelta(minutes=2),
+        ),
+        expected_revision=2,
+    )
+
+    mutation_detail = repository.get_detail_for_bundle(claimed)
+
+    assert mutation_detail.case.revision == 2
+    assert mutation_detail.case.assignee_user_id == "reviewer-1"
+    assert [view.action.action_id for view in mutation_detail.actions] == [
+        "created-case-anchored",
+        "anchored-claim",
+    ]
+
+
+def test_lost_claim_reports_already_claimed_instead_of_revision_conflict() -> None:
+    factory = _factory()
+    persistence = _persistence_bundle(
+        reconciliation_id="recon-claim-conflict",
+        case_id="case-claim-conflict",
+        invoice_number="INV-CLAIM",
+        created_at=NOW,
+    )
+    PostgresReconciliationRepository(factory).create(persistence)
+    repository = PostgresReconciliationCaseRepository(factory)
+    original = repository.get_bundle("case-claim-conflict")
+    assert original is not None
+    with factory() as session:
+        session.execute(
+            update(ReconciliationCaseRow)
+            .where(ReconciliationCaseRow.case_id == "case-claim-conflict")
+            .values(
+                status=CaseStatus.IN_PROGRESS.value,
+                assignee_user_id="reviewer-2",
+                revision=2,
+                claimed_at=NOW + timedelta(minutes=1),
+            )
+        )
+        session.commit()
+
+    with pytest.raises(CaseError) as captured:
+        repository.save_case_mutation(
+            original.model_copy(
+                update={
+                    "case": original.case.model_copy(
+                        update={
+                            "status": CaseStatus.IN_PROGRESS,
+                            "assignee_user_id": "reviewer-1",
+                            "claimed_at": NOW + timedelta(minutes=1),
+                        }
+                    )
+                }
+            ),
+            CaseAction(
+                action_id="lost-claim",
+                case_id="case-claim-conflict",
+                actor_user_id="reviewer-1",
+                action=CaseActionType.CLAIMED,
+                new_value="reviewer-1",
+                created_at=NOW + timedelta(minutes=1),
+            ),
+            expected_revision=1,
+        )
+
+    assert captured.value.code == "CASE_ALREADY_CLAIMED"
 
 
 def test_list_cases_filters_paginates_and_orders_deterministically() -> None:

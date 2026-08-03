@@ -95,9 +95,15 @@ export function CaseDetailPage({
     .map((line) => ({ key: line.match_key, line }));
 
   async function handleMutationError(problem: unknown, fallback: string) {
+    const refreshCodes = new Set([
+      "CASE_REVISION_CONFLICT",
+      "CASE_TERMINAL",
+      "CASE_INVALID_TRANSITION",
+      "CASE_ASSIGNEE_REQUIRED",
+    ]);
     if (
       problem instanceof ApiError &&
-      problem.code === "CASE_REVISION_CONFLICT"
+      refreshCodes.has(problem.code ?? "")
     ) {
       await detail.refetch();
       setMessage(

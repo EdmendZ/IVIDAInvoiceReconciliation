@@ -38,6 +38,11 @@ class ReconciliationCaseRepository(Protocol):
 
     def get_detail(self, case_id: str) -> CaseDetail | None: ...
 
+    def get_detail_for_bundle(
+        self,
+        bundle: ReconciliationCaseBundle,
+    ) -> CaseDetail: ...
+
     def save_case_mutation(
         self,
         bundle: ReconciliationCaseBundle,
@@ -355,6 +360,14 @@ class ReconciliationCaseService:
         if detail is None:
             raise CaseError("CASE_NOT_FOUND", "Case was not found")
         return detail
+
+    def get_detail_for_bundle(
+        self,
+        bundle: ReconciliationCaseBundle,
+    ) -> CaseDetail:
+        """Build an API response anchored to exactly one committed mutation."""
+
+        return self._repository.get_detail_for_bundle(bundle)
 
     def list_cases(self, query: CaseListQuery, *, user: AuthenticatedUser) -> CasePage:
         return self._repository.list_cases(query, user.user_id)

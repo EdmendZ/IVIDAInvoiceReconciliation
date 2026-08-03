@@ -62,7 +62,7 @@ Case 错误响应固定为
 | CASE_ADMIN_REQUIRED | 403 | 操作只允许 Admin | 切换为 Admin 或停止该操作 |
 | CASE_REVISION_CONFLICT | 409 | `expected_revision` 已过期 | 重新读取详情后再决定是否重试 |
 | CASE_ALREADY_CLAIMED | 409 | Case 已被其他 Reviewer 认领 | 刷新详情并转为只读 |
-| CASE_REVIEWER_REQUIRED | 409 | 认领者不是 Reviewer | 使用 Reviewer 账号认领 |
+| CASE_REVIEWER_REQUIRED | 403 | 认领者不是 Reviewer | 使用 Reviewer 账号认领 |
 | CASE_INVALID_TRANSITION | 409 | 当前状态不允许目标操作 | 刷新状态并按允许流转操作 |
 | CASE_ITEMS_INCOMPLETE | 409 | 有未处理项或仍在等待材料 | 补齐所有处理结论和备注 |
 | CASE_SUBMISSION_CONFLICT | 409 | 处理类型与批准/作废目标冲突 | `business_exception` 提交批准；数据/匹配错误提交作废 |

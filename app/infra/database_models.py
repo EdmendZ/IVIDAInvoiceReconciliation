@@ -15,11 +15,13 @@ from sqlalchemy import (
     CheckConstraint,
     DateTime,
     ForeignKey,
+    ForeignKeyConstraint,
     Index,
     Integer,
     Numeric,
     String,
     Text,
+    UniqueConstraint,
     text,
 )
 from sqlalchemy.dialects.postgresql import JSONB
@@ -523,6 +525,11 @@ class ReconciliationLineResultRow(Base):
     )
 
     __table_args__ = (
+        UniqueConstraint(
+            "line_result_id",
+            "reconciliation_id",
+            name="uq_reconciliation_line_result_reconciliation",
+        ),
         Index(
             "uq_reconciliation_line_index",
             "reconciliation_id",
@@ -574,6 +581,11 @@ class ReconciliationCaseRow(Base):
     )
 
     __table_args__ = (
+        UniqueConstraint(
+            "case_id",
+            "reconciliation_id",
+            name="uq_reconciliation_cases_case_reconciliation",
+        ),
         Index("ix_reconciliation_cases_status", "status"),
         Index("ix_reconciliation_cases_assignee", "assignee_user_id"),
         Index(
@@ -592,16 +604,12 @@ class CaseItemRow(Base):
     item_id: Mapped[str] = mapped_column(String(36), primary_key=True)
     case_id: Mapped[str] = mapped_column(
         String(36),
-        ForeignKey("reconciliation_cases.case_id", ondelete="CASCADE"),
         nullable=False,
     )
+    reconciliation_id: Mapped[str] = mapped_column(String(36), nullable=False)
     item_type: Mapped[str] = mapped_column(String(32), nullable=False)
     line_result_id: Mapped[str | None] = mapped_column(
         String(36),
-        ForeignKey(
-            "reconciliation_line_results.line_result_id",
-            ondelete="RESTRICT",
-        ),
         nullable=True,
     )
     resolution_type: Mapped[str | None] = mapped_column(
@@ -624,6 +632,29 @@ class CaseItemRow(Base):
     )
 
     __table_args__ = (
+        ForeignKeyConstraint(
+            ["case_id", "reconciliation_id"],
+            [
+                "reconciliation_cases.case_id",
+                "reconciliation_cases.reconciliation_id",
+            ],
+            name="fk_case_items_case_reconciliation",
+            ondelete="CASCADE",
+        ),
+        ForeignKeyConstraint(
+            ["line_result_id", "reconciliation_id"],
+            [
+                "reconciliation_line_results.line_result_id",
+                "reconciliation_line_results.reconciliation_id",
+            ],
+            name="fk_case_items_line_reconciliation",
+            ondelete="RESTRICT",
+        ),
+        UniqueConstraint(
+            "item_id",
+            "case_id",
+            name="uq_case_items_item_case",
+        ),
         CheckConstraint(
             "(item_type = 'line' AND line_result_id IS NOT NULL) OR "
             "(item_type <> 'line' AND line_result_id IS NULL)",
@@ -669,7 +700,6 @@ class CaseActionRow(Base):
     )
     item_id: Mapped[str | None] = mapped_column(
         String(36),
-        ForeignKey("case_items.item_id", ondelete="RESTRICT"),
         nullable=True,
     )
     actor_user_id: Mapped[str] = mapped_column(
@@ -693,6 +723,12 @@ class CaseActionRow(Base):
     )
 
     __table_args__ = (
+        ForeignKeyConstraint(
+            ["item_id", "case_id"],
+            ["case_items.item_id", "case_items.case_id"],
+            name="fk_case_actions_item_case",
+            ondelete="RESTRICT",
+        ),
         Index(
             "ix_case_actions_case_created_action",
             "case_id",

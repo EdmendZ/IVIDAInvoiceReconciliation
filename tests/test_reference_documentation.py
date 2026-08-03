@@ -46,6 +46,21 @@ def test_case_api_is_documented() -> None:
     assert "CASE_REVISION_CONFLICT" in contracts
 
 
+def test_case_error_and_database_ownership_guards_are_documented() -> None:
+    troubleshooting = Path(
+        "docs/operations/13-error-codes-and-troubleshooting.md"
+    ).read_text(encoding="utf-8")
+    dictionary = Path("docs/reference/12-database-dictionary.md").read_text(
+        encoding="utf-8"
+    )
+
+    assert "| CASE_REVIEWER_REQUIRED | 403 |" in troubleshooting
+    assert "(case_id, reconciliation_id)" in dictionary
+    assert "(line_result_id, reconciliation_id)" in dictionary
+    assert "(item_id, case_id)" in dictionary
+    assert "INSERT、UPDATE 和 DELETE" in dictionary
+
+
 def test_case_sources_are_mapped_to_reconciliation_and_ui_documents() -> None:
     groups = {
         group["name"]: group

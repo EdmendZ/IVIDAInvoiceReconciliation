@@ -112,12 +112,18 @@ Repository 会在外键父子层之间显式 flush 以固定真实数据库的�
 
 - `reconciliation_cases` 对 `reconciliation_id` 唯一，保证一个异常快照最多一个 Case；
 - `revision` 从 1 开始，每次写操作都携带 `expected_revision`；Repository 用
-  `case_id + revision` 条件更新，未命中时返回 `CASE_REVISION_CONFLICT`；
+  `case_id + revision` 条件更新，认领还把 `status=unassigned` 和负责人为空放进
+  同一 UPDATE；未命中时区分 `CASE_ALREADY_CLAIMED` 与 `CASE_REVISION_CONFLICT`；
 - 认领还要求 Case 仍为 `unassigned` 且没有负责人，因此并发认领只有一个提交者
   能获得负责人身份；
 - 每次成功变更在同一事务更新 Case/Item、递增 revision，并追加恰好一条 Action；
+- 独立详情读取在多条 SELECT 前后核对 revision 并有限重试，避免 READ COMMITTED
+  下混入两个版本；mutation 响应从刚提交的 bundle 构造，不在 commit 后重新读取
+  可能已被下一位操作者推进的当前状态；
+- 复合外键在数据库层强制 Item 行属于 Case 的 Reconciliation，并强制 Item Action
+  只能引用同一 `case_id` 下的 Item；
 - `case_actions` 的 PostgreSQL 触发器拒绝 UPDATE/DELETE；Case 进入 `approved` 或
-  `voided` 后，Case 与其 Item 的触发器都拒绝 UPDATE/DELETE。Item 触发器在检查
+  `voided` 后，Case 拒绝 UPDATE/DELETE，Item 拒绝 INSERT/UPDATE/DELETE。Item 触发器在检查
   父 Case 时加行锁，避免终态转换与 Item 更新竞态穿透。
 
 服务层仍是权限和状态机的第一道边界：只有当前负责人 Reviewer 能编辑和提交，

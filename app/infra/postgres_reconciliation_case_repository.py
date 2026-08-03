@@ -8,6 +8,7 @@ from sqlalchemy.orm import Session, sessionmaker
 from app.domain.reconciliation_cases import (
     AssignmentFilter,
     CaseAction,
+    CaseActionType,
     CaseActionView,
     CaseDetail,
     CaseItem,
@@ -140,7 +141,27 @@ class PostgresReconciliationCaseRepository:
         )
 
     def get_detail(self, case_id: str) -> CaseDetail | None:
-        """Return the aggregate, immutable reconciliation, and actor display names."""
+        """Return a self-consistent detail, retrying a concurrent revision change."""
+
+        for _attempt in range(3):
+            detail = self._get_detail_unchecked(case_id)
+            if detail is None:
+                return None
+            with self._session_factory() as session:
+                current_revision = session.scalar(
+                    select(ReconciliationCaseRow.revision).where(
+                        ReconciliationCaseRow.case_id == case_id
+                    )
+                )
+            if current_revision == detail.case.revision:
+                return detail
+        raise CaseError(
+            "CASE_REVISION_CONFLICT",
+            "Case changed repeatedly while loading; refresh and retry",
+        )
+
+    def _get_detail_unchecked(self, case_id: str) -> CaseDetail | None:
+        """Load one candidate detail; the caller verifies its ending revision."""
 
         with self._session_factory() as session:
             joined = session.execute(
@@ -233,6 +254,91 @@ class PostgresReconciliationCaseRepository:
                 ],
             )
 
+    def get_detail_for_bundle(
+        self,
+        bundle: ReconciliationCaseBundle,
+    ) -> CaseDetail:
+        """Hydrate immutable/display data around one committed mutation result."""
+
+        case = bundle.case
+        with self._session_factory() as session:
+            reconciliation_row = session.get(
+                ReconciliationRow,
+                case.reconciliation_id,
+            )
+            if reconciliation_row is None:
+                raise CaseError("CASE_NOT_FOUND", "Case was not found")
+            receive_note_ids = list(
+                session.scalars(
+                    select(ReconciliationReceiveNoteRow.receive_note_version_id)
+                    .where(
+                        ReconciliationReceiveNoteRow.reconciliation_id
+                        == case.reconciliation_id
+                    )
+                    .order_by(
+                        ReconciliationReceiveNoteRow.receive_note_version_id.asc()
+                    )
+                )
+            )
+            line_rows = list(
+                session.scalars(
+                    select(ReconciliationLineResultRow)
+                    .where(
+                        ReconciliationLineResultRow.reconciliation_id
+                        == case.reconciliation_id
+                    )
+                    .order_by(
+                        ReconciliationLineResultRow.line_index.asc(),
+                        ReconciliationLineResultRow.line_result_id.asc(),
+                    )
+                )
+            )
+            actor_ids = {action.actor_user_id for action in bundle.actions}
+            if case.assignee_user_id is not None:
+                actor_ids.add(case.assignee_user_id)
+            usernames = dict(
+                session.execute(
+                    select(AdminUserRow.user_id, AdminUserRow.username).where(
+                        AdminUserRow.user_id.in_(actor_ids)
+                    )
+                ).all()
+            )
+
+        reconciliation = ReconciliationRecord.model_validate(
+            {
+                "reconciliation_id": reconciliation_row.reconciliation_id,
+                "invoice_version_id": reconciliation_row.invoice_version_id,
+                "receive_note_version_ids": receive_note_ids,
+                "result": reconciliation_row.result_json,
+                "created_by": reconciliation_row.created_by,
+                "created_at": _utc(reconciliation_row.created_at),
+            }
+        )
+        return CaseDetail(
+            case=case,
+            items=bundle.items,
+            actions=[
+                CaseActionView(
+                    action=action,
+                    actor_username=usernames[action.actor_user_id],
+                )
+                for action in bundle.actions
+            ],
+            reconciliation=reconciliation,
+            assignee_username=(
+                usernames.get(case.assignee_user_id)
+                if case.assignee_user_id is not None
+                else None
+            ),
+            line_results=[
+                CaseLineResult(
+                    line_result_id=line_row.line_result_id,
+                    line=line_row.result_json,
+                )
+                for line_row in line_rows
+            ],
+        )
+
     def save_case_mutation(
         self,
         bundle: ReconciliationCaseBundle,
@@ -244,12 +350,17 @@ class PostgresReconciliationCaseRepository:
 
         case = bundle.case
         with self._session_factory() as session:
-            updated = session.execute(
-                update(ReconciliationCaseRow)
-                .where(
-                    ReconciliationCaseRow.case_id == case.case_id,
-                    ReconciliationCaseRow.revision == expected_revision,
+            mutation = update(ReconciliationCaseRow).where(
+                ReconciliationCaseRow.case_id == case.case_id,
+                ReconciliationCaseRow.revision == expected_revision,
+            )
+            if action.action == CaseActionType.CLAIMED:
+                mutation = mutation.where(
+                    ReconciliationCaseRow.status == CaseStatus.UNASSIGNED.value,
+                    ReconciliationCaseRow.assignee_user_id.is_(None),
                 )
+            updated = session.execute(
+                mutation
                 .values(
                     status=case.status.value,
                     assignee_user_id=case.assignee_user_id,
@@ -260,6 +371,21 @@ class PostgresReconciliationCaseRepository:
                 )
             )
             if updated.rowcount != 1:
+                if action.action == CaseActionType.CLAIMED:
+                    current = session.execute(
+                        select(
+                            ReconciliationCaseRow.status,
+                            ReconciliationCaseRow.assignee_user_id,
+                        ).where(ReconciliationCaseRow.case_id == case.case_id)
+                    ).one_or_none()
+                    if current is not None and (
+                        current.status != CaseStatus.UNASSIGNED.value
+                        or current.assignee_user_id is not None
+                    ):
+                        raise CaseError(
+                            "CASE_ALREADY_CLAIMED",
+                            "Case has already been claimed",
+                        )
                 raise CaseError(
                     "CASE_REVISION_CONFLICT",
                     "Case has changed; refresh and retry",

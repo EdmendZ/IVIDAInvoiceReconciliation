@@ -18,6 +18,7 @@ from app.domain.reconciliation_cases import (
     CaseListQuery,
     CasePage,
     CaseStatus,
+    ReconciliationCaseBundle,
     ResolutionType,
 )
 from app.infra.postgres_admin_repository import PostgresAdminRepository
@@ -80,7 +81,12 @@ def case_http_error(error: CaseError) -> HTTPException:
 
     status_code = 404 if error.code == "CASE_NOT_FOUND" else (
         403
-        if error.code in {"CASE_ASSIGNEE_REQUIRED", "CASE_ADMIN_REQUIRED"}
+        if error.code
+        in {
+            "CASE_ASSIGNEE_REQUIRED",
+            "CASE_ADMIN_REQUIRED",
+            "CASE_REVIEWER_REQUIRED",
+        }
         else 409
     )
     return HTTPException(
@@ -97,14 +103,14 @@ def _case_call(operation: Callable[[], T]) -> T:
 
 
 def _mutate_and_read(
-    operation: Callable[[], object],
+    operation: Callable[[], ReconciliationCaseBundle],
     *,
     case_id: str,
     service: ReconciliationCaseService,
 ) -> CaseDetail:
     def run() -> CaseDetail:
-        operation()
-        return service.get_detail(case_id)
+        bundle = operation()
+        return service.get_detail_for_bundle(bundle)
 
     return _case_call(run)
 

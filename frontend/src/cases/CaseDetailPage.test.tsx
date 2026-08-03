@@ -346,6 +346,39 @@ describe("CaseDetailPage reviewer workflow", () => {
     expect(note.value).toBe("My unsaved explanation");
     expect(fetchMock).toHaveBeenCalledTimes(3);
   });
+
+  it.each([
+    ["CASE_TERMINAL", { status: "approved" as const, completed_at: NOW }],
+    ["CASE_INVALID_TRANSITION", { status: "pending_approval" as const }],
+    ["CASE_ASSIGNEE_REQUIRED", { assignee_user_id: "reviewer-b" }],
+  ])("refreshes detail after stale workflow error %s", async (code, overrides) => {
+    const latest = detail({ revision: 3, ...overrides }, "business_exception");
+    const fetchMock = vi
+      .spyOn(globalThis, "fetch")
+      .mockResolvedValueOnce(
+        jsonResponse(detail({}, "business_exception")),
+      )
+      .mockResolvedValueOnce(
+        jsonResponse(
+          { detail: { code, message: "The Case changed" } },
+          code === "CASE_ASSIGNEE_REQUIRED" ? 403 : 409,
+        ),
+      )
+      .mockResolvedValueOnce(jsonResponse(latest));
+    renderPage();
+
+    fireEvent.click(
+      await screen.findByRole("button", { name: "Submit for approval" }),
+    );
+
+    expect(
+      await screen.findByText(
+        "This Case changed while you were viewing it. The latest version has been loaded.",
+      ),
+    ).toBeTruthy();
+    await screen.findByText(/Revision 3/);
+    expect(fetchMock).toHaveBeenCalledTimes(3);
+  });
 });
 
 describe("CaseDetailPage admin workflow", () => {

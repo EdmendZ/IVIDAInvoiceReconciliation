@@ -271,8 +271,14 @@ Case 业务错误统一为：
 {"detail": {"code": "CASE_REVISION_CONFLICT", "message": "..."}}
 ```
 
-404、403 和 409 的稳定 code 见《错误码与分层排障》。请求缺字段、空原因、
+`CASE_REVIEWER_REQUIRED`、`CASE_ASSIGNEE_REQUIRED` 和 `CASE_ADMIN_REQUIRED` 属于
+权限拒绝并返回 403；404 和其余状态/并发 409 的稳定 code 见《错误码与分层排障》。
+请求缺字段、空原因、
 空备注、非法枚举或越界分页由 Schema 校验返回 422。
+
+独立 GET 详情保证 Case、Items 与 Actions 来自同一 revision。成功 mutation 的详情
+明确锚定该请求刚提交的 revision；即使另一位用户随后立即推进 Case，也不会把后续
+状态误装进前一请求的成功响应。
 
 ## 开发诊断端点
 

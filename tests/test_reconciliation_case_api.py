@@ -155,15 +155,20 @@ class RecordingCaseService:
         self._record("get_detail", case_id)
         return self.detail
 
+    def get_detail_for_bundle(self, bundle: CaseDetail) -> CaseDetail:
+        self._record("get_detail_for_bundle", bundle.case.revision)
+        return bundle
+
     def claim(
         self,
         case_id: str,
         *,
         user: AuthenticatedUser,
         expected_revision: int,
-    ) -> None:
+    ) -> CaseDetail:
         self._record("claim", (case_id, user, expected_revision))
         self._advance(status=CaseStatus.IN_PROGRESS, assignee_user_id=user.user_id)
+        return self.detail
 
     def reassign(
         self,
@@ -173,12 +178,13 @@ class RecordingCaseService:
         user: AuthenticatedUser,
         reason: str,
         expected_revision: int,
-    ) -> None:
+    ) -> CaseDetail:
         self._record(
             "reassign",
             (case_id, target_user_id, user, reason, expected_revision),
         )
         self._advance(assignee_user_id=target_user_id)
+        return self.detail
 
     def set_resolution(
         self,
@@ -189,7 +195,7 @@ class RecordingCaseService:
         *,
         user: AuthenticatedUser,
         expected_revision: int,
-    ) -> None:
+    ) -> CaseDetail:
         self._record(
             "set_resolution",
             (case_id, item_id, resolution_type, note, user, expected_revision),
@@ -199,6 +205,7 @@ class RecordingCaseService:
         )
         self.detail = self.detail.model_copy(update={"items": [item]})
         self._advance()
+        return self.detail
 
     def submit_approval(
         self,
@@ -206,9 +213,10 @@ class RecordingCaseService:
         *,
         user: AuthenticatedUser,
         expected_revision: int,
-    ) -> None:
+    ) -> CaseDetail:
         self._record("submit_approval", (case_id, user, expected_revision))
         self._advance(status=CaseStatus.PENDING_APPROVAL)
+        return self.detail
 
     def submit_void(
         self,
@@ -216,9 +224,10 @@ class RecordingCaseService:
         *,
         user: AuthenticatedUser,
         expected_revision: int,
-    ) -> None:
+    ) -> CaseDetail:
         self._record("submit_void", (case_id, user, expected_revision))
         self._advance(status=CaseStatus.PENDING_VOID)
+        return self.detail
 
     def approve(
         self,
@@ -226,9 +235,10 @@ class RecordingCaseService:
         *,
         user: AuthenticatedUser,
         expected_revision: int,
-    ) -> None:
+    ) -> CaseDetail:
         self._record("approve", (case_id, user, expected_revision))
         self._advance(status=CaseStatus.APPROVED)
+        return self.detail
 
     def return_case(
         self,
@@ -237,9 +247,10 @@ class RecordingCaseService:
         user: AuthenticatedUser,
         reason: str,
         expected_revision: int,
-    ) -> None:
+    ) -> CaseDetail:
         self._record("return_case", (case_id, user, reason, expected_revision))
         self._advance(status=CaseStatus.IN_PROGRESS)
+        return self.detail
 
     def void(
         self,
@@ -247,9 +258,10 @@ class RecordingCaseService:
         *,
         user: AuthenticatedUser,
         expected_revision: int,
-    ) -> None:
+    ) -> CaseDetail:
         self._record("void", (case_id, user, expected_revision))
         self._advance(status=CaseStatus.VOIDED)
+        return self.detail
 
 
 class FakeAdminRepository:
@@ -374,9 +386,9 @@ def test_reviewer_claims_and_updates_resolution() -> None:
     assert updated.json()["items"][0]["resolution_type"] == "business_exception"
     assert [name for name, _ in service.calls] == [
         "claim",
-        "get_detail",
+        "get_detail_for_bundle",
         "set_resolution",
-        "get_detail",
+        "get_detail_for_bundle",
     ]
 
 
@@ -479,7 +491,10 @@ def test_mutation_endpoints_return_case_detail(
 
     assert response.status_code == 200
     assert response.json()["case"]["status"] == expected_status
-    assert [name for name, _ in service.calls] == [service_method, "get_detail"]
+    assert [name for name, _ in service.calls] == [
+        service_method,
+        "get_detail_for_bundle",
+    ]
 
 
 @pytest.mark.parametrize(
@@ -549,7 +564,7 @@ def test_resolution_requires_non_empty_note(note: str) -> None:
         ("CASE_ADMIN_REQUIRED", 403),
         ("CASE_REVISION_CONFLICT", 409),
         ("CASE_ALREADY_CLAIMED", 409),
-        ("CASE_REVIEWER_REQUIRED", 409),
+        ("CASE_REVIEWER_REQUIRED", 403),
         ("CASE_INVALID_TRANSITION", 409),
         ("CASE_ITEMS_INCOMPLETE", 409),
         ("CASE_SUBMISSION_CONFLICT", 409),
