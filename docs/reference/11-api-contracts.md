@@ -131,6 +131,13 @@ confidence、recommended 和信号列表。
 应用层会重新验证所有版本状态和类型，执行核对并保存结果。任一版本未批准或
 类型错误返回 409。
 
+### `GET /api/reconciliations/{reconciliation_id}/export.csv`
+
+要求 reviewer/admin 身份。接口读取创建核对时保存的不可变结果快照并返回
+`text/csv` 附件，不会用当前版本代码重新计算历史结果。文件包含核对元数据、
+判定状态和逐行数量、单价、金额差异；文本字段会防止 Excel 公式注入，记录不
+存在时返回 404。
+
 ## 开发诊断端点
 
 只有 `APP_ENV=dev` 时注册：

@@ -56,7 +56,8 @@ Set-Location E:\ZephyrLLM\Projects\IVIDAInvoiceReconciliation
 实现：`frontend/src/reconcile/ReconciliationPage.tsx`
 
 只能选择批准版本。先选择 Invoice，再查看解释性 Receive Note 候选，最后选择
-一张或多张执行核对。
+一张或多张执行核对。结果创建成功后可点击 `Export CSV` 下载该次持久化快照；
+文件使用 UTF-8 BOM 和标准 CSV 转义，可直接由 Excel 打开。
 
 ## API 分组
 

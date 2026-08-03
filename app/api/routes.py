@@ -1,6 +1,6 @@
 """健康检查、开发诊断以及批准版本核对端点。"""
 
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Response
 from pydantic import BaseModel, Field
 
 from app.core.config import get_settings
@@ -12,7 +12,9 @@ from app.domain.admin_users import AuthenticatedUser
 from app.services.reconciliation_application_service import (
     DocumentNotApproved,
     ReconciliationApplicationService,
+    ReconciliationNotFound,
 )
+from app.services.reconciliation_export_service import render_reconciliation_csv
 
 router = APIRouter(prefix="/api")
 diagnostic_router = APIRouter(prefix="/api", tags=["development diagnostics"])
@@ -129,3 +131,35 @@ def create_reconciliation(
     except DocumentNotApproved as exc:
         raise HTTPException(status_code=409, detail=str(exc)) from exc
     return record.model_dump(mode="json")
+
+
+@router.get("/reconciliations/{reconciliation_id}/export.csv")
+def export_reconciliation_csv(
+    reconciliation_id: str,
+    service: ReconciliationApplicationService = Depends(
+        get_reconciliation_application_service
+    ),
+    user: AuthenticatedUser = Depends(require_reviewer),
+) -> Response:
+    """下载已持久化核对快照；导出不会重新执行可能已变化的规则。"""
+
+    del user
+    try:
+        record = service.get_record(reconciliation_id)
+    except ReconciliationNotFound as exc:
+        raise HTTPException(status_code=404, detail=str(exc)) from exc
+    filename = f"reconciliation-{record.result.invoice_number}.csv"
+    safe_filename = "".join(
+        character
+        if character.isascii() and (character.isalnum() or character in "-_.")
+        else "-"
+        for character in filename
+    )
+    return Response(
+        content=render_reconciliation_csv(record),
+        media_type="text/csv; charset=utf-8",
+        headers={
+            "Content-Disposition": f'attachment; filename="{safe_filename}"',
+            "X-Content-Type-Options": "nosniff",
+        },
+    )

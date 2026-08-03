@@ -27,6 +27,12 @@ class DocumentNotApproved(RuntimeError):
     pass
 
 
+class ReconciliationNotFound(LookupError):
+    """请求的已持久化核对记录不存在。"""
+
+    pass
+
+
 class ApprovedVersionReader(Protocol):
     """对账用例只需要的批准版本只读视图。"""
 
@@ -39,10 +45,12 @@ class ApprovedVersionReader(Protocol):
     ) -> list[DocumentVersion]: ...
 
 
-class ReconciliationWriter(Protocol):
-    """保存核对输入版本和确定性结果的最小写端口。"""
+class ReconciliationRepository(Protocol):
+    """保存并读取不可变核对结果的最小持久化端口。"""
 
     def create(self, record: ReconciliationRecord) -> ReconciliationRecord: ...
+
+    def get(self, reconciliation_id: str) -> ReconciliationRecord | None: ...
 
 
 class ReconciliationApplicationService:
@@ -52,7 +60,7 @@ class ReconciliationApplicationService:
         self,
         *,
         review_repository: ApprovedVersionReader,
-        reconciliation_repository: ReconciliationWriter,
+        reconciliation_repository: ReconciliationRepository,
     ) -> None:
         self._reviews = review_repository
         self._reconciliations = reconciliation_repository
@@ -130,6 +138,14 @@ class ReconciliationApplicationService:
                 created_at=datetime.now(UTC),
             )
         )
+
+    def get_record(self, reconciliation_id: str) -> ReconciliationRecord:
+        """返回持久化快照；不存在时使用稳定业务异常而非泄漏仓储细节。"""
+
+        record = self._reconciliations.get(reconciliation_id)
+        if record is None:
+            raise ReconciliationNotFound("Reconciliation not found")
+        return record
 
     def _require_approved(
         self,

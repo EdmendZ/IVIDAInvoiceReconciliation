@@ -52,3 +52,24 @@ export async function uploadDocument<T>(formData: FormData): Promise<T> {
   }
   return response.json() as Promise<T>;
 }
+
+export async function downloadFile(path: string): Promise<void> {
+  const response = await fetch(path, { credentials: "include" });
+  if (response.status === 401) {
+    window.dispatchEvent(new CustomEvent("ivida:unauthorized"));
+  }
+  if (!response.ok) {
+    const body = await response.json().catch(() => ({}));
+    throw new Error(body.detail ?? `Download failed (${response.status})`);
+  }
+  const disposition = response.headers.get("Content-Disposition") ?? "";
+  const filename = disposition.match(/filename="([^"]+)"/)?.[1] ?? "export.csv";
+  const url = URL.createObjectURL(await response.blob());
+  const anchor = document.createElement("a");
+  anchor.href = url;
+  anchor.download = filename;
+  document.body.append(anchor);
+  anchor.click();
+  anchor.remove();
+  URL.revokeObjectURL(url);
+}

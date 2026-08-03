@@ -39,6 +39,16 @@ class RecordWriter:
         self.records.append(record)
         return record
 
+    def get(self, reconciliation_id):
+        return next(
+            (
+                record
+                for record in self.records
+                if record.reconciliation_id == reconciliation_id
+            ),
+            None,
+        )
+
 
 def _version(
     version_id: str,
@@ -128,6 +138,7 @@ def test_approved_versions_create_persistent_result() -> None:
     assert record.result.summary.total_lines == 1
     assert record.result.summary.requires_review is False
     assert writer.records == [record]
+    assert service.get_record(record.reconciliation_id) == record
 
 
 def test_candidates_only_include_approved_receive_notes() -> None:

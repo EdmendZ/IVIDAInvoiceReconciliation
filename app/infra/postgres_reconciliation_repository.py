@@ -2,6 +2,7 @@
 
 from uuid import uuid4
 
+from sqlalchemy import select
 from sqlalchemy.orm import Session, sessionmaker
 
 from app.domain.reconciliation_records import ReconciliationRecord
@@ -54,3 +55,33 @@ class PostgresReconciliationRepository:
             )
             session.commit()
         return record
+
+    def get(self, reconciliation_id: str) -> ReconciliationRecord | None:
+        """读取创建时保存的完整结果快照，供审计查看和导出复用。"""
+
+        with self._session_factory() as session:
+            row = session.get(ReconciliationRow, reconciliation_id)
+            if row is None:
+                return None
+            receive_note_ids = list(
+                session.scalars(
+                    select(ReconciliationReceiveNoteRow.receive_note_version_id)
+                    .where(
+                        ReconciliationReceiveNoteRow.reconciliation_id
+                        == reconciliation_id
+                    )
+                    .order_by(
+                        ReconciliationReceiveNoteRow.receive_note_version_id
+                    )
+                )
+            )
+            return ReconciliationRecord.model_validate(
+                {
+                    "reconciliation_id": row.reconciliation_id,
+                    "invoice_version_id": row.invoice_version_id,
+                    "receive_note_version_ids": receive_note_ids,
+                    "result": row.result_json,
+                    "created_by": row.created_by,
+                    "created_at": row.created_at,
+                }
+            )
