@@ -11,6 +11,7 @@ from app.domain.reconciliation_cases import (
     CaseActionView,
     CaseDetail,
     CaseItem,
+    CaseLineResult,
     CaseListQuery,
     CasePage,
     CaseStatus,
@@ -24,6 +25,7 @@ from app.infra.database_models import (
     CaseActionRow,
     CaseItemRow,
     ReconciliationCaseRow,
+    ReconciliationLineResultRow,
     ReconciliationReceiveNoteRow,
     ReconciliationRow,
 )
@@ -142,18 +144,40 @@ class PostgresReconciliationCaseRepository:
 
         with self._session_factory() as session:
             joined = session.execute(
-                select(ReconciliationCaseRow, ReconciliationRow)
+                select(
+                    ReconciliationCaseRow,
+                    ReconciliationRow,
+                    AdminUserRow.username,
+                )
                 .join(
                     ReconciliationRow,
                     ReconciliationRow.reconciliation_id
                     == ReconciliationCaseRow.reconciliation_id,
                 )
+                .outerjoin(
+                    AdminUserRow,
+                    AdminUserRow.user_id
+                    == ReconciliationCaseRow.assignee_user_id,
+                )
                 .where(ReconciliationCaseRow.case_id == case_id)
             ).one_or_none()
             if joined is None:
                 return None
-            case_row, reconciliation_row = joined
+            case_row, reconciliation_row, assignee_username = joined
             items = self._load_items(session, case_id)
+            line_rows = list(
+                session.scalars(
+                    select(ReconciliationLineResultRow)
+                    .where(
+                        ReconciliationLineResultRow.reconciliation_id
+                        == reconciliation_row.reconciliation_id
+                    )
+                    .order_by(
+                        ReconciliationLineResultRow.line_index.asc(),
+                        ReconciliationLineResultRow.line_result_id.asc(),
+                    )
+                )
+            )
             action_rows = session.execute(
                 select(CaseActionRow, AdminUserRow.username)
                 .join(
@@ -199,6 +223,14 @@ class PostgresReconciliationCaseRepository:
                     for action_row, username in action_rows
                 ],
                 reconciliation=reconciliation,
+                assignee_username=assignee_username,
+                line_results=[
+                    CaseLineResult(
+                        line_result_id=line_row.line_result_id,
+                        line=line_row.result_json,
+                    )
+                    for line_row in line_rows
+                ],
             )
 
     def save_case_mutation(

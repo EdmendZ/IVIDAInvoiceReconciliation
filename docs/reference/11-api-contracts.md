@@ -201,7 +201,8 @@ confidence、recommended 和信号列表。
 ### 详情与变更响应
 
 详情和每个成功变更都返回相同的 `CaseDetail`：`case` 当前状态、`items` 处理项、
-带 `actor_username` 的追加式 `actions`，以及创建 Case 时保存的不可变
+负责人展示名 `assignee_username`、带 `actor_username` 的追加式 `actions`、
+带数据库稳定标识的只读 `line_results`，以及创建 Case 时保存的不可变
 `reconciliation` 快照。前端应以响应中的新 `revision` 作为下一次变更的
 `expected_revision`。
 
@@ -211,6 +212,9 @@ confidence、recommended 和信号列表。
 - `items[]`：`item_id`、`case_id`、`item_type`、`line_result_id`、
   `resolution_type`、`resolution_note`、`resolved_by`、`resolved_at`、
   `updated_at`；
+- `assignee_username`：当前负责人的安全展示名，未分派时为 `null`；
+- `line_results[]`：`line_result_id` 与不可变业务 `line` 的配对，使 Line Item
+  能明确展示 SKU、描述、数量和金额差异；头部冲突 Item 不关联商品行；
 - `actions[]`：嵌套 `action`（ID、Case/Item/Actor、动作类型、旧值、新值、
   原因、时间）和安全展示字段 `actor_username`；
 - `reconciliation`：不可变的版本引用、原始 `result`、创建人和创建时间。

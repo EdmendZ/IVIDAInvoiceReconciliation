@@ -1,7 +1,9 @@
 import type { User } from "../api/client";
 import type {
   CaseItem,
+  CaseLineResult,
   CaseStatus,
+  ReconciliationLine,
   ReconciliationCase,
   ResolutionType,
 } from "./caseTypes";
@@ -46,6 +48,26 @@ export function queryForTab(
   params.set("page", String(page));
   params.set("page_size", "50");
   return params.toString();
+}
+
+export function caseLineForItem(
+  item: CaseItem,
+  lineResults: readonly CaseLineResult[],
+): ReconciliationLine | null {
+  if (item.item_type !== "line" || item.line_result_id === null) return null;
+  return (
+    lineResults.find(
+      (candidate) => candidate.line_result_id === item.line_result_id,
+    )?.line ?? null
+  );
+}
+
+export function canCompleteClaim(
+  isMounted: boolean,
+  requestedCaseId: string,
+  activeCaseId: string | null,
+): boolean {
+  return isMounted && requestedCaseId === activeCaseId;
 }
 
 export function canEditCase(

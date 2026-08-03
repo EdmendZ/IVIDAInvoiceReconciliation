@@ -13,10 +13,16 @@ from app.api.dependencies import (
     get_reconciliation_case_service,
 )
 from app.domain.admin_users import AdminRole, AuthenticatedUser
-from app.domain.reconciliation import ReconciliationResult, ReconciliationSummary
+from app.domain.reconciliation import (
+    LineComparison,
+    MatchStatus,
+    ReconciliationResult,
+    ReconciliationSummary,
+)
 from app.domain.reconciliation_cases import (
     AssignmentFilter,
     CaseDetail,
+    CaseLineResult,
     CaseItem,
     CaseItemType,
     CaseListQuery,
@@ -50,6 +56,22 @@ def _detail(
     revision: int = 1,
     assignee_user_id: str | None = None,
 ) -> CaseDetail:
+    line = LineComparison(
+        match_key="SKU-001",
+        sku="SKU-001",
+        description="Blue widget",
+        invoice_quantity="10",
+        received_quantity="8",
+        quantity_difference="-2",
+        invoice_unit_price="4.50",
+        received_unit_price="4.50",
+        unit_price_difference="0",
+        invoice_amount="45",
+        received_amount="36",
+        amount_difference="-9",
+        status=MatchStatus.MISMATCH,
+        reasons=["quantity_difference"],
+    )
     reconciliation = ReconciliationRecord(
         reconciliation_id="reconciliation-1",
         invoice_version_id="invoice-version-1",
@@ -59,12 +81,12 @@ def _detail(
             receive_note_numbers=["RN-001"],
             purchase_order_match=False,
             currency_match=True,
-            lines=[],
+            lines=[line],
             summary=ReconciliationSummary(
-                total_lines=0,
+                total_lines=1,
                 exact_lines=0,
                 tolerance_lines=0,
-                mismatch_lines=0,
+                mismatch_lines=1,
                 invoice_only_lines=0,
                 receive_note_only_lines=0,
                 requires_review=True,
@@ -87,12 +109,19 @@ def _detail(
             CaseItem(
                 item_id=ITEM_ID,
                 case_id=CASE_ID,
-                item_type=CaseItemType.PURCHASE_ORDER_CONFLICT,
+                item_type=CaseItemType.LINE,
+                line_result_id="line-result-1",
                 updated_at=NOW,
             )
         ],
         actions=[],
         reconciliation=reconciliation,
+        assignee_username=(
+            TEST_REVIEWER.username if assignee_user_id is not None else None
+        ),
+        line_results=[
+            CaseLineResult(line_result_id="line-result-1", line=line),
+        ],
     )
 
 
@@ -306,6 +335,20 @@ def test_detail_returns_the_full_case_read_model() -> None:
     assert response.status_code == 200
     assert response.json()["case"]["case_id"] == CASE_ID
     assert response.json()["reconciliation"]["result"]["invoice_number"] == "INV-001"
+    assert response.json()["line_results"][0]["line"]["sku"] == "SKU-001"
+    assert (
+        response.json()["items"][0]["line_result_id"]
+        == response.json()["line_results"][0]["line_result_id"]
+    )
+
+
+def test_detail_returns_assignee_username_instead_of_only_internal_id() -> None:
+    service = RecordingCaseService(_detail(assignee_user_id=TEST_REVIEWER.user_id))
+    with _service_client(service) as client:
+        response = client.get(f"/api/reconciliation-cases/{CASE_ID}")
+
+    assert response.status_code == 200
+    assert response.json()["assignee_username"] == TEST_REVIEWER.username
 
 
 def test_reviewer_claims_and_updates_resolution() -> None:

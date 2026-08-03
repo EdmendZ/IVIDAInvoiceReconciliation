@@ -78,6 +78,28 @@ export type CaseActionView = {
   actor_username: string;
 };
 
+export type ReconciliationLine = {
+  match_key: string;
+  sku: string | null;
+  description: string;
+  invoice_quantity: string;
+  received_quantity: string;
+  quantity_difference: string;
+  invoice_unit_price: string | null;
+  received_unit_price: string | null;
+  unit_price_difference: string | null;
+  invoice_amount: string | null;
+  received_amount: string | null;
+  amount_difference: string | null;
+  status: string;
+  reasons: string[];
+};
+
+export type CaseLineResult = {
+  line_result_id: string;
+  line: ReconciliationLine;
+};
+
 export type ReconciliationRecord = {
   reconciliation_id: string;
   invoice_version_id: string;
@@ -98,22 +120,7 @@ export type ReconciliationRecord = {
       receive_note_only_lines: number;
       requires_review: boolean;
     };
-    lines: Array<{
-      match_key: string;
-      sku: string | null;
-      description: string;
-      invoice_quantity: string;
-      received_quantity: string;
-      quantity_difference: string;
-      invoice_unit_price: string | null;
-      received_unit_price: string | null;
-      unit_price_difference: string | null;
-      invoice_amount: string | null;
-      received_amount: string | null;
-      amount_difference: string | null;
-      status: string;
-      reasons: string[];
-    }>;
+    lines: ReconciliationLine[];
   };
 };
 
@@ -122,6 +129,8 @@ export type CaseDetail = {
   items: CaseItem[];
   actions: CaseActionView[];
   reconciliation: ReconciliationRecord;
+  assignee_username?: string | null;
+  line_results?: CaseLineResult[];
 };
 
 export type CasePage = {

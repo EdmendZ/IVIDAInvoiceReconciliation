@@ -5,6 +5,7 @@ from enum import StrEnum
 
 from pydantic import BaseModel, Field, field_validator
 
+from app.domain.reconciliation import LineComparison
 from app.domain.reconciliation_records import ReconciliationRecord
 
 
@@ -111,11 +112,20 @@ class CaseActionView(BaseModel):
     actor_username: str
 
 
+class CaseLineResult(BaseModel):
+    """Stable database identity paired with its immutable business line."""
+
+    line_result_id: str
+    line: LineComparison
+
+
 class CaseDetail(BaseModel):
     case: ReconciliationCase
     items: list[CaseItem]
     actions: list[CaseActionView]
     reconciliation: ReconciliationRecord
+    assignee_username: str | None = None
+    line_results: list[CaseLineResult] = Field(default_factory=list)
 
 
 class CaseListQuery(BaseModel):

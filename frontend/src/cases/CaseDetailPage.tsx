@@ -1,7 +1,11 @@
 import { useQuery } from "@tanstack/react-query";
 
 import { api, type User } from "../api/client";
-import { caseStatusLabel, resolutionLabel } from "./casePresentation";
+import {
+  caseLineForItem,
+  caseStatusLabel,
+  resolutionLabel,
+} from "./casePresentation";
 import type {
   CaseActionType,
   CaseDetail,
@@ -54,6 +58,13 @@ export function CaseDetailPage({
   const data = detail.data;
   const result = data.reconciliation.result;
   const summary = result.summary;
+  const lineResults = data.line_results ?? [];
+  const immutableLines = lineResults.length
+    ? lineResults.map(({ line_result_id, line }) => ({
+        key: line_result_id,
+        line,
+      }))
+    : result.lines.map((line) => ({ key: line.match_key, line }));
 
   return (
     <section className="page case-detail-page">
@@ -72,7 +83,10 @@ export function CaseDetailPage({
             {caseStatusLabel(data.case.status)}
           </span>
           <small>
-            Assignee: {data.case.assignee_user_id || "Unassigned"} · Revision {data.case.revision}
+            Assignee:{" "}
+            {data.assignee_username ||
+              (data.case.assignee_user_id ? "Assigned reviewer" : "Unassigned")} ·{" "}
+            Revision {data.case.revision}
           </small>
           <small>
             Viewing as {user.username} ({user.role})
@@ -101,28 +115,56 @@ export function CaseDetailPage({
           <span>{data.items.length} items</span>
         </div>
         <div className="case-item-list">
-          {data.items.map((item) => (
-            <article className="case-item" key={item.item_id}>
-              <div>
-                <strong>{caseItemLabel(item.item_type)}</strong>
-                {item.line_result_id && <small>Line {item.line_result_id}</small>}
-              </div>
-              <div>
-                <span className="case-item-resolution">
-                  {item.resolution_type
-                    ? resolutionLabel(item.resolution_type)
-                    : "Unresolved"}
-                </span>
-                <p>{item.resolution_note || "No resolution note yet."}</p>
-                {item.resolved_at && (
-                  <small>
-                    Updated by {item.resolved_by || "Unknown user"} ·{" "}
-                    {new Date(item.resolved_at).toLocaleString()}
-                  </small>
-                )}
-              </div>
-            </article>
-          ))}
+          {data.items.map((item) => {
+            const line = caseLineForItem(item, lineResults);
+            return (
+              <article className="case-item" key={item.item_id}>
+                <div>
+                  <strong>{caseItemLabel(item.item_type)}</strong>
+                  {line ? (
+                    <>
+                      <b>{line.sku || line.description}</b>
+                      {line.sku && <small>{line.description}</small>}
+                      <dl className="case-item-line-data">
+                        <div>
+                          <dt>Quantity diff</dt>
+                          <dd>{line.quantity_difference}</dd>
+                        </div>
+                        <div>
+                          <dt>Unit price diff</dt>
+                          <dd>{line.unit_price_difference ?? "—"}</dd>
+                        </div>
+                        <div>
+                          <dt>Amount diff</dt>
+                          <dd>{line.amount_difference ?? "—"}</dd>
+                        </div>
+                      </dl>
+                      <small>
+                        {line.status.replaceAll("_", " ")}
+                        {line.reasons.length ? ` · ${line.reasons.join(", ")}` : ""}
+                      </small>
+                    </>
+                  ) : (
+                    <small>{caseItemDescription(item.item_type)}</small>
+                  )}
+                </div>
+                <div>
+                  <span className="case-item-resolution">
+                    {item.resolution_type
+                      ? resolutionLabel(item.resolution_type)
+                      : "Unresolved"}
+                  </span>
+                  <p>{item.resolution_note || "No resolution note yet."}</p>
+                  {item.resolved_at && (
+                    <small>
+                      Updated by {item.resolved_by || "Unknown user"} ·{" "}
+                      {new Date(item.resolved_at).toLocaleString()}
+                    </small>
+                  )}
+                </div>
+              </article>
+            );
+          })}
           {data.items.length === 0 && (
             <div className="empty-state">This case has no actionable items.</div>
           )}
@@ -148,8 +190,8 @@ export function CaseDetailPage({
               </tr>
             </thead>
             <tbody>
-              {result.lines.map((line) => (
-                <tr key={line.match_key}>
+              {immutableLines.map(({ key, line }) => (
+                <tr key={key}>
                   <td>
                     <strong>{line.sku || line.description}</strong>
                     {line.sku && <small>{line.description}</small>}
@@ -167,7 +209,7 @@ export function CaseDetailPage({
             </tbody>
           </table>
         </div>
-        {result.lines.length === 0 && (
+        {immutableLines.length === 0 && (
           <div className="empty-state">No reconciliation lines.</div>
         )}
       </section>
@@ -228,6 +270,17 @@ function caseItemLabel(itemType: CaseItemType): string {
       return "Purchase order conflict";
     case "currency_conflict":
       return "Currency conflict";
+  }
+}
+
+function caseItemDescription(itemType: CaseItemType): string {
+  switch (itemType) {
+    case "line":
+      return "The linked reconciliation line is unavailable.";
+    case "purchase_order_conflict":
+      return "Invoice and Receive Note purchase orders do not match.";
+    case "currency_conflict":
+      return "Invoice and Receive Note currencies do not match.";
   }
 }
 

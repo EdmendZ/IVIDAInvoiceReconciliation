@@ -1,8 +1,9 @@
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 
 import { ApiError, api, type User } from "../api/client";
 import {
+  canCompleteClaim,
   caseStatusLabel,
   queryForTab,
   type CaseQueueTab,
@@ -30,6 +31,15 @@ export function CaseQueuePage({
   const [invoiceNumber, setInvoiceNumber] = useState("");
   const [claimingCaseId, setClaimingCaseId] = useState<string | null>(null);
   const [error, setError] = useState("");
+  const mountedRef = useRef(false);
+  const activeClaimRef = useRef<string | null>(null);
+
+  useEffect(() => {
+    mountedRef.current = true;
+    return () => {
+      mountedRef.current = false;
+    };
+  }, []);
 
   const cases = useQuery({
     queryKey: ["reconciliation-cases", tab, page, invoiceNumber],
@@ -50,7 +60,10 @@ export function CaseQueuePage({
   }
 
   async function claim(item: CaseSummary) {
-    setClaimingCaseId(item.case.case_id);
+    const requestedCaseId = item.case.case_id;
+    if (activeClaimRef.current !== null) return;
+    activeClaimRef.current = requestedCaseId;
+    setClaimingCaseId(requestedCaseId);
     setError("");
     try {
       const updated = await api<CaseDetail>(
@@ -63,7 +76,17 @@ export function CaseQueuePage({
       await queryClient.invalidateQueries({
         queryKey: ["reconciliation-cases"],
       });
-      onNavigate(`/cases/${updated.case.case_id}`);
+      if (
+        canCompleteClaim(
+          mountedRef.current,
+          requestedCaseId,
+          activeClaimRef.current,
+        )
+      ) {
+        activeClaimRef.current = null;
+        setClaimingCaseId(null);
+        onNavigate(`/cases/${encodeURIComponent(updated.case.case_id)}`);
+      }
     } catch (problem) {
       if (
         problem instanceof ApiError &&
@@ -75,9 +98,20 @@ export function CaseQueuePage({
           queryKey: ["reconciliation-cases"],
         });
       }
-      setError(problem instanceof Error ? problem.message : "Claim failed");
+      if (
+        canCompleteClaim(
+          mountedRef.current,
+          requestedCaseId,
+          activeClaimRef.current,
+        )
+      ) {
+        setError(problem instanceof Error ? problem.message : "Claim failed");
+      }
     } finally {
-      setClaimingCaseId(null);
+      if (activeClaimRef.current === requestedCaseId) {
+        activeClaimRef.current = null;
+        if (mountedRef.current) setClaimingCaseId(null);
+      }
     }
   }
 
@@ -93,14 +127,17 @@ export function CaseQueuePage({
       </div>
 
       <div className="case-toolbar">
-        <div className="case-tabs" role="tablist" aria-label="Case queues">
+        <div
+          className="case-tabs"
+          aria-label="Case queue filters"
+          role="group"
+        >
           {TABS.map((item) => (
             <button
-              aria-selected={tab === item.id}
+              aria-pressed={tab === item.id}
               className={tab === item.id ? "active" : ""}
               key={item.id}
               onClick={() => selectTab(item.id)}
-              role="tab"
             >
               {item.label}
             </button>

@@ -1,4 +1,5 @@
 from datetime import UTC, datetime, timedelta
+from decimal import Decimal
 from io import StringIO
 
 import pytest
@@ -9,7 +10,12 @@ from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import sessionmaker
 from sqlalchemy.pool import StaticPool
 
-from app.domain.reconciliation import ReconciliationResult, ReconciliationSummary
+from app.domain.reconciliation import (
+    LineComparison,
+    MatchStatus,
+    ReconciliationResult,
+    ReconciliationSummary,
+)
 from app.domain.reconciliation_cases import (
     AssignmentFilter,
     CaseAction,
@@ -86,7 +92,25 @@ def _persistence_bundle(
     created_at: datetime,
     assignee_user_id: str | None = None,
     status: CaseStatus = CaseStatus.UNASSIGNED,
+    include_line_difference: bool = False,
 ) -> ReconciliationPersistenceBundle:
+    line = LineComparison(
+        match_key="SKU-001",
+        sku="SKU-001",
+        description="Blue widget",
+        invoice_quantity=Decimal("10"),
+        received_quantity=Decimal("8"),
+        quantity_difference=Decimal("-2"),
+        invoice_unit_price=Decimal("4.50"),
+        received_unit_price=Decimal("4.50"),
+        unit_price_difference=Decimal("0"),
+        invoice_amount=Decimal("45"),
+        received_amount=Decimal("36"),
+        amount_difference=Decimal("-9"),
+        status=MatchStatus.MISMATCH,
+        reasons=["quantity_difference"],
+    )
+    line_result_id = f"line-{case_id}"
     record = ReconciliationRecord(
         reconciliation_id=reconciliation_id,
         invoice_version_id=f"invoice-{reconciliation_id}",
@@ -96,12 +120,12 @@ def _persistence_bundle(
             receive_note_numbers=[f"RN-{reconciliation_id}"],
             purchase_order_match=False,
             currency_match=True,
-            lines=[],
+            lines=[line] if include_line_difference else [],
             summary=ReconciliationSummary(
-                total_lines=0,
+                total_lines=1 if include_line_difference else 0,
                 exact_lines=0,
                 tolerance_lines=0,
-                mismatch_lines=0,
+                mismatch_lines=1 if include_line_difference else 0,
                 invoice_only_lines=0,
                 receive_note_only_lines=0,
                 requires_review=True,
@@ -121,14 +145,26 @@ def _persistence_bundle(
     )
     case_bundle = ReconciliationCaseBundle(
         case=case,
-        items=[
-            CaseItem(
-                item_id=f"item-{case_id}",
-                case_id=case_id,
-                item_type=CaseItemType.PURCHASE_ORDER_CONFLICT,
-                updated_at=created_at,
-            )
-        ],
+        items=(
+            [
+                CaseItem(
+                    item_id=f"item-{case_id}",
+                    case_id=case_id,
+                    item_type=CaseItemType.LINE,
+                    line_result_id=line_result_id,
+                    updated_at=created_at,
+                )
+            ]
+            if include_line_difference
+            else [
+                CaseItem(
+                    item_id=f"item-{case_id}",
+                    case_id=case_id,
+                    item_type=CaseItemType.PURCHASE_ORDER_CONFLICT,
+                    updated_at=created_at,
+                )
+            ]
+        ),
         actions=[
             CaseAction(
                 action_id=f"created-{case_id}",
@@ -141,7 +177,7 @@ def _persistence_bundle(
     )
     return ReconciliationPersistenceBundle(
         record=record,
-        line_result_ids=[],
+        line_result_ids=[line_result_id] if include_line_difference else [],
         case=case_bundle,
     )
 
@@ -300,6 +336,30 @@ def test_get_bundle_and_detail_return_stable_action_order_and_actor_names() -> N
         "alice",
         "bob",
     ]
+
+
+def test_detail_links_line_items_to_business_data_and_assignee_name() -> None:
+    factory = _factory()
+    persistence = _persistence_bundle(
+        reconciliation_id="recon-line",
+        case_id="case-line",
+        invoice_number="INV-LINE",
+        created_at=NOW,
+        assignee_user_id="reviewer-1",
+        status=CaseStatus.IN_PROGRESS,
+        include_line_difference=True,
+    )
+    PostgresReconciliationRepository(factory).create(persistence)
+
+    detail = PostgresReconciliationCaseRepository(factory).get_detail("case-line")
+
+    assert detail is not None
+    assert detail.assignee_username == "alice"
+    assert len(detail.line_results) == 1
+    assert detail.line_results[0].line_result_id == "line-case-line"
+    assert detail.line_results[0].line.sku == "SKU-001"
+    assert detail.line_results[0].line.description == "Blue widget"
+    assert detail.items[0].line_result_id == detail.line_results[0].line_result_id
 
 
 def test_save_case_mutation_updates_one_item_and_rejects_stale_revision() -> None:

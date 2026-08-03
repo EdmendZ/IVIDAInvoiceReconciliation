@@ -3,13 +3,16 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 import { ApiError, api, type User } from "../api/client";
 import {
   availableSubmission,
+  canCompleteClaim,
   canEditCase,
+  caseLineForItem,
   caseStatusLabel,
   queryForTab,
   resolutionLabel,
 } from "./casePresentation";
 import type {
   CaseItem,
+  CaseLineResult,
   CaseStatus,
   ReconciliationCase,
   ResolutionType,
@@ -68,6 +71,52 @@ describe("case presentation", () => {
     expect(queryForTab("completed", 1)).toContain(
       "status=approved&status=voided",
     );
+  });
+
+  it("links a line Case Item to its business-readable reconciliation row", () => {
+    const lineItem = {
+      ...item(null),
+      line_result_id: "line-result-a",
+    };
+    const lineResults: CaseLineResult[] = [
+      {
+        line_result_id: "line-result-a",
+        line: {
+          match_key: "SKU-001",
+          sku: "SKU-001",
+          description: "Blue widget",
+          invoice_quantity: "10",
+          received_quantity: "8",
+          quantity_difference: "-2",
+          invoice_unit_price: "4.50",
+          received_unit_price: "4.50",
+          unit_price_difference: "0",
+          invoice_amount: "45",
+          received_amount: "36",
+          amount_difference: "-9",
+          status: "mismatch",
+          reasons: ["quantity_difference"],
+        },
+      },
+    ];
+
+    expect(caseLineForItem(lineItem, lineResults)).toMatchObject({
+      sku: "SKU-001",
+      description: "Blue widget",
+      quantity_difference: "-2",
+    });
+    expect(
+      caseLineForItem(
+        { ...lineItem, item_type: "purchase_order_conflict", line_result_id: null },
+        lineResults,
+      ),
+    ).toBeNull();
+  });
+
+  it("does not complete a claim after its queue page has been left", () => {
+    expect(canCompleteClaim(true, "case-a", "case-a")).toBe(true);
+    expect(canCompleteClaim(false, "case-a", "case-a")).toBe(false);
+    expect(canCompleteClaim(true, "case-a", "case-b")).toBe(false);
   });
 
   it("allows only the assigned reviewer to edit an in-progress case", () => {
