@@ -294,11 +294,12 @@ def test_resolved_item_requires_a_non_blank_note_on_sqlite(
     engine = create_engine("sqlite+pysqlite:///:memory:")
     Base.metadata.create_all(engine)
 
-    with engine.begin() as connection, pytest.raises(IntegrityError):
+    with engine.begin() as connection, pytest.raises(IntegrityError) as captured:
         connection.execute(
             CaseItemRow.__table__.insert().values(
                 item_id="item-1",
                 case_id="case-1",
+                reconciliation_id="reconciliation-1",
                 item_type="purchase_order_conflict",
                 resolution_type="business_exception",
                 resolution_note=resolution_note,
@@ -307,6 +308,8 @@ def test_resolved_item_requires_a_non_blank_note_on_sqlite(
                 updated_at=datetime(2026, 8, 3, tzinfo=UTC),
             )
         )
+
+    assert "ck_case_items_resolution_complete" in str(captured.value.orig)
 
 
 def test_terminal_item_trigger_locks_parent_cases_in_stable_order() -> None:
