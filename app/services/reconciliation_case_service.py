@@ -9,6 +9,7 @@ from app.domain.admin_users import AdminRole, AuthenticatedUser
 from app.domain.reconciliation_cases import (
     CaseAction,
     CaseActionType,
+    CaseDetail,
     CaseItem,
     CaseListQuery,
     CasePage,
@@ -34,6 +35,8 @@ class ReconciliationCaseRepository(Protocol):
     def get_bundle(self, case_id: str) -> ReconciliationCaseBundle | None: ...
 
     def list_cases(self, query: CaseListQuery, user_id: str) -> CasePage: ...
+
+    def get_detail(self, case_id: str) -> CaseDetail | None: ...
 
     def save_case_mutation(
         self,
@@ -345,9 +348,13 @@ class ReconciliationCaseService:
             action_type=CaseActionType.VOIDED,
         )
 
-    def get_detail(self, case_id: str) -> ReconciliationCaseBundle:
-        """Return the current aggregate; richer presentation joins are repository concerns."""
-        return self._load(case_id)
+    def get_detail(self, case_id: str) -> CaseDetail:
+        """Return the joined read model used by every API detail response."""
+
+        detail = self._repository.get_detail(case_id)
+        if detail is None:
+            raise CaseError("CASE_NOT_FOUND", "Case was not found")
+        return detail
 
     def list_cases(self, query: CaseListQuery, *, user: AuthenticatedUser) -> CasePage:
         return self._repository.list_cases(query, user.user_id)

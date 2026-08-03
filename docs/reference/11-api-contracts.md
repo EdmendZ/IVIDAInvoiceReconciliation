@@ -138,6 +138,138 @@ confidence、recommended 和信号列表。
 判定状态和逐行数量、单价、金额差异；文本字段会防止 Excel 公式注入，记录不
 存在时返回 404。
 
+## Reconciliation Case
+
+所有 Case 接口要求有效 Session，Reviewer 和 Admin 都可查询；只有当前负责人可
+修改处理结论或提交，只有 Admin 可重新分派和作最终决定。客户端不得在请求体中
+传操作者 ID，服务端始终使用 Session 对应用户。
+
+| 方法 | 路径 | 角色与用途 |
+|---|---|---|
+| GET | `/api/reconciliation-cases` | Reviewer/Admin；查询待办和历史 Case |
+| GET | `/api/reconciliation-cases/assignees` | Admin；列出可分派的 active Reviewer |
+| GET | `/api/reconciliation-cases/{case_id}` | Reviewer/Admin；查询详情与审计历史 |
+| POST | `/api/reconciliation-cases/{case_id}/claim` | Reviewer；认领未分派 Case |
+| POST | `/api/reconciliation-cases/{case_id}/reassign` | Admin；重新分派非终态、已有负责人的 Case |
+| PUT | `/api/reconciliation-cases/{case_id}/items/{item_id}/resolution` | 当前负责人；设置处理类型和备注 |
+| POST | `/api/reconciliation-cases/{case_id}/submit-approval` | 当前负责人；提交批准申请 |
+| POST | `/api/reconciliation-cases/{case_id}/submit-void` | 当前负责人；提交作废申请 |
+| POST | `/api/reconciliation-cases/{case_id}/approve` | Admin；批准 `pending_approval` Case |
+| POST | `/api/reconciliation-cases/{case_id}/return` | Admin；退回待决 Case 并记录原因 |
+| POST | `/api/reconciliation-cases/{case_id}/void` | Admin；作废 `pending_void` Case |
+
+### 列表查询与响应
+
+`GET /api/reconciliation-cases` 支持：
+
+- 重复 `status` 参数，例如
+  `?status=pending_approval&status=pending_void`；
+- `assignment=all|mine|unassigned`，默认 `all`；
+- `invoice_number` 精确或前缀搜索；
+- `page` 从 1 开始，`page_size` 默认 50，范围 1–100。
+
+列表按 `created_at ASC, case_id ASC` 稳定排序。响应为：
+
+```json
+{
+  "items": [
+    {
+      "case": {
+        "case_id": "case-id",
+        "reconciliation_id": "reconciliation-id",
+        "status": "in_progress",
+        "assignee_user_id": "reviewer-id",
+        "revision": 3,
+        "created_by": "creator-id",
+        "created_at": "2026-08-03T12:00:00Z",
+        "claimed_at": "2026-08-03T12:05:00Z",
+        "submitted_at": null,
+        "completed_at": null
+      },
+      "invoice_number": "INV-001",
+      "receive_note_numbers": ["RN-001"],
+      "actionable_count": 2,
+      "assignee_username": "reviewer-a"
+    }
+  ],
+  "page": 1,
+  "page_size": 50,
+  "total": 1
+}
+```
+
+### 详情与变更响应
+
+详情和每个成功变更都返回相同的 `CaseDetail`：`case` 当前状态、`items` 处理项、
+带 `actor_username` 的追加式 `actions`，以及创建 Case 时保存的不可变
+`reconciliation` 快照。前端应以响应中的新 `revision` 作为下一次变更的
+`expected_revision`。
+
+- `case`：`case_id`、`reconciliation_id`、`status`、`assignee_user_id`、
+  `revision`、`created_by`、`created_at`、`claimed_at`、`submitted_at`、
+  `completed_at`；
+- `items[]`：`item_id`、`case_id`、`item_type`、`line_result_id`、
+  `resolution_type`、`resolution_note`、`resolved_by`、`resolved_at`、
+  `updated_at`；
+- `actions[]`：嵌套 `action`（ID、Case/Item/Actor、动作类型、旧值、新值、
+  原因、时间）和安全展示字段 `actor_username`；
+- `reconciliation`：不可变的版本引用、原始 `result`、创建人和创建时间。
+
+认领、提交批准、提交作废、批准和最终作废请求：
+
+```json
+{"expected_revision": 3}
+```
+
+设置处理结论请求：
+
+```json
+{
+  "resolution_type": "business_exception",
+  "note": "Supplier approved short delivery",
+  "expected_revision": 3
+}
+```
+
+`resolution_type` 可取 `business_exception`、`document_data_error`、
+`matching_error`、`waiting_for_documents`，`note` 必须非空。
+
+重新分派请求：
+
+```json
+{
+  "assignee_user_id": "active-reviewer-id",
+  "reason": "Balance current workload",
+  "expected_revision": 3
+}
+```
+
+退回请求：
+
+```json
+{
+  "reason": "Clarify supplier approval",
+  "expected_revision": 4
+}
+```
+
+`assignees` 仅返回 `[{"user_id": "...", "username": "..."}]`，不会返回
+Password Hash、Session 或角色之外的账号资料。重新分派目标必须来自 active
+Reviewer；inactive Reviewer、Admin 或不存在账号会返回 `CASE_INVALID_ASSIGNEE`。
+
+状态流转为 `unassigned → in_progress → pending_approval → approved`，或
+`in_progress → pending_void → voided`；Admin 退回时从两种 pending 状态回到
+`in_progress`。`approved` 和 `voided` 是不可变终态。
+
+Case 业务错误统一为：
+
+```json
+{"detail": {"code": "CASE_REVISION_CONFLICT", "message": "..."}}
+```
+
+404、403 和 409 的稳定 code 见《错误码与分层排障》。请求缺字段、空原因、
+空备注、非法枚举或越界分页由 Schema 校验返回 422。
+
 ## 开发诊断端点
 
 只有 `APP_ENV=dev` 时注册：
@@ -170,4 +302,5 @@ confidence、recommended 和信号列表。
 - 409 表达状态冲突，而不是通用服务器错误；
 - Draft Result 不提供批准捷径；
 - Review 和 Reconciliation 都有服务端门禁；
+- Case 每次变更都携带 revision，并返回统一详情读模型；
 - 开发诊断端点与真实批准版本流程明确分离。

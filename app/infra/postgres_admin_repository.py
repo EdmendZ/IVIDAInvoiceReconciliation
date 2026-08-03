@@ -5,7 +5,7 @@ from datetime import datetime
 from sqlalchemy import delete, select
 from sqlalchemy.orm import Session, sessionmaker
 
-from app.domain.admin_users import AdminSession, AdminUser, AuthenticatedUser
+from app.domain.admin_users import AdminRole, AdminSession, AdminUser, AuthenticatedUser
 from app.infra.database_models import AdminSessionRow, AdminUserRow
 
 
@@ -72,3 +72,36 @@ class PostgresAdminRepository:
                 )
             )
             session.commit()
+
+    def list_active_reviewers(self) -> list[AuthenticatedUser]:
+        """按稳定用户名顺序返回可被管理员分派的安全账号视图。"""
+
+        with self._session_factory() as session:
+            rows = session.scalars(
+                select(AdminUserRow)
+                .where(
+                    AdminUserRow.role == AdminRole.REVIEWER.value,
+                    AdminUserRow.is_active.is_(True),
+                )
+                .order_by(AdminUserRow.username, AdminUserRow.user_id)
+            ).all()
+            return [
+                AuthenticatedUser(
+                    user_id=row.user_id,
+                    username=row.username,
+                    role=row.role,
+                )
+                for row in rows
+            ]
+
+    def is_active_reviewer(self, user_id: str) -> bool:
+        """验证重新分派目标仍是有效 Reviewer。"""
+
+        with self._session_factory() as session:
+            return session.scalar(
+                select(AdminUserRow.user_id).where(
+                    AdminUserRow.user_id == user_id,
+                    AdminUserRow.role == AdminRole.REVIEWER.value,
+                    AdminUserRow.is_active.is_(True),
+                )
+            ) is not None
