@@ -59,6 +59,19 @@ Set-Location E:\ZephyrLLM\Projects\IVIDAInvoiceReconciliation
 一张或多张执行核对。结果创建成功后可点击 `Export CSV` 下载该次持久化快照；
 文件使用 UTF-8 BOM 和标准 CSV 转义，可直接由 Excel 打开。
 
+### Cases
+
+实现：
+
+- `frontend/src/cases/CaseQueuePage.tsx`；
+- `frontend/src/cases/CaseDetailPage.tsx`。
+
+`Cases` 导航提供四个队列：公共待认领、我的工作、管理员待决策和已完成记录。
+可按 Invoice Number 精确值或前缀筛选，并按最早创建优先稳定分页。Reviewer 在
+`Unassigned` 中认领 Case；若其他人已经认领或页面 revision 已过期，界面会显示
+冲突并刷新队列。详情页展示不可变核对结果、异常项和完整 Action 历史；只有
+后端权限、负责人和状态门禁都允许时，工作流处理控件才可用。
+
 ## API 分组
 
 | 路径前缀 | 职责 |
@@ -68,6 +81,7 @@ Set-Location E:\ZephyrLLM\Projects\IVIDAInvoiceReconciliation
 | `/api/extraction-*` | 创建、查询、取消抽取 |
 | `/api/review` | 草稿审核、版本编辑、批准/驳回 |
 | `/api/reconciliations` | 候选、批准版本核对和历史结果 |
+| `/api/reconciliation-cases` | 差异 Case 队列、详情、认领和处理工作流 |
 | `/api/runtime` | API、数据库、MinIO、Worker 状态 |
 
 业务路由要求 reviewer/admin 身份。开发环境才注册原始 JSON 对比等诊断接口。

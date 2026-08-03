@@ -7,6 +7,46 @@ import type {
 } from "./caseTypes";
 
 export type SubmissionType = "approval" | "void";
+export type CaseQueueTab =
+  | "unassigned"
+  | "mine"
+  | "admin-decisions"
+  | "completed";
+
+export function queryForTab(
+  tab: CaseQueueTab,
+  page: number,
+  invoiceNumber = "",
+): string {
+  const params = new URLSearchParams();
+
+  switch (tab) {
+    case "unassigned":
+      params.set("assignment", "unassigned");
+      break;
+    case "mine":
+      params.set("assignment", "mine");
+      break;
+    case "admin-decisions":
+      params.append("status", "pending_approval");
+      params.append("status", "pending_void");
+      break;
+    case "completed":
+      params.append("status", "approved");
+      params.append("status", "voided");
+      break;
+    default:
+      assertNever(tab);
+  }
+
+  const normalizedInvoiceNumber = invoiceNumber.trim();
+  if (normalizedInvoiceNumber) {
+    params.set("invoice_number", normalizedInvoiceNumber);
+  }
+  params.set("page", String(page));
+  params.set("page_size", "50");
+  return params.toString();
+}
 
 export function canEditCase(
   reconciliationCase: ReconciliationCase,

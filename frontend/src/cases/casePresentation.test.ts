@@ -5,6 +5,7 @@ import {
   availableSubmission,
   canEditCase,
   caseStatusLabel,
+  queryForTab,
   resolutionLabel,
 } from "./casePresentation";
 import type {
@@ -54,6 +55,21 @@ function item(resolutionType: ResolutionType | null): CaseItem {
 }
 
 describe("case presentation", () => {
+  it("maps queue tabs to stable API filters", () => {
+    expect(queryForTab("unassigned", 1)).toBe(
+      "assignment=unassigned&page=1&page_size=50",
+    );
+    expect(queryForTab("mine", 2)).toBe(
+      "assignment=mine&page=2&page_size=50",
+    );
+    expect(queryForTab("admin-decisions", 1)).toContain(
+      "status=pending_approval&status=pending_void",
+    );
+    expect(queryForTab("completed", 1)).toContain(
+      "status=approved&status=voided",
+    );
+  });
+
   it("allows only the assigned reviewer to edit an in-progress case", () => {
     expect(canEditCase(claimedCase("reviewer-a"), reviewer("reviewer-a"))).toBe(true);
     expect(canEditCase(claimedCase("reviewer-a"), reviewer("reviewer-b"))).toBe(false);
