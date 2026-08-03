@@ -11,6 +11,8 @@ from decimal import Decimal
 from sqlalchemy import (
     JSON,
     BigInteger,
+    Boolean,
+    CheckConstraint,
     DateTime,
     ForeignKey,
     Index,
@@ -18,7 +20,7 @@ from sqlalchemy import (
     Numeric,
     String,
     Text,
-    Boolean,
+    text,
 )
 from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.orm import Mapped, mapped_column
@@ -526,5 +528,175 @@ class ReconciliationLineResultRow(Base):
             "reconciliation_id",
             "line_index",
             unique=True,
+        ),
+    )
+
+
+class ReconciliationCaseRow(Base):
+    """A reviewer-owned workflow case for one reconciliation result."""
+
+    __tablename__ = "reconciliation_cases"
+
+    case_id: Mapped[str] = mapped_column(String(36), primary_key=True)
+    reconciliation_id: Mapped[str] = mapped_column(
+        String(36),
+        ForeignKey("reconciliations.reconciliation_id", ondelete="CASCADE"),
+        nullable=False,
+        unique=True,
+    )
+    status: Mapped[str] = mapped_column(String(32), nullable=False)
+    assignee_user_id: Mapped[str | None] = mapped_column(
+        String(36),
+        ForeignKey("admin_users.user_id", ondelete="RESTRICT"),
+        nullable=True,
+    )
+    revision: Mapped[int] = mapped_column(Integer, nullable=False)
+    created_by: Mapped[str] = mapped_column(
+        String(36),
+        ForeignKey("admin_users.user_id", ondelete="RESTRICT"),
+        nullable=False,
+    )
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True),
+        nullable=False,
+    )
+    claimed_at: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True),
+        nullable=True,
+    )
+    submitted_at: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True),
+        nullable=True,
+    )
+    completed_at: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True),
+        nullable=True,
+    )
+
+    __table_args__ = (
+        Index("ix_reconciliation_cases_status", "status"),
+        Index("ix_reconciliation_cases_assignee", "assignee_user_id"),
+        Index(
+            "ix_reconciliation_cases_created_at_case_id",
+            "created_at",
+            "case_id",
+        ),
+    )
+
+
+class CaseItemRow(Base):
+    """A header- or line-level exception requiring reviewer resolution."""
+
+    __tablename__ = "case_items"
+
+    item_id: Mapped[str] = mapped_column(String(36), primary_key=True)
+    case_id: Mapped[str] = mapped_column(
+        String(36),
+        ForeignKey("reconciliation_cases.case_id", ondelete="CASCADE"),
+        nullable=False,
+    )
+    item_type: Mapped[str] = mapped_column(String(32), nullable=False)
+    line_result_id: Mapped[str | None] = mapped_column(
+        String(36),
+        ForeignKey(
+            "reconciliation_line_results.line_result_id",
+            ondelete="RESTRICT",
+        ),
+        nullable=True,
+    )
+    resolution_type: Mapped[str | None] = mapped_column(
+        String(32),
+        nullable=True,
+    )
+    resolution_note: Mapped[str | None] = mapped_column(Text, nullable=True)
+    resolved_by: Mapped[str | None] = mapped_column(
+        String(36),
+        ForeignKey("admin_users.user_id", ondelete="RESTRICT"),
+        nullable=True,
+    )
+    resolved_at: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True),
+        nullable=True,
+    )
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True),
+        nullable=False,
+    )
+
+    __table_args__ = (
+        CheckConstraint(
+            "(item_type = 'line' AND line_result_id IS NOT NULL) OR "
+            "(item_type <> 'line' AND line_result_id IS NULL)",
+            name="ck_case_items_line_result",
+        ),
+        CheckConstraint(
+            "resolution_type IS NULL OR "
+            "(resolution_note IS NOT NULL AND "
+            "length(trim(resolution_note)) > 0 AND "
+            "resolved_by IS NOT NULL AND resolved_at IS NOT NULL)",
+            name="ck_case_items_resolution_complete",
+        ),
+        Index("ix_case_items_case_id", "case_id"),
+        Index(
+            "uq_case_items_line_result",
+            "case_id",
+            "line_result_id",
+            unique=True,
+            postgresql_where=text("line_result_id IS NOT NULL"),
+            sqlite_where=text("line_result_id IS NOT NULL"),
+        ),
+        Index(
+            "uq_case_items_header_type",
+            "case_id",
+            "item_type",
+            unique=True,
+            postgresql_where=text("item_type <> 'line'"),
+            sqlite_where=text("item_type <> 'line'"),
+        ),
+    )
+
+
+class CaseActionRow(Base):
+    """Append-only audit event for a reconciliation case or case item."""
+
+    __tablename__ = "case_actions"
+
+    action_id: Mapped[str] = mapped_column(String(36), primary_key=True)
+    case_id: Mapped[str] = mapped_column(
+        String(36),
+        ForeignKey("reconciliation_cases.case_id", ondelete="CASCADE"),
+        nullable=False,
+    )
+    item_id: Mapped[str | None] = mapped_column(
+        String(36),
+        ForeignKey("case_items.item_id", ondelete="RESTRICT"),
+        nullable=True,
+    )
+    actor_user_id: Mapped[str] = mapped_column(
+        String(36),
+        ForeignKey("admin_users.user_id", ondelete="RESTRICT"),
+        nullable=False,
+    )
+    action: Mapped[str] = mapped_column(String(64), nullable=False)
+    old_value: Mapped[object | None] = mapped_column(
+        JSON().with_variant(JSONB(), "postgresql"),
+        nullable=True,
+    )
+    new_value: Mapped[object | None] = mapped_column(
+        JSON().with_variant(JSONB(), "postgresql"),
+        nullable=True,
+    )
+    reason: Mapped[str | None] = mapped_column(Text, nullable=True)
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True),
+        nullable=False,
+    )
+
+    __table_args__ = (
+        Index(
+            "ix_case_actions_case_created_action",
+            "case_id",
+            "created_at",
+            "action_id",
         ),
     )

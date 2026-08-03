@@ -137,6 +137,84 @@ Receive Note 在同一次核对中重复加入。
 逐商品行结果，`reconciliation_id + line_index` 唯一。头表保留完整 JSON，
 行表支持以后按差异行查询和统计。
 
+### `reconciliation_cases`
+
+一个异常 Reconciliation 对应一个可分派、带乐观锁版本的人工处理 Case。
+
+| 字段 | 类型/可空 | 关系或含义 |
+|---|---|---|
+| case_id | varchar(36)，非空 | 主键 |
+| reconciliation_id | varchar(36)，非空 | 外键到 `reconciliations.reconciliation_id`，删除头记录时 CASCADE；全表唯一，确保一次核对最多一个 Case |
+| status | varchar(32)，非空 | `unassigned`、`in_progress`、`pending_approval`、`pending_void`、`approved`、`voided` |
+| assignee_user_id | varchar(36)，可空 | 外键到 `admin_users.user_id`，RESTRICT |
+| revision | integer，非空 | 从 1 开始的乐观锁版本 |
+| created_by | varchar(36)，非空 | 创建用户外键到 `admin_users.user_id`，RESTRICT |
+| created_at | timestamptz，非空 | 创建时间 |
+| claimed_at | timestamptz，可空 | 最近认领时间 |
+| submitted_at | timestamptz，可空 | 最近提交审批/作废时间 |
+| completed_at | timestamptz，可空 | 批准或作废时间 |
+
+索引包括 `status`、`assignee_user_id` 和用于稳定分页的
+`(created_at, case_id)`。`reconciliation_id` 唯一约束同时提供唯一索引。
+`revision >= 1` 与允许的状态值由 PostgreSQL Check Constraint 保证。
+
+### `case_items`
+
+Case 中需要逐项处理的行级或头级异常。
+
+| 字段 | 类型/可空 | 关系或含义 |
+|---|---|---|
+| item_id | varchar(36)，非空 | 主键 |
+| case_id | varchar(36)，非空 | 外键到 `reconciliation_cases.case_id`，CASCADE |
+| item_type | varchar(32)，非空 | `line`、`purchase_order_conflict`、`currency_conflict` |
+| line_result_id | varchar(36)，可空 | 行项时必填；外键到 `reconciliation_line_results.line_result_id`，RESTRICT |
+| resolution_type | varchar(32)，可空 | `business_exception`、`document_data_error`、`matching_error`、`waiting_for_documents` |
+| resolution_note | text，可空 | 有 resolution_type 时必须为去除空白后非空的说明 |
+| resolved_by | varchar(36)，可空 | 有 resolution_type 时必填；外键到 `admin_users.user_id`，RESTRICT |
+| resolved_at | timestamptz，可空 | 有 resolution_type 时必填 |
+| updated_at | timestamptz，非空 | 最近修改时间 |
+
+普通索引 `ix_case_items_case_id` 支持按 Case 取项。两个部分唯一索引分别保证：
+
+- `uq_case_items_line_result (case_id, line_result_id)` 在
+  `line_result_id IS NOT NULL` 时唯一；
+- `uq_case_items_header_type (case_id, item_type)` 在 `item_type <> 'line'`
+  时唯一。
+
+因此一个 Case 可有多条不同的行项，但同一种头级冲突最多一条。Check Constraint
+还保证 `item_type='line'` 当且仅当 `line_result_id` 非空，并保证已选择处理类型
+时 note、resolved_by、resolved_at 完整。
+
+### `case_actions`
+
+Case 与 Item 变更的追加式审计日志。
+
+| 字段 | 类型/可空 | 关系或含义 |
+|---|---|---|
+| action_id | varchar(36)，非空 | 主键 |
+| case_id | varchar(36)，非空 | 外键到 `reconciliation_cases.case_id`，CASCADE |
+| item_id | varchar(36)，可空 | 逐项变更时指向 `case_items.item_id`，RESTRICT |
+| actor_user_id | varchar(36)，非空 | 操作人外键到 `admin_users.user_id`，RESTRICT |
+| action | varchar(64)，非空 | `created`、`claimed`、`reassigned`、`resolution_changed`、`submitted_for_approval`、`submitted_for_void`、`returned`、`approved`、`voided` |
+| old_value | jsonb，可空 | 变更前审计值 |
+| new_value | jsonb，可空 | 变更后审计值 |
+| reason | text，可空 | 操作原因 |
+| created_at | timestamptz，非空 | 操作时间 |
+
+索引 `(case_id, created_at, action_id)` 支持按 Case 稳定读取时间线；Action
+允许值由 Check Constraint 保证。
+
+### Case 不可变触发器与回滚顺序
+
+- `trg_case_actions_immutable` 拒绝 `case_actions` 的 UPDATE 和 DELETE，日志只能追加；
+- `trg_reconciliation_cases_terminal_immutable` 在旧状态为 `approved` 或 `voided`
+  时拒绝 Case 的 UPDATE 和 DELETE；
+- `trg_case_items_terminal_immutable` 查询 Item 所属 Case，在父 Case 为上述终态时
+  拒绝 Item 的 UPDATE 和 DELETE。
+
+迁移回滚先删除三个触发器及其函数，再按依赖顺序删除 `case_actions`、
+`case_items`、`reconciliation_cases`；不会先删父表破坏外键关系。
+
 ## 运行状态
 
 ### `worker_heartbeats`
