@@ -16,8 +16,12 @@ from app.domain.reconciliation import (
     ReconciliationTolerance,
 )
 from app.domain.reconciliation_candidates import ReconciliationCandidate
-from app.domain.reconciliation_records import ReconciliationRecord
+from app.domain.reconciliation_records import (
+    ReconciliationPersistenceBundle,
+    ReconciliationRecord,
+)
 from app.services.candidate_matching_service import assess_candidate
+from app.services.reconciliation_case_factory import build_case_bundle
 from app.services.reconciliation_service import reconcile
 
 
@@ -48,7 +52,10 @@ class ApprovedVersionReader(Protocol):
 class ReconciliationRepository(Protocol):
     """保存并读取不可变核对结果的最小持久化端口。"""
 
-    def create(self, record: ReconciliationRecord) -> ReconciliationRecord: ...
+    def create(
+        self,
+        bundle: ReconciliationPersistenceBundle,
+    ) -> ReconciliationRecord: ...
 
     def get(self, reconciliation_id: str) -> ReconciliationRecord | None: ...
 
@@ -126,16 +133,22 @@ class ReconciliationApplicationService:
                 tolerance=tolerance or ReconciliationTolerance(),
             )
         )
+        now = datetime.now(UTC)
+        record = ReconciliationRecord(
+            reconciliation_id=str(uuid4()),
+            invoice_version_id=invoice_version.version_id,
+            receive_note_version_ids=[version.version_id for version in note_versions],
+            result=result,
+            created_by=created_by,
+            created_at=now,
+        )
+        line_result_ids = [str(uuid4()) for _ in result.lines]
+        case = build_case_bundle(record, line_result_ids, now=now)
         return self._reconciliations.create(
-            ReconciliationRecord(
-                reconciliation_id=str(uuid4()),
-                invoice_version_id=invoice_version.version_id,
-                receive_note_version_ids=[
-                    version.version_id for version in note_versions
-                ],
-                result=result,
-                created_by=created_by,
-                created_at=datetime.now(UTC),
+            ReconciliationPersistenceBundle(
+                record=record,
+                line_result_ids=line_result_ids,
+                case=case,
             )
         )
 

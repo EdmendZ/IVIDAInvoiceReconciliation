@@ -33,11 +33,15 @@ class VersionReader:
 
 class RecordWriter:
     def __init__(self) -> None:
-        self.records = []
+        self.bundles = []
 
-    def create(self, record):
-        self.records.append(record)
-        return record
+    @property
+    def records(self):
+        return [bundle.record for bundle in self.bundles]
+
+    def create(self, bundle):
+        self.bundles.append(bundle)
+        return bundle.record
 
     def get(self, reconciliation_id):
         return next(
@@ -54,6 +58,8 @@ def _version(
     version_id: str,
     document_type: DocumentType,
     status: DocumentVersionStatus,
+    *,
+    quantity: str = "2",
 ) -> DocumentVersion:
     payload = {
         "document_type": document_type.value,
@@ -65,7 +71,7 @@ def _version(
             {
                 "sku": "CHEESE",
                 "description": "Mozzarella",
-                "quantity": "2",
+                "quantity": quantity,
                 "unit_price": "10.00",
                 "line_total": "20.00",
             }
@@ -138,7 +144,42 @@ def test_approved_versions_create_persistent_result() -> None:
     assert record.result.summary.total_lines == 1
     assert record.result.summary.requires_review is False
     assert writer.records == [record]
+    assert len(writer.bundles[0].line_result_ids) == len(record.result.lines)
+    assert writer.bundles[0].case is None
     assert service.get_record(record.reconciliation_id) == record
+
+
+def test_abnormal_compare_builds_case_with_preallocated_line_ids() -> None:
+    invoice = _version(
+        "invoice-approved",
+        DocumentType.INVOICE,
+        DocumentVersionStatus.APPROVED,
+    )
+    note = _version(
+        "note-approved",
+        DocumentType.RECEIVE_NOTE,
+        DocumentVersionStatus.APPROVED,
+        quantity="1",
+    )
+    writer = RecordWriter()
+    service = ReconciliationApplicationService(
+        review_repository=VersionReader([invoice, note]),
+        reconciliation_repository=writer,
+    )
+
+    record = service.compare(
+        invoice.version_id,
+        [note.version_id],
+        created_by="user-1",
+    )
+
+    bundle = writer.bundles[0]
+    assert bundle.record == record
+    assert len(bundle.line_result_ids) == len(record.result.lines)
+    assert len(set(bundle.line_result_ids)) == len(bundle.line_result_ids)
+    assert bundle.case is not None
+    assert bundle.case.items[0].line_result_id == bundle.line_result_ids[0]
+    assert "line_result_ids" not in type(record.result).model_fields
 
 
 def test_candidates_only_include_approved_receive_notes() -> None:
