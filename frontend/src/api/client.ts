@@ -10,6 +10,16 @@ export type User = {
   role: "reviewer" | "admin";
 };
 
+export class ApiError extends Error {
+  constructor(
+    message: string,
+    readonly status: number,
+    readonly code?: string,
+  ) {
+    super(message);
+  }
+}
+
 export async function api<T>(
   path: string,
   options: RequestInit = {},
@@ -27,7 +37,22 @@ export async function api<T>(
   }
   if (!response.ok) {
     const body = await response.json().catch(() => ({}));
-    throw new Error(body.detail ?? `Request failed (${response.status})`);
+    const detail = body.detail;
+    const structuredDetail =
+      typeof detail === "object" && detail !== null
+        ? (detail as { code?: unknown; message?: unknown })
+        : undefined;
+    const message =
+      typeof detail === "string"
+        ? detail
+        : typeof structuredDetail?.message === "string"
+          ? structuredDetail.message
+          : `Request failed (${response.status})`;
+    const code =
+      typeof structuredDetail?.code === "string"
+        ? structuredDetail.code
+        : undefined;
+    throw new ApiError(message, response.status, code);
   }
   if (response.status === 204) {
     return undefined as T;
