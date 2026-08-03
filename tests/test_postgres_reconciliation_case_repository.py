@@ -1,6 +1,9 @@
 from datetime import UTC, datetime
+from io import StringIO
 
 import pytest
+from alembic import command
+from alembic.config import Config
 from sqlalchemy import CheckConstraint, create_engine
 from sqlalchemy.exc import IntegrityError
 
@@ -85,3 +88,28 @@ def test_resolved_item_requires_a_non_blank_note_on_sqlite(
                 updated_at=datetime(2026, 8, 3, tzinfo=UTC),
             )
         )
+
+
+def test_terminal_item_trigger_locks_parent_cases_in_stable_order() -> None:
+    output = StringIO()
+    config = Config("alembic.ini", output_buffer=output)
+    config.set_main_option("path_separator", "os")
+
+    command.upgrade(config, "head", sql=True)
+
+    sql = output.getvalue()
+    function_start = sql.index(
+        "CREATE FUNCTION reject_terminal_case_item_mutation()"
+    )
+    function_end = sql.index(
+        "CREATE TRIGGER trg_case_items_terminal_immutable",
+        function_start,
+    )
+    trigger_function_sql = " ".join(
+        sql[function_start:function_end].lower().split()
+    )
+    assert (
+        "where case_id in (old.case_id, new.case_id) "
+        "order by case_id for update"
+    ) in trigger_function_sql
+    assert "where case_id = old.case_id for update" in trigger_function_sql

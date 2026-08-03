@@ -243,21 +243,26 @@ def upgrade() -> None:
         AS $$
         DECLARE
             parent_status text;
-            new_parent_status text;
         BEGIN
-            SELECT status INTO parent_status
-            FROM reconciliation_cases
-            WHERE case_id = OLD.case_id;
-
-            IF parent_status IN ('approved', 'voided') THEN
-                RAISE EXCEPTION 'items of terminal reconciliation cases are immutable';
-            END IF;
-            IF TG_OP = 'UPDATE' AND NEW.case_id <> OLD.case_id THEN
-                SELECT status INTO new_parent_status
+            IF TG_OP = 'UPDATE' THEN
+                FOR parent_status IN
+                    SELECT status
+                    FROM reconciliation_cases
+                    WHERE case_id IN (OLD.case_id, NEW.case_id)
+                    ORDER BY case_id
+                    FOR UPDATE
+                LOOP
+                    IF parent_status IN ('approved', 'voided') THEN
+                        RAISE EXCEPTION 'items of terminal reconciliation cases are immutable';
+                    END IF;
+                END LOOP;
+            ELSE
+                SELECT status INTO parent_status
                 FROM reconciliation_cases
-                WHERE case_id = NEW.case_id;
+                WHERE case_id = OLD.case_id
+                FOR UPDATE;
 
-                IF new_parent_status IN ('approved', 'voided') THEN
+                IF parent_status IN ('approved', 'voided') THEN
                     RAISE EXCEPTION 'items of terminal reconciliation cases are immutable';
                 END IF;
             END IF;
