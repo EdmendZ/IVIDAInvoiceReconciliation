@@ -2,9 +2,11 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 
 import { ApiError, api, type User } from "../api/client";
 import {
+  adminActions,
   availableSubmission,
   canCompleteClaim,
   canEditCase,
+  canReassignCase,
   caseLineForItem,
   caseStatusLabel,
   queryForTab,
@@ -143,6 +145,52 @@ describe("case presentation", () => {
     expect(availableSubmission([item("waiting_for_documents")])).toBe(null);
     expect(availableSubmission([item(null)])).toBe(null);
     expect(availableSubmission([])).toBe(null);
+  });
+
+  it("shows admin actions only in matching pending states", () => {
+    expect(
+      adminActions(
+        { ...claimedCase("reviewer-a"), status: "pending_approval" },
+        admin(),
+      ),
+    ).toEqual(["approve", "return"]);
+    expect(
+      adminActions(
+        { ...claimedCase("reviewer-a"), status: "pending_void" },
+        admin(),
+      ),
+    ).toEqual(["void", "return"]);
+    expect(
+      adminActions(
+        { ...claimedCase("reviewer-a"), status: "approved" },
+        admin(),
+      ),
+    ).toEqual([]);
+    expect(
+      adminActions(
+        { ...claimedCase("reviewer-a"), status: "pending_approval" },
+        reviewer("reviewer-a"),
+      ),
+    ).toEqual([]);
+  });
+
+  it("allows reassignment only for assigned non-terminal Cases", () => {
+    expect(canReassignCase(claimedCase("reviewer-a"), admin())).toBe(true);
+    expect(
+      canReassignCase(
+        { ...claimedCase("reviewer-a"), assignee_user_id: null },
+        admin(),
+      ),
+    ).toBe(false);
+    expect(canReassignCase(claimedCase("reviewer-a"), reviewer("reviewer-a"))).toBe(
+      false,
+    );
+    expect(
+      canReassignCase(
+        { ...claimedCase("reviewer-a"), status: "approved" },
+        admin(),
+      ),
+    ).toBe(false);
   });
 
   it("labels every case status explicitly", () => {

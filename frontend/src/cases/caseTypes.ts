@@ -139,3 +139,8 @@ export type CasePage = {
   page_size: number;
   total: number;
 };
+
+export type CaseAssignee = {
+  user_id: string;
+  username: string;
+};

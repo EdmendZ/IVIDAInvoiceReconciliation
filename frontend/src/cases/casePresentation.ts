@@ -9,6 +9,7 @@ import type {
 } from "./caseTypes";
 
 export type SubmissionType = "approval" | "void";
+export type AdminAction = "approve" | "return" | "void";
 export type CaseQueueTab =
   | "unassigned"
   | "mine"
@@ -110,6 +111,32 @@ export function availableSubmission(
   )
     ? "approval"
     : null;
+}
+
+export function adminActions(
+  reconciliationCase: ReconciliationCase,
+  user: User,
+): AdminAction[] {
+  if (user.role !== "admin") return [];
+  if (reconciliationCase.status === "pending_approval") {
+    return ["approve", "return"];
+  }
+  if (reconciliationCase.status === "pending_void") {
+    return ["void", "return"];
+  }
+  return [];
+}
+
+export function canReassignCase(
+  reconciliationCase: ReconciliationCase,
+  user: User,
+): boolean {
+  return (
+    user.role === "admin" &&
+    reconciliationCase.assignee_user_id !== null &&
+    reconciliationCase.status !== "approved" &&
+    reconciliationCase.status !== "voided"
+  );
 }
 
 export function caseStatusLabel(status: CaseStatus): string {
