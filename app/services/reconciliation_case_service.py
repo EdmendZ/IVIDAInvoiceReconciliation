@@ -59,7 +59,7 @@ def _require_revision(case: ReconciliationCase, expected: int) -> None:
 
 
 def _require_assignee(case: ReconciliationCase, user: AuthenticatedUser) -> None:
-    if case.assignee_user_id != user.user_id:
+    if case.assignee_user_id != user.user_id or user.role != AdminRole.REVIEWER:
         raise CaseError("CASE_ASSIGNEE_REQUIRED", "Only the assignee can edit this case")
 
 

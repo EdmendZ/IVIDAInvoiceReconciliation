@@ -153,6 +153,35 @@ def test_only_assignee_can_change_resolution() -> None:
         )
 
 
+@pytest.mark.parametrize("operation", ["set_resolution", "submit_approval"])
+def test_admin_with_assignee_id_cannot_edit_or_submit(operation: str) -> None:
+    service, _ = service_for(resolution=ResolutionType.BUSINESS_EXCEPTION)
+    same_id_admin = AuthenticatedUser(
+        user_id="reviewer-a",
+        username="admin-with-reviewer-id",
+        role=AdminRole.ADMIN,
+    )
+
+    with pytest.raises(CaseError) as captured:
+        if operation == "set_resolution":
+            service.set_resolution(
+                CASE_ID,
+                ITEM_IDS[0],
+                ResolutionType.BUSINESS_EXCEPTION,
+                "Accepted",
+                user=same_id_admin,
+                expected_revision=4,
+            )
+        else:
+            service.submit_approval(
+                CASE_ID,
+                user=same_id_admin,
+                expected_revision=4,
+            )
+
+    assert captured.value.code == "CASE_ASSIGNEE_REQUIRED"
+
+
 def test_business_exceptions_submit_for_approval() -> None:
     service, repository = service_for(
         resolution=ResolutionType.BUSINESS_EXCEPTION,
