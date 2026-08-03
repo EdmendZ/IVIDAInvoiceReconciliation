@@ -1,3 +1,4 @@
+import json
 import re
 from pathlib import Path
 
@@ -33,6 +34,36 @@ def test_api_reference_lists_business_endpoint_templates() -> None:
 
     for endpoint in endpoint_templates:
         assert endpoint in reference, endpoint
+
+
+def test_case_api_is_documented() -> None:
+    contracts = Path("docs/reference/11-api-contracts.md").read_text(
+        encoding="utf-8"
+    )
+
+    assert "/api/reconciliation-cases/{case_id}/claim" in contracts
+    assert "/api/reconciliation-cases/{case_id}/approve" in contracts
+    assert "CASE_REVISION_CONFLICT" in contracts
+
+
+def test_case_sources_are_mapped_to_reconciliation_and_ui_documents() -> None:
+    groups = {
+        group["name"]: group
+        for group in json.loads(
+            Path("docs/code-document-map.json").read_text(encoding="utf-8")
+        )["groups"]
+    }
+    reconciliation_patterns = groups["reconciliation"]["code_patterns"]
+    api_ui_patterns = groups["api-ui-and-operations"]["code_patterns"]
+
+    assert "app/domain/reconciliation_cases.py" in reconciliation_patterns
+    assert "app/services/reconciliation_case_*.py" in reconciliation_patterns
+    assert (
+        "app/infra/postgres_reconciliation_case_repository.py"
+        in reconciliation_patterns
+    )
+    assert "frontend/src/cases/**" in reconciliation_patterns
+    assert "frontend/src/cases/**" in api_ui_patterns
 
 
 def test_troubleshooting_guide_lists_validation_rule_codes() -> None:

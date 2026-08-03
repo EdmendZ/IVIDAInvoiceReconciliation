@@ -18,6 +18,9 @@ IVIDA 发票（Invoice）与收货单（Receive Note）比对原型。该项目�
 - MinIO 原件存储与 PostgreSQL 抽取任务持久化
 - 异步抽取运行记录和 `ready_for_review` 状态流
 - 模型 Provider 统一接口、耗时、Token 和成本字段
+- 异常 Reconciliation 与差异 Case 的同事务创建，清洁结果不制造人工待办
+- Reviewer 认领、逐项处置和提交，Admin 退回、重新分派、批准或作废
+- `expected_revision` 乐观并发保护与追加式 Case Action 审计历史
 - PostgreSQL、MinIO 和模型供应商的独立配置命名
 - 健康检查、示例接口和自动化测试
 
@@ -141,9 +144,15 @@ PostgreSQL 和 MinIO 可以使用现有服务器；database 与 bucket 必须使
 - `Upload`：上传 Invoice/Receive Note、启动处理并查看 Worker 阶段。
 - `Review`：查看证据与校验问题、保存新版本、批准或驳回。
 - `Reconcile`：选择已批准 Invoice 和一个或多个 Receive Note，展示逐行差异。
+- `Cases`：查看公共待办和本人 Case；负责人逐项填写结论，Admin 处理审批或作废决定。
 - 账号创建：`python -m app.cli.create_admin --username reviewer --role reviewer`
 - 只有已批准且不可变的 Invoice/Receive Note 版本可以调用生产对账接口。
 - 编辑会创建新版本；批准版本与审核记录由 PostgreSQL 触发器保护。
+
+Reconciliation 是不可覆盖的规则计算快照；Case 只保存可变的人工处理状态和审计
+轨迹。`approved`、`voided` Case 不能恢复或继续编辑，需要纠正单据时应基于新的批准
+版本创建新的 Reconciliation。本仓库当前仍是本机 Pilot，不包含附件上传、通知、
+SLA/分析报表或生产部署能力。
 
 完整启动顺序、恢复和备份说明见
 [docs/operations/review-workflow.md](docs/operations/review-workflow.md)。

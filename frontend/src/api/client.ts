@@ -36,8 +36,11 @@ export async function api<T>(
     window.dispatchEvent(new CustomEvent("ivida:unauthorized"));
   }
   if (!response.ok) {
-    const body = await response.json().catch(() => ({}));
-    const detail = body.detail;
+    const body: unknown = await response.json().catch(() => ({}));
+    const detail =
+      typeof body === "object" && body !== null && "detail" in body
+        ? (body as { detail?: unknown }).detail
+        : undefined;
     const structuredDetail =
       typeof detail === "object" && detail !== null
         ? (detail as { code?: unknown; message?: unknown })

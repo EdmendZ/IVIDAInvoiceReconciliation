@@ -21,8 +21,10 @@ from app.domain.reconciliation_records import (
 )
 from app.infra.database import Base
 from app.infra.database_models import (
+    AdminUserRow,
     CaseActionRow,
     CaseItemRow,
+    DocumentVersionRow,
     ReconciliationCaseRow,
     ReconciliationLineResultRow,
     ReconciliationReceiveNoteRow,
@@ -262,5 +264,66 @@ def test_case_item_failure_rolls_back_reconciliation_creation() -> None:
         assert session.get(ReconciliationCaseRow, case.case.case_id) is None
         assert session.query(CaseItemRow).count() == 0
         assert session.query(CaseActionRow).count() == 0
-from app.domain.document_versions import DocumentVersion, DocumentVersionStatus
-from app.domain.documents import DocumentType
+
+
+def test_atomic_create_inserts_parent_rows_before_foreign_key_children() -> None:
+    engine = create_engine(
+        "sqlite+pysqlite:///:memory:",
+        connect_args={"check_same_thread": False},
+        poolclass=StaticPool,
+    )
+    Base.metadata.create_all(engine)
+    # These rows represent data that predates the reconciliation transaction.
+    # Enable SQLite FK enforcement only for the repository operation under test.
+    with engine.begin() as connection:
+        connection.execute(
+            AdminUserRow.__table__.insert(),
+            {
+                "user_id": "reviewer-1",
+                "username": "reviewer-1",
+                "password_hash": "synthetic",
+                "role": "reviewer",
+                "is_active": True,
+                "created_at": NOW,
+            },
+        )
+        connection.execute(
+            DocumentVersionRow.__table__.insert(),
+            [
+                {
+                    "version_id": version_id,
+                    "task_id": f"task-{version_id}",
+                    "source_draft_id": f"draft-{version_id}",
+                    "version_number": 1,
+                    "document_type": document_type,
+                    "document_json": {},
+                    "status": "approved",
+                    "created_by": "reviewer-1",
+                    "approved_by": "reviewer-1",
+                    "approved_at": NOW,
+                    "created_at": NOW,
+                }
+                for version_id, document_type in [
+                    ("invoice-version-1", "invoice"),
+                    ("note-version-1", "receive_note"),
+                ]
+            ],
+        )
+    with engine.connect() as connection:
+        connection.exec_driver_sql("PRAGMA foreign_keys=ON")
+        assert connection.exec_driver_sql("PRAGMA foreign_keys").scalar_one() == 1
+
+    record = _record(requires_review=True)
+    case = build_case_bundle(record, ["line-result-1"], now=NOW)
+    assert case is not None
+    repository = PostgresReconciliationRepository(
+        sessionmaker(engine, expire_on_commit=False)
+    )
+
+    assert repository.create(
+        ReconciliationPersistenceBundle(
+            record=record,
+            line_result_ids=["line-result-1"],
+            case=case,
+        )
+    ) == record

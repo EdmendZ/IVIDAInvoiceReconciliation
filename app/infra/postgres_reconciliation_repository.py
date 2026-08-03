@@ -45,6 +45,11 @@ class PostgresReconciliationRepository:
                     created_at=record.created_at,
                 )
             )
+            # These models intentionally have no ORM relationships. Flush each
+            # parent tier explicitly so real foreign keys never depend on the
+            # unit-of-work's otherwise unspecified insert order. A flush is not
+            # a commit: every tier still rolls back as one transaction.
+            session.flush()
             session.add_all(
                 [
                     ReconciliationReceiveNoteRow(
@@ -67,6 +72,7 @@ class PostgresReconciliationRepository:
                     )
                 ]
             )
+            session.flush()
             if bundle.case is not None:
                 case = bundle.case.case
                 session.add(
@@ -83,6 +89,7 @@ class PostgresReconciliationRepository:
                         completed_at=case.completed_at,
                     )
                 )
+                session.flush()
                 session.add_all(
                     [
                         CaseItemRow(
@@ -103,6 +110,7 @@ class PostgresReconciliationRepository:
                         for item in bundle.case.items
                     ]
                 )
+                session.flush()
                 session.add_all(
                     [
                         CaseActionRow(

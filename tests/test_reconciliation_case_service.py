@@ -334,7 +334,7 @@ def test_reassign_requires_active_reviewer_and_records_reason() -> None:
     assert repository.actions[-1].reason == "Rebalancing workload"
 
 
-def test_claim_resolution_and_decision_create_one_action_per_mutation() -> None:
+def test_claim_and_resolution_create_one_action_per_mutation() -> None:
     service, repository = service_for(
         status=CaseStatus.UNASSIGNED,
         assignee_id=None,
@@ -359,6 +359,47 @@ def test_claim_resolution_and_decision_create_one_action_per_mutation() -> None:
     assert resolved.items[0].resolution_note == "Accepted"
     assert resolved.case.revision == 3
     assert repository.save_calls == 2
+
+
+@pytest.mark.parametrize(
+    ("status", "resolution", "operation", "expected_status", "expected_action"),
+    [
+        (
+            CaseStatus.PENDING_APPROVAL,
+            ResolutionType.BUSINESS_EXCEPTION,
+            "approve",
+            CaseStatus.APPROVED,
+            CaseActionType.APPROVED,
+        ),
+        (
+            CaseStatus.PENDING_VOID,
+            ResolutionType.DOCUMENT_DATA_ERROR,
+            "void",
+            CaseStatus.VOIDED,
+            CaseActionType.VOIDED,
+        ),
+    ],
+)
+def test_admin_completion_appends_exactly_one_action(
+    status: CaseStatus,
+    resolution: ResolutionType,
+    operation: str,
+    expected_status: CaseStatus,
+    expected_action: CaseActionType,
+) -> None:
+    service, repository = service_for(status=status, resolution=resolution)
+    actions_before = len(repository.actions)
+
+    if operation == "approve":
+        completed = service.approve(CASE_ID, user=admin(), expected_revision=4)
+    else:
+        completed = service.void(CASE_ID, user=admin(), expected_revision=4)
+
+    assert completed.case.status == expected_status
+    assert completed.case.revision == 5
+    assert repository.save_calls == 1
+    assert len(repository.actions) == actions_before + 1
+    assert repository.actions[-1].action == expected_action
 
 
 def test_blank_resolution_note_and_stale_revision_are_rejected() -> None:

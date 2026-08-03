@@ -263,4 +263,17 @@ describe("API errors", () => {
       new ApiError("Not found", 404),
     );
   });
+
+  it("falls back to an ApiError when the JSON error body is null", async () => {
+    vi.spyOn(globalThis, "fetch").mockResolvedValue(
+      new Response(JSON.stringify(null), {
+        status: 500,
+        headers: { "Content-Type": "application/json" },
+      }),
+    );
+
+    await expect(api("/api/failure")).rejects.toEqual(
+      new ApiError("Request failed (500)", 500),
+    );
+  });
 });

@@ -1,13 +1,21 @@
 from datetime import UTC, datetime
 from decimal import Decimal
 
+import pytest
+
 from app.domain.reconciliation import (
     LineComparison,
     MatchStatus,
     ReconciliationResult,
     ReconciliationSummary,
 )
-from app.domain.reconciliation_cases import CaseActionType, CaseItemType, CaseStatus
+from app.domain.reconciliation_cases import (
+    CaseActionType,
+    CaseItem,
+    CaseItemType,
+    CaseStatus,
+    ResolutionType,
+)
 from app.domain.reconciliation_records import ReconciliationRecord
 from app.services.reconciliation_case_factory import build_case_bundle
 
@@ -96,3 +104,38 @@ def test_abnormal_result_creates_line_and_header_items() -> None:
     ]
     assert bundle.items[0].line_result_id == "line-0"
     assert [action.action for action in bundle.actions] == [CaseActionType.CREATED]
+
+
+@pytest.mark.parametrize("line_result_ids", [[], ["line-0", "line-1"]])
+def test_factory_requires_one_persisted_id_per_result_line(
+    line_result_ids: list[str],
+) -> None:
+    record = reconciliation_record(
+        requires_review=True,
+        lines=[line("mismatch")],
+    )
+
+    with pytest.raises(ValueError, match="One line_result_id"):
+        build_case_bundle(record, line_result_ids, now=NOW)
+
+
+def test_review_required_result_must_have_an_actionable_item() -> None:
+    record = reconciliation_record(
+        requires_review=True,
+        lines=[line("exact")],
+    )
+
+    with pytest.raises(ValueError, match="must create a case item"):
+        build_case_bundle(record, ["line-0"], now=NOW)
+
+
+def test_case_item_rejects_a_blank_non_null_resolution_note() -> None:
+    with pytest.raises(ValueError, match="resolution_note must not be blank"):
+        CaseItem(
+            item_id="item-1",
+            case_id="case-1",
+            item_type=CaseItemType.PURCHASE_ORDER_CONFLICT,
+            resolution_type=ResolutionType.BUSINESS_EXCEPTION,
+            resolution_note="  ",
+            updated_at=NOW,
+        )
