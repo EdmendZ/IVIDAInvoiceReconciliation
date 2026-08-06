@@ -93,3 +93,46 @@ def test_compose_template_contains_only_demo_credentials() -> None:
     assert "SSH_PASSWORD=" not in template
     assert "MODEL_PROVIDER=disabled" in template
     assert "MINERU_API_TOKEN=disabled-local-demo" in template
+
+
+def test_release_requires_ci_smoke_and_minimal_write_permissions() -> None:
+    workflow = _read(".github/workflows/release.yml")
+
+    assert "tags:" in workflow and "v*" in workflow
+    assert "uses: ./.github/workflows/ci.yml" in workflow
+    assert "contents: write" in workflow
+    assert "packages: write" in workflow
+    assert "docker compose" in workflow
+    assert "tools/smoke_compose.py" in workflow
+    assert "ghcr.io" in workflow
+    assert "gh release create" in workflow
+    assert ":latest" not in workflow
+    assert "ssh" not in workflow.lower()
+
+
+def test_release_records_commit_migration_and_digests() -> None:
+    workflow = _read(".github/workflows/release.yml")
+
+    assert "GITHUB_SHA" in workflow
+    assert "alembic heads" in workflow
+    assert "docker inspect" in workflow
+    assert "release-manifest.md" in workflow
+
+
+def test_dependabot_covers_all_delivery_ecosystems() -> None:
+    config = _read(".github/dependabot.yml")
+
+    for ecosystem in ('"pip"', '"npm"', '"docker"', '"github-actions"'):
+        assert f"package-ecosystem: {ecosystem}" in config
+    assert "interval: weekly" in config
+    assert "open-pull-requests-limit" in config
+
+
+def test_codeql_scans_python_and_typescript_without_write_all() -> None:
+    workflow = _read(".github/workflows/codeql.yml")
+
+    assert "python" in workflow
+    assert "javascript-typescript" in workflow
+    assert "security-events: write" in workflow
+    assert "contents: read" in workflow
+    assert "write-all" not in workflow
