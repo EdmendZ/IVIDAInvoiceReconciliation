@@ -64,3 +64,32 @@ def test_frontend_image_builds_static_assets_and_proxies_api() -> None:
     assert "listen 8080" in nginx
     assert "try_files $uri $uri/ /index.html" in nginx
     assert "proxy_pass http://api:8200" in nginx
+
+
+def test_compose_orders_migration_before_runtime_services() -> None:
+    compose = _read("compose.yaml")
+
+    for service in ("postgres:", "minio:", "migrate:", "api:", "worker:", "frontend:"):
+        assert service in compose
+    assert "condition: service_healthy" in compose
+    assert "condition: service_completed_successfully" in compose
+    assert 'command: [".venv/bin/alembic", "upgrade", "head"]' in compose
+    assert "MODEL_PROVIDER: disabled" in compose
+
+
+def test_release_compose_uses_versioned_prebuilt_images() -> None:
+    release = _read("compose.release.yaml")
+
+    assert "${IVIDA_IMAGE_PREFIX}-api:${IVIDA_IMAGE_TAG}" in release
+    assert "${IVIDA_IMAGE_PREFIX}-worker:${IVIDA_IMAGE_TAG}" in release
+    assert "${IVIDA_IMAGE_PREFIX}-frontend:${IVIDA_IMAGE_TAG}" in release
+
+
+def test_compose_template_contains_only_demo_credentials() -> None:
+    template = _read(".env.compose.example")
+
+    assert "CHANGE_ME" not in template
+    assert "REMOTE_HOST=" not in template
+    assert "SSH_PASSWORD=" not in template
+    assert "MODEL_PROVIDER=disabled" in template
+    assert "MINERU_API_TOKEN=disabled-local-demo" in template
