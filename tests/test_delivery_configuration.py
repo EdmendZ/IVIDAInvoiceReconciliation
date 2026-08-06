@@ -83,6 +83,7 @@ def test_release_compose_uses_versioned_prebuilt_images() -> None:
     assert "${IVIDA_IMAGE_PREFIX}-api:${IVIDA_IMAGE_TAG}" in release
     assert "${IVIDA_IMAGE_PREFIX}-worker:${IVIDA_IMAGE_TAG}" in release
     assert "${IVIDA_IMAGE_PREFIX}-frontend:${IVIDA_IMAGE_TAG}" in release
+    assert release.count("build: !reset null") == 4
 
 
 def test_compose_template_contains_only_demo_credentials() -> None:
