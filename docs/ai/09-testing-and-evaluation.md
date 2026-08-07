@@ -181,7 +181,9 @@ Promotion Decision。错误不会只保留为一串文本：系统按文档类�
 
 实验定义、完整运行结果、人工反馈候选和晋升决定已通过独立 PostgreSQL 表持久化；
 实验定义不可修改，运行状态使用条件更新，完成指标必须包含成功与失败的全部文档。
-CLI、Admin API 与 Lab 页面按实施计划后续接入。任何缺少完整运行或数据集身份的比较均为
+创建/执行 CLI 会记录并校验 Manifest、全部原件 Hash 及 Provider/Model/Prompt
+来源；Manifest 的每个 Case 必须显式提供 `expected_outcome` 作为业务场景切片。
+Admin API 与 Lab 页面按实施计划后续接入。任何缺少完整运行或数据集身份的比较均为
 `inconclusive`，关键门槛回归为 `rejected`，只有无回归且存在明确改善时才是
 `recommended`。
 

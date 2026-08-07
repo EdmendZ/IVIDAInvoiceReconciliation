@@ -139,6 +139,34 @@ npm run dev
 
 必须同时有 API 和 Worker。只有 API 时上传可以成功，但 Run 会一直 queued。
 
+## 运行持久化抽取实验
+
+先确保数据库迁移到 head、`.env` 中 MinerU/Normalization 配置可用，并至少存在
+一个 active Admin。创建不可变 baseline 定义：
+
+```powershell
+uv run python -m app.cli.create_experiment `
+  --name qwen-baseline `
+  --role baseline `
+  --manifest evaluation_data/manifest.json `
+  --required-schema-valid-rate 1 `
+  --minimum-field-accuracy 0.95 `
+  --minimum-line-item-f1 0.95 `
+  --minimum-evidence-coverage 0.90
+```
+
+命令标准输出只返回 definition ID。随后执行：
+
+```powershell
+uv run python -m app.cli.run_experiment `
+  --definition-id <definition-id> `
+  --output-root evaluation_data/results
+```
+
+执行前会重算 Manifest 和全部原件 Hash，并核对当前 Provider、Model 与 Prompt；
+不一致时在调用模型前失败。逐文档失败仍保存在结果与指标分母中，Ctrl+C 会将运行
+标记为 cancelled。终端只输出 run ID 和聚合指标，详细预测与报告写入指定目录。
+
 ## PyCharm 运行
 
 1. 将解释器设置为项目 `.venv\Scripts\python.exe`；
