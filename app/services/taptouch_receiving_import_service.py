@@ -43,7 +43,10 @@ class TaptouchReceivingImportService:
         self._id_factory = id_factory or (lambda: str(uuid4()))
 
     def import_record(
-        self, payload: TaptouchReceivingPayload
+        self,
+        payload: TaptouchReceivingPayload,
+        *,
+        integration_principal: str,
     ) -> ReceivingImportOutcome:
         now = self._clock()
         note = ReceiveNote(
@@ -65,6 +68,7 @@ class TaptouchReceivingImportService:
             source_kind=DocumentSourceKind.TAPTOUCH_RECEIVING,
             trust_method=DocumentTrustMethod.UPSTREAM_AUTHORITATIVE,
             source_system="taptouch",
+            integration_principal=integration_principal,
             external_tenant_id=payload.external_tenant_id,
             external_brand_id=payload.external_brand_id,
             external_store_id=payload.external_store_id,

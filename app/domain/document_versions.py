@@ -39,6 +39,7 @@ class DocumentVersion(BaseModel):
     source_kind: DocumentSourceKind
     trust_method: DocumentTrustMethod
     source_system: str | None = None
+    integration_principal: str | None = None
     external_tenant_id: str | None = None
     external_brand_id: str | None = None
     external_store_id: str | None = None
@@ -55,6 +56,7 @@ class DocumentVersion(BaseModel):
         if self.source_kind == DocumentSourceKind.TAPTOUCH_RECEIVING:
             required = {
                 "source_system": self.source_system,
+                "integration_principal": self.integration_principal,
                 "external_tenant_id": self.external_tenant_id,
                 "external_store_id": self.external_store_id,
                 "external_supplier_id": self.external_supplier_id,
@@ -113,6 +115,7 @@ class DocumentVersion(BaseModel):
             value is not None
             for value in (
                 self.source_system,
+                self.integration_principal,
                 self.external_tenant_id,
                 self.external_brand_id,
                 self.external_store_id,

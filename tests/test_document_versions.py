@@ -42,6 +42,7 @@ def _taptouch(**overrides) -> DocumentVersion:
         "source_kind": DocumentSourceKind.TAPTOUCH_RECEIVING,
         "trust_method": DocumentTrustMethod.UPSTREAM_AUTHORITATIVE,
         "source_system": "taptouch",
+        "integration_principal": "test-connector",
         "external_tenant_id": "tenant-1",
         "external_store_id": "store-1",
         "external_supplier_id": "supplier-1",
@@ -85,6 +86,7 @@ def test_taptouch_receiving_has_authoritative_shape() -> None:
     "field",
     [
         "external_tenant_id",
+        "integration_principal",
         "external_store_id",
         "external_supplier_id",
         "external_receiving_id",

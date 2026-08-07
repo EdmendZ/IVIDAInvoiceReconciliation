@@ -415,6 +415,9 @@ class DocumentVersionRow(Base):
     source_kind: Mapped[str] = mapped_column(String(64), nullable=False)
     trust_method: Mapped[str] = mapped_column(String(64), nullable=False)
     source_system: Mapped[str | None] = mapped_column(String(64), nullable=True)
+    integration_principal: Mapped[str | None] = mapped_column(
+        String(255), nullable=True
+    )
     external_tenant_id: Mapped[str | None] = mapped_column(String(255), nullable=True)
     external_brand_id: Mapped[str | None] = mapped_column(String(255), nullable=True)
     external_store_id: Mapped[str | None] = mapped_column(String(255), nullable=True)
@@ -462,6 +465,7 @@ class DocumentVersionRow(Base):
             "AND task_id IS NOT NULL AND source_draft_id IS NOT NULL "
             "AND version_number IS NOT NULL AND created_by IS NOT NULL "
             "AND source_system IS NULL AND external_tenant_id IS NULL "
+            "AND integration_principal IS NULL "
             "AND external_brand_id IS NULL AND external_store_id IS NULL "
             "AND external_supplier_id IS NULL "
             "AND external_receiving_id IS NULL AND external_version IS NULL "
@@ -472,6 +476,7 @@ class DocumentVersionRow(Base):
             "AND task_id IS NULL AND source_draft_id IS NULL "
             "AND version_number IS NULL AND created_by IS NULL "
             "AND approved_by IS NULL AND source_system = 'taptouch' "
+            "AND integration_principal IS NOT NULL "
             "AND external_tenant_id IS NOT NULL AND external_store_id IS NOT NULL "
             "AND external_supplier_id IS NOT NULL "
             "AND external_receiving_id IS NOT NULL AND external_version IS NOT NULL "

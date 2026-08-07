@@ -18,6 +18,7 @@ class Settings(BaseSettings):
     cors_origins: str = "http://localhost:5274"
     upload_max_bytes: int = 25 * 1024 * 1024
     taptouch_integration_token: str = Field(default="", repr=False)
+    taptouch_integration_credentials_json: str = Field(default="", repr=False)
 
     database_url: str = (
         "postgresql+psycopg://postgres:CHANGE_ME@127.0.0.1:5432/"

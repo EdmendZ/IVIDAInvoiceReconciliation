@@ -14,8 +14,28 @@ Authorization: Bearer <TAPTOUCH_INTEGRATION_TOKEN>
 Content-Type: application/json
 ```
 
-本地 `.env` 必须设置随机的 `TAPTOUCH_INTEGRATION_TOKEN`。未配置、缺少或错误
-的 Token 都返回 401；Token 不应出现在日志、提交记录或错误响应中。
+本地可设置随机的 `TAPTOUCH_INTEGRATION_TOKEN` 作为不限制门店的兼容凭据。更接近
+真实部署的方式是设置单行 JSON `TAPTOUCH_INTEGRATION_CREDENTIALS_JSON`：
+
+```json
+[
+  {
+    "principal": "sydney-connector",
+    "token": "由部署 Secret 注入",
+    "allowed_scopes": [
+      {
+        "external_tenant_id": "tenant-au",
+        "external_store_id": "store-sydney-cbd"
+      }
+    ]
+  }
+]
+```
+
+多凭据配置存在时优先使用它，并关闭单 Token 兼容入口。每个凭据必须至少授权一个
+tenant/store；Token 重复、空 Scope 或 JSON 损坏都会令该配置整体失败关闭。缺少或
+错误的 Token 返回 401，有效身份写入未授权门店返回 403。Token 不应出现在日志、
+提交记录或错误响应中。
 
 ## 请求示例
 
@@ -68,6 +88,7 @@ source_system + external_tenant_id + external_store_id
 | 版本号低于已保存最新版本 | 409，`stale_external_version` |
 | 更高版本 | 201，新增不可变版本，旧版本保留 |
 | Payload 不符合 Schema | 422 |
+| 身份有效但 tenant/store 未授权 | 403，`integration_scope_forbidden` |
 
 同一 Receiving 的较新 `voided` 版本会阻止它以及所有旧 `active` 版本继续参与
 候选匹配。历史对账结果仍然是创建时的不可变快照，不会被追溯改写。
@@ -97,6 +118,7 @@ Invoke-RestMethod `
 - `trust_method=upstream_authoritative`；
 - `approved_by=null`；
 - `approved_at` 为本地导入时间。
+- `integration_principal` 为实际通过认证的调用方名称，不包含 Token。
 
 它不会创建 Extraction Task、Extraction Run、Document Draft、人工 Reviewer 或
 Review Action。上游身份、版本、更新时间和完整 Snapshot 就是这条路径的审计依据。
