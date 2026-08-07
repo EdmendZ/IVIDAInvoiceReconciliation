@@ -179,8 +179,9 @@ Promotion Decision。错误不会只保留为一串文本：系统按文档类�
 接收 baseline/candidate 的 Run 与 ExperimentDefinition，不能从当前 `.env` 偷读
 门槛或把不同数据集的结果放在一起比较。
 
-当前阶段只实现纯领域契约、切片和 fail-closed 决策；持久化、CLI、Admin API 与
-Lab 页面按实施计划后续接入。任何缺少完整运行或数据集身份的比较均为
+实验定义、完整运行结果、人工反馈候选和晋升决定已通过独立 PostgreSQL 表持久化；
+实验定义不可修改，运行状态使用条件更新，完成指标必须包含成功与失败的全部文档。
+CLI、Admin API 与 Lab 页面按实施计划后续接入。任何缺少完整运行或数据集身份的比较均为
 `inconclusive`，关键门槛回归为 `rejected`，只有无回归且存在明确改善时才是
 `recommended`。
 

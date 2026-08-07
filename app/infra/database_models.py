@@ -736,3 +736,150 @@ class CaseActionRow(Base):
             "action_id",
         ),
     )
+
+
+class ExperimentDefinitionRow(Base):
+    """Immutable configuration and dataset identity for one experiment."""
+
+    __tablename__ = "experiment_definitions"
+    experiment_id: Mapped[str] = mapped_column(String(36), primary_key=True)
+    name: Mapped[str] = mapped_column(String(255), nullable=False)
+    role: Mapped[str] = mapped_column(String(32), nullable=False)
+    manifest_path: Mapped[str] = mapped_column(String(1024), nullable=False)
+    dataset_identity: Mapped[dict] = mapped_column(
+        JSON().with_variant(JSONB(), "postgresql"), nullable=False
+    )
+    parser_provider: Mapped[str] = mapped_column(String(255), nullable=False)
+    parser_model: Mapped[str] = mapped_column(String(255), nullable=False)
+    parser_version: Mapped[str] = mapped_column(String(255), nullable=False)
+    normalizer_provider: Mapped[str] = mapped_column(String(255), nullable=False)
+    normalizer_model: Mapped[str] = mapped_column(String(255), nullable=False)
+    prompt_version: Mapped[str] = mapped_column(String(255), nullable=False)
+    schema_version: Mapped[str] = mapped_column(String(255), nullable=False)
+    parameters: Mapped[dict] = mapped_column(
+        JSON().with_variant(JSONB(), "postgresql"), nullable=False
+    )
+    thresholds: Mapped[dict] = mapped_column(
+        JSON().with_variant(JSONB(), "postgresql"), nullable=False
+    )
+    created_by: Mapped[str] = mapped_column(
+        String(36),
+        ForeignKey("admin_users.user_id", ondelete="RESTRICT"),
+        nullable=False,
+    )
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), nullable=False
+    )
+    __table_args__ = (
+        CheckConstraint(
+            "role IN ('baseline', 'candidate')", name="ck_experiment_definitions_role"
+        ),
+    )
+
+
+class EvaluationRunRow(Base):
+    __tablename__ = "evaluation_runs"
+    run_id: Mapped[str] = mapped_column(String(36), primary_key=True)
+    experiment_id: Mapped[str] = mapped_column(
+        String(36),
+        ForeignKey("experiment_definitions.experiment_id", ondelete="RESTRICT"),
+        nullable=False,
+    )
+    status: Mapped[str] = mapped_column(String(32), nullable=False)
+    summary: Mapped[dict | None] = mapped_column(
+        JSON().with_variant(JSONB(), "postgresql"), nullable=True
+    )
+    documents: Mapped[list] = mapped_column(
+        JSON().with_variant(JSONB(), "postgresql"), nullable=False, default=list
+    )
+    slices: Mapped[list] = mapped_column(
+        JSON().with_variant(JSONB(), "postgresql"), nullable=False, default=list
+    )
+    error_code: Mapped[str | None] = mapped_column(String(100), nullable=True)
+    error_message: Mapped[str | None] = mapped_column(Text, nullable=True)
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), nullable=False
+    )
+    started_at: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True), nullable=True
+    )
+    completed_at: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True), nullable=True
+    )
+    cancelled_at: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True), nullable=True
+    )
+    __table_args__ = (
+        CheckConstraint(
+            "status IN ('queued', 'running', 'completed', 'failed', 'cancelled')",
+            name="ck_evaluation_runs_status",
+        ),
+        Index("ix_evaluation_runs_experiment_created", "experiment_id", "created_at"),
+        Index("ix_evaluation_runs_status", "status"),
+    )
+
+
+class FeedbackCandidateRow(Base):
+    __tablename__ = "feedback_candidates"
+    candidate_id: Mapped[str] = mapped_column(String(36), primary_key=True)
+    payload: Mapped[dict] = mapped_column(
+        JSON().with_variant(JSONB(), "postgresql"), nullable=False
+    )
+    classification: Mapped[str | None] = mapped_column(String(64), nullable=True)
+    include_in_gold: Mapped[bool] = mapped_column(
+        Boolean, nullable=False, default=False
+    )
+    confirmed_by: Mapped[str | None] = mapped_column(
+        String(36),
+        ForeignKey("admin_users.user_id", ondelete="RESTRICT"),
+        nullable=True,
+    )
+    confirmed_at: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True), nullable=True
+    )
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), nullable=False
+    )
+    __table_args__ = (
+        CheckConstraint(
+            "classification IS NULL OR classification IN "
+            "('model_error', 'acceptable_variant', "
+            "'reviewer_correction_error', 'business_context_update')",
+            name="ck_feedback_candidates_classification",
+        ),
+        Index("ix_feedback_candidates_confirmation", "confirmed_at", "created_at"),
+    )
+
+
+class PromotionDecisionRow(Base):
+    __tablename__ = "promotion_decisions"
+    decision_id: Mapped[str] = mapped_column(String(36), primary_key=True)
+    baseline_run_id: Mapped[str] = mapped_column(
+        String(36),
+        ForeignKey("evaluation_runs.run_id", ondelete="RESTRICT"),
+        nullable=False,
+    )
+    candidate_run_id: Mapped[str] = mapped_column(
+        String(36),
+        ForeignKey("evaluation_runs.run_id", ondelete="RESTRICT"),
+        nullable=False,
+    )
+    outcome: Mapped[str] = mapped_column(String(32), nullable=False)
+    payload: Mapped[dict] = mapped_column(
+        JSON().with_variant(JSONB(), "postgresql"), nullable=False
+    )
+    decided_by: Mapped[str] = mapped_column(
+        String(36),
+        ForeignKey("admin_users.user_id", ondelete="RESTRICT"),
+        nullable=False,
+    )
+    decided_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), nullable=False
+    )
+    __table_args__ = (
+        CheckConstraint(
+            "outcome IN ('recommended', 'rejected', 'inconclusive')",
+            name="ck_promotion_decisions_outcome",
+        ),
+        Index("ix_promotion_decisions_candidate", "candidate_run_id", "decided_at"),
+    )

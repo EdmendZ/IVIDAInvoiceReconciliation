@@ -224,6 +224,38 @@ Case 与 Item 变更的追加式审计日志。
 `case_items`、`reconciliation_cases`，最后删除行结果上的复合唯一键；不会先删父表
 破坏外键关系。
 
+## 抽取质量实验域
+
+### `experiment_definitions`
+
+不可变的实验配置快照。它记录 baseline/candidate 角色、数据集清单及全部文档
+SHA-256、Parser/Normalizer/Prompt/Schema 版本、参数和晋升阈值。`created_by` 关联
+管理员；PostgreSQL 触发器拒绝 UPDATE/DELETE，配置变化必须新建实验，避免历史
+运行被新的配置解释。
+
+### `evaluation_runs`
+
+一次实验运行及其完整结果。`status` 只允许 `queued`、`running`、`completed`、
+`failed`、`cancelled`；状态转换由 Repository 条件更新保证。`summary` 保存聚合指标，
+`documents` 保存成功与失败的逐文档结果，`slices` 保存错误切片。索引
+`(experiment_id, created_at)` 支持实验历史，状态索引支持待执行运行查询。
+
+### `feedback_candidates`
+
+由人工修订产生、等待确认的反馈候选。原始上下文保存在 `payload`；分类只允许
+`model_error`、`acceptable_variant`、`reviewer_correction_error`、
+`business_context_update`。只有人工确认的 `model_error` 才能将
+`include_in_gold` 置为 true，其他分类即使请求加入也会被仓储强制关闭。
+
+### `promotion_decisions`
+
+保存 baseline 与 candidate 两次运行之间的晋升结论、全部逐项检查和原因。
+`outcome` 只允许 `recommended`、`rejected`、`inconclusive`；运行及决定人都使用
+RESTRICT 外键，防止审计证据被级联删除。
+
+迁移 `20260807_12` 回滚时先删除实验定义不可变触发器，再按决定、反馈、运行、
+定义的依赖逆序删除表。
+
 ## 运行状态
 
 ### `worker_heartbeats`
