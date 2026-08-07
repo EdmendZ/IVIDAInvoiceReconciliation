@@ -8,18 +8,20 @@ import { api, downloadFile } from "../api/client";
  * 1. Candidate Matching 回答“哪些收货单可能属于这张发票”，只做可解释排序；
  * 2. Reconciliation 回答“选定单据的数量/金额是否一致”，产生可审计记录。
  *
- * 候选算法不会自动替用户确认关系，且两个步骤都只接收人工批准的不可变版本。
+ * 候选算法不会自动替用户确认关系，且两个步骤都只接收可信的不可变版本。
  */
 type ApprovedVersion = {
   version_id: string;
   document_type: "invoice" | "receive_note";
-  version_number: number;
+  version_number: number | null;
   document_json: {
     document_number?: string;
     purchase_order_number?: string;
     supplier?: { name?: string };
   };
-  approved_at: string;
+  approved_at: string | null;
+  source_kind: "invoice_upload" | "external_receive_note_upload" | "taptouch_receiving";
+  trust_method: "human_approved" | "upstream_authoritative";
 };
 
 type LineResult = {
@@ -69,10 +71,22 @@ type ReconciliationCandidate = {
   purchase_order_number: string | null;
   supplier_name: string | null;
   document_date: string | null;
+  source_kind: ApprovedVersion["source_kind"];
+  trust_method: ApprovedVersion["trust_method"];
+  external_store_id: string | null;
+  external_receiving_id: string | null;
+  external_version: number | null;
+  upstream_updated_at: string | null;
   score: number;
   confidence: "high" | "medium" | "low";
   recommended: boolean;
   signals: CandidateSignal[];
+};
+
+const sourceLabels: Record<ApprovedVersion["source_kind"], string> = {
+  invoice_upload: "Uploaded Invoice",
+  external_receive_note_upload: "Uploaded Receive Note",
+  taptouch_receiving: "Taptouch Receiving",
 };
 
 export function ReconciliationPage() {
@@ -142,9 +156,9 @@ export function ReconciliationPage() {
     <section className="page">
       <div className="page-heading">
         <div>
-          <span className="eyebrow">THREE-WAY CONTROL</span>
+          <span className="eyebrow">RECEIVING CONTROL</span>
           <h2>Invoice and Receive Note reconciliation</h2>
-          <p>Only immutable, human-approved versions are available here.</p>
+          <p>Only trusted immutable versions are available here.</p>
         </div>
       </div>
 
@@ -206,6 +220,9 @@ export function ReconciliationPage() {
                 <span className="candidate-main">
                   <span className="candidate-title">
                     <strong>{candidate.document_number}</strong>
+                    <b className={`source-badge ${candidate.source_kind}`}>
+                      {sourceLabels[candidate.source_kind]}
+                    </b>
                     {candidate.recommended && (
                       <b className="recommended-badge">Recommended</b>
                     )}
@@ -218,6 +235,14 @@ export function ReconciliationPage() {
                     {candidate.supplier_name || "Unknown supplier"} ·{" "}
                     {candidate.document_date || "No date"}
                   </small>
+                  {candidate.source_kind === "taptouch_receiving" && (
+                    <small className="source-context">
+                      Store {candidate.external_store_id} · Receiving {candidate.external_receiving_id} · Upstream v{candidate.external_version}
+                      {candidate.upstream_updated_at
+                        ? ` · Updated ${new Date(candidate.upstream_updated_at).toLocaleString()}`
+                        : ""}
+                    </small>
+                  )}
                   <details
                     className="candidate-signals"
                     onClick={(event) => event.stopPropagation()}

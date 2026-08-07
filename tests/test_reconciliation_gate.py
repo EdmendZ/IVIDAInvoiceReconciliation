@@ -31,6 +31,13 @@ class VersionReader:
             if status is None or version.status == status
         ]
 
+    def list_reconciliation_versions(self):
+        return [
+            version
+            for version in self.versions.values()
+            if version.status == DocumentVersionStatus.APPROVED
+        ]
+
 
 class RecordWriter:
     def __init__(self) -> None:

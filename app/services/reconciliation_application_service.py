@@ -48,6 +48,8 @@ class ApprovedVersionReader(Protocol):
         status: DocumentVersionStatus | None = None,
     ) -> list[DocumentVersion]: ...
 
+    def list_reconciliation_versions(self) -> list[DocumentVersion]: ...
+
 
 class ReconciliationRepository(Protocol):
     """保存并读取不可变核对结果的最小持久化端口。"""
@@ -88,10 +90,14 @@ class ReconciliationApplicationService:
                 invoice=invoice,
                 receive_note=ReceiveNote.model_validate(version.document_json),
                 receive_note_version_id=version.version_id,
+                source_kind=version.source_kind,
+                trust_method=version.trust_method,
+                external_store_id=version.external_store_id,
+                external_receiving_id=version.external_receiving_id,
+                external_version=version.external_version,
+                upstream_updated_at=version.upstream_updated_at,
             )
-            for version in self._reviews.list_versions(
-                status=DocumentVersionStatus.APPROVED
-            )
+            for version in self._reviews.list_reconciliation_versions()
             if version.document_type == DocumentType.RECEIVE_NOTE
         ]
         return sorted(

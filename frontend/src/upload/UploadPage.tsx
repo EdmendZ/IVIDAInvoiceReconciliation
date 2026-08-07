@@ -129,7 +129,10 @@ export function UploadPage({
         <div>
           <span className="eyebrow">DOCUMENT INTAKE</span>
           <h2>Upload procurement documents</h2>
-          <p>PDF, PNG and JPEG files up to 25 MB are accepted.</p>
+          <p>
+            Upload supplier invoices or external Receive Notes. Taptouch
+            Receiving records sync automatically and do not need file upload.
+          </p>
         </div>
       </div>
 

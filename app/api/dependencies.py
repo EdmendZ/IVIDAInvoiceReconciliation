@@ -39,6 +39,12 @@ from app.services.runtime_status_service import RuntimeStatusService
 from app.services.reconciliation_case_service import ReconciliationCaseService
 from app.experiments.feedback import FeedbackService
 from app.infra.postgres_experiment_repository import PostgresExperimentRepository
+from app.infra.postgres_taptouch_receiving_repository import (
+    PostgresTaptouchReceivingRepository,
+)
+from app.services.taptouch_receiving_import_service import (
+    TaptouchReceivingImportService,
+)
 
 
 @lru_cache
@@ -76,6 +82,15 @@ def get_draft_repository() -> PostgresDocumentDraftRepository:
 def get_review_repository() -> PostgresReviewRepository:
     """返回审核仓储；它负责不可变版本和审核动作的事务写入。"""
     return PostgresReviewRepository(get_session_factory())
+
+
+@lru_cache
+def get_taptouch_receiving_import_service() -> TaptouchReceivingImportService:
+    """装配权威 Taptouch 收货记录的幂等导入用例。"""
+
+    return TaptouchReceivingImportService(
+        PostgresTaptouchReceivingRepository(get_session_factory())
+    )
 
 
 @lru_cache

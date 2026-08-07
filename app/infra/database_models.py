@@ -456,13 +456,18 @@ class DocumentVersionRow(Base):
         ),
         CheckConstraint(
             "(source_kind IN ('invoice_upload', 'external_receive_note_upload') "
+            "AND ((source_kind = 'invoice_upload' AND document_type = 'invoice') "
+            "OR (source_kind = 'external_receive_note_upload' "
+            "AND document_type = 'receive_note')) "
             "AND task_id IS NOT NULL AND source_draft_id IS NOT NULL "
             "AND version_number IS NOT NULL AND created_by IS NOT NULL "
             "AND source_system IS NULL AND external_tenant_id IS NULL "
             "AND external_brand_id IS NULL AND external_store_id IS NULL "
             "AND external_supplier_id IS NULL "
             "AND external_receiving_id IS NULL AND external_version IS NULL "
-            "AND record_status IS NULL AND upstream_updated_at IS NULL) OR "
+            "AND record_status IS NULL AND upstream_updated_at IS NULL "
+            "AND ((status = 'approved' AND trust_method = 'human_approved') "
+            "OR (status <> 'approved' AND trust_method = 'untrusted'))) OR "
             "(source_kind = 'taptouch_receiving' AND document_type = 'receive_note' "
             "AND task_id IS NULL AND source_draft_id IS NULL "
             "AND version_number IS NULL AND created_by IS NULL "
@@ -471,7 +476,8 @@ class DocumentVersionRow(Base):
             "AND external_supplier_id IS NOT NULL "
             "AND external_receiving_id IS NOT NULL AND external_version IS NOT NULL "
             "AND record_status IN ('active', 'voided') "
-            "AND upstream_updated_at IS NOT NULL AND status = 'approved' "
+            "AND external_version >= 1 AND upstream_updated_at IS NOT NULL "
+            "AND approved_at IS NOT NULL AND status = 'approved' "
             "AND trust_method = 'upstream_authoritative')",
             name="ck_document_versions_source_shape",
         ),

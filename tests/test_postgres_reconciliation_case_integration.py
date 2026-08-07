@@ -53,11 +53,11 @@ def postgres_factory():
             text(
                 "INSERT INTO document_versions "
                 "(version_id, task_id, source_draft_id, version_number, "
-                "document_type, document_json, status, created_by, created_at, "
+                "document_type, document_json, status, created_by, approved_at, created_at, "
                 "source_kind, trust_method) "
                 "VALUES ('invoice-version', 'task-seed', 'draft-seed', 1, "
                 "'invoice', CAST(:document AS jsonb), 'approved', "
-                "'reviewer-1', :now, 'invoice_upload', 'human_approved')"
+                "'reviewer-1', :now, :now, 'invoice_upload', 'human_approved')"
             ),
             {"document": json.dumps({"invoice_number": "INV-SEED"}), "now": NOW},
         )

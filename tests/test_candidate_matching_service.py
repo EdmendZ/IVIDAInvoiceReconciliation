@@ -55,11 +55,20 @@ def test_strong_candidate_is_recommended_with_explanations() -> None:
         invoice=_invoice(),
         receive_note=note,
         receive_note_version_id="note-v1",
+        source_kind=DocumentSourceKind.TAPTOUCH_RECEIVING,
+        trust_method=DocumentTrustMethod.UPSTREAM_AUTHORITATIVE,
+        external_store_id="store-1",
+        external_receiving_id="receiving-1",
+        external_version=3,
+        upstream_updated_at=datetime(2026, 7, 8, tzinfo=UTC),
     )
 
     assert result.score == 100
     assert result.confidence == "high"
     assert result.recommended is True
+    assert result.source_kind == DocumentSourceKind.TAPTOUCH_RECEIVING
+    assert result.external_store_id == "store-1"
+    assert result.external_version == 3
     assert {signal.code for signal in result.signals} >= {
         "purchase_order_match",
         "supplier_match",
@@ -118,3 +127,6 @@ def test_same_document_number_blocks_misclassified_invoice() -> None:
     assert result.confidence == "low"
     assert result.recommended is False
     assert result.signals[0].code == "same_document_number"
+from datetime import UTC, datetime
+
+from app.domain.document_sources import DocumentSourceKind, DocumentTrustMethod

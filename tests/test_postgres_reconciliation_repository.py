@@ -153,6 +153,9 @@ class _VersionReader:
             if status is None or version.status == status
         ]
 
+    def list_reconciliation_versions(self) -> list[DocumentVersion]:
+        return list(self._versions.values())
+
 
 def test_get_rehydrates_persisted_result_snapshot() -> None:
     engine = create_engine(

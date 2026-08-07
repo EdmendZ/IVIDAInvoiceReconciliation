@@ -500,6 +500,26 @@ button:disabled { cursor: not-allowed; opacity: .5; }
   display: flex !important;
   gap: 7px;
 }
+
+.source-badge {
+  border: 1px solid #ccd7d2;
+  border-radius: 999px;
+  color: #51605a;
+  font-size: 0.7rem;
+  font-weight: 700;
+  padding: 2px 7px;
+}
+
+.source-badge.taptouch_receiving {
+  background: #e8f5f0;
+  border-color: #9bcbb9;
+  color: #24745a;
+}
+
+.source-context {
+  display: block;
+  margin-top: 4px;
+}
 .recommended-badge,
 .score-badge {
   border-radius: 999px;
