@@ -620,4 +620,3 @@ Skip this commit if verification required no changes.
 - [ ] API, database, business, code-map, and setup documentation are synchronized.
 - [ ] Backend tests, lint/type checks, frontend tests/build, and migration smoke test pass.
 - [ ] No real integration token or server credential is committed.
-

@@ -16,7 +16,8 @@
 
 实现位置：`app/services/candidate_matching_service.py`
 
-每张已批准 Receive Note 都会产生若干 Signal：
+每张当前可信 Receive Note 都会产生若干 Signal。可信来源包括人工批准的上传版本，
+以及每个上游身份最新且状态为 `active` 的 Taptouch Receiving：
 
 | Signal | 匹配权重 | 冲突权重 |
 |---|---:|---:|
@@ -138,11 +139,16 @@ Validation 的文档级容差与 Reconciliation 容差不是同一概念：
 `ReconciliationApplicationService.compare()` 在调用纯规则前：
 
 1. 要求至少一张 Receive Note；
-2. 验证 Invoice Version 已批准且类型正确；
-3. 验证所有 Receive Note Version 已批准且类型正确；
+2. 验证 Invoice Version 已被人工批准、可信且类型正确；
+3. 验证所有 Receive Note Version 是人工批准上传，或当前有效的上游权威版本；
 4. Pydantic 重新构建领域对象；
 5. 调用纯函数 `reconcile()`；
 6. 保存参与版本 ID 和完整结果。
+
+Taptouch Receiving 的候选响应同时带有 source kind、store、外部 receiving ID、
+外部版本和上游更新时间，帮助审核人员理解来源。若同一上游 Receiving 出现更高
+版本的 `voided` Snapshot，系统先选择最新版本，再判断状态，因此旧 `active` 版本
+不会重新出现在候选中。已保存的历史 Reconciliation 不会被追溯改写。
 
 ## 历史结果导出
 
@@ -188,5 +194,6 @@ Case 使用递增 `revision` 做乐观并发控制。每次修改都提交当前
 - 一对多场景必须先聚合后比较；
 - 缺失单价保持未知，不用 0 掩盖；
 - 最终判断是确定性规则，可用单元测试完整覆盖。
+- Taptouch 作废采用“先取最新版本、再判断 active”的门禁，不能回退使用旧版本；
 - Case 记录差异处置，不反写历史核对结果；
 - Case 认领是人工业务责任分配，不能与 Worker Claim 混淆。
