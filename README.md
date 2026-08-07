@@ -99,6 +99,9 @@ MINIO_BUCKET_NAME=ivida-invoice-documents
 TAPTOUCH_INTEGRATION_TOKEN=YOUR_RANDOM_LOCAL_TOKEN
 ```
 
+多门店集成应使用 `TAPTOUCH_INTEGRATION_CREDENTIALS_JSON` 为每个调用方限制允许的
+tenant/store；单 Token 只适合本地演示。
+
 这样两个项目可以共用 MinIO 服务进程，但不会共用业务数据。
 
 运行测试：

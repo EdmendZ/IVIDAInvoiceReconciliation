@@ -100,7 +100,7 @@ SQLAlchemy 映射位于 `app/infra/database_models.py`，Schema 演进位于
 - source_kind：`invoice_upload`、`external_receive_note_upload`、
   `taptouch_receiving`；
 - trust_method：`untrusted`、`human_approved`、`upstream_authoritative`；
-- source_system；
+- source_system、integration_principal（导入调用方名称，不保存 Token）；
 - external_tenant_id、external_brand_id、external_store_id、
   external_supplier_id、external_receiving_id；
 - external_version、record_status、upstream_updated_at。
@@ -109,7 +109,8 @@ SQLAlchemy 映射位于 `app/infra/database_models.py`，Schema 演进位于
 Taptouch 来源使用 `source_system + external_tenant_id + external_store_id +
 external_receiving_id + external_version` 唯一。Check Constraints 保证上传链路与
 上游链路不能混合：Taptouch 只能是 approved、upstream_authoritative 的
-Receive Note，且不能伪造 task/draft/created_by/approved_by。
+Receive Note，必须保留 integration_principal，且不能伪造
+task/draft/created_by/approved_by。
 
 ### `review_actions`
 

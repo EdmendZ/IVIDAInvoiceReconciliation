@@ -88,7 +88,12 @@ class PostgresTaptouchReceivingRepository:
     def _semantic_snapshot(version: DocumentVersion) -> dict[str, Any]:
         data = version.model_dump(
             mode="json",
-            exclude={"version_id", "approved_at", "created_at"},
+            exclude={
+                "version_id",
+                "approved_at",
+                "created_at",
+                "integration_principal",
+            },
         )
         for field in ("upstream_updated_at",):
             value = getattr(version, field)

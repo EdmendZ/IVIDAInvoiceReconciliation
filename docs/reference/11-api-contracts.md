@@ -22,12 +22,13 @@ Taptouch 机器集成端点使用独立 Bearer Token。
 | 201 | 首次或更高版本已创建，`created=true` |
 | 200 | 当前版本的相同内容重放，`created=false` |
 | 401 | Token 缺少、错误，或服务端未配置 Token |
+| 403 | 身份有效，但 Payload 的 tenant/store 不在凭据授权范围内 |
 | 409 | 旧版本 `stale_external_version`，或同版本不同内容 `external_version_conflict` |
 | 422 | Payload 不符合严格 Schema |
 
 该端点不创建 Extraction Task、Draft、Reviewer 或 Review Action。响应中的 Version
-使用 `source_kind=taptouch_receiving` 和
-`trust_method=upstream_authoritative`。
+使用 `source_kind=taptouch_receiving`、
+`trust_method=upstream_authoritative` 和不含秘密的 `integration_principal`。
 
 ## 认证端点
 

@@ -74,39 +74,47 @@ def _service():
 
 def test_valid_payload_maps_and_replays_idempotently() -> None:
     service, _ = _service()
-    first = service.import_record(_payload())
-    replay = service.import_record(_payload())
+    first = service.import_record(_payload(), integration_principal="connector-a")
+    replay = service.import_record(_payload(), integration_principal="connector-b")
     assert first.created is True
     assert replay.created is False
     assert replay.version.version_id == first.version.version_id
     assert first.version.document_json["document_date"] == "2026-08-07"
     assert first.version.document_json["currency"] == "AUD"
+    assert first.version.integration_principal == "connector-a"
+    assert replay.version.integration_principal == "connector-a"
 
 
 def test_higher_voided_version_suppresses_older_active_version() -> None:
     service, factory = _service()
-    service.import_record(_payload())
+    service.import_record(_payload(), integration_principal="test-connector")
     service._id_factory = lambda: "version-2"
-    newer = service.import_record(_payload(external_version=2, record_status="voided"))
+    newer = service.import_record(
+        _payload(external_version=2, record_status="voided"),
+        integration_principal="test-connector",
+    )
     assert newer.version.record_status == UpstreamRecordStatus.VOIDED
     reader = PostgresReviewRepository(factory)
     assert reader.get_approved_version("version-fixed") is None
     assert reader.get_approved_version("version-2") is None
     assert reader.list_reconciliation_versions() == []
     with pytest.raises(ReceivingVersionConflict):
-        service.import_record(_payload())
+        service.import_record(_payload(), integration_principal="test-connector")
 
 
 def test_same_version_with_changed_content_conflicts() -> None:
     service, _ = _service()
-    service.import_record(_payload())
+    service.import_record(_payload(), integration_principal="test-connector")
     with pytest.raises(ReceivingIdentityConflict):
-        service.import_record(_payload(document_number="GRN-CHANGED"))
+        service.import_record(
+            _payload(document_number="GRN-CHANGED"),
+            integration_principal="test-connector",
+        )
 
 
 def test_import_creates_no_extraction_or_review_lineage() -> None:
     service, factory = _service()
-    service.import_record(_payload())
+    service.import_record(_payload(), integration_principal="test-connector")
     with factory() as session:
         assert session.scalar(select(func.count()).select_from(DocumentVersionRow)) == 1
         assert session.scalar(select(func.count()).select_from(ExtractionTaskRow)) == 0

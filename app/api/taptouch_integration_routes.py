@@ -3,7 +3,10 @@
 from fastapi import APIRouter, Depends, HTTPException, Response, status
 
 from app.api.dependencies import get_taptouch_receiving_import_service
-from app.api.integration_auth import require_taptouch_token
+from app.api.integration_auth import (
+    TaptouchIntegrationPrincipal,
+    authenticate_taptouch_principal,
+)
 from app.domain.taptouch_receiving import TaptouchReceivingPayload
 from app.services.taptouch_receiving_import_service import (
     ReceivingIdentityConflict,
@@ -14,7 +17,7 @@ from app.services.taptouch_receiving_import_service import (
 router = APIRouter(
     prefix="/api/integrations/taptouch",
     tags=["Taptouch integration"],
-    dependencies=[Depends(require_taptouch_token)],
+    dependencies=[Depends(authenticate_taptouch_principal)],
 )
 
 
@@ -22,12 +25,29 @@ router = APIRouter(
 def import_receiving_record(
     payload: TaptouchReceivingPayload,
     response: Response,
+    principal: TaptouchIntegrationPrincipal = Depends(
+        authenticate_taptouch_principal
+    ),
     service: TaptouchReceivingImportService = Depends(
         get_taptouch_receiving_import_service
     ),
 ) -> dict:
+    if not principal.allows(
+        payload.external_tenant_id,
+        payload.external_store_id,
+    ):
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail={
+                "code": "integration_scope_forbidden",
+                "message": "Credential is not authorized for this tenant/store",
+            },
+        )
     try:
-        outcome = service.import_record(payload)
+        outcome = service.import_record(
+            payload,
+            integration_principal=principal.name,
+        )
     except ReceivingVersionConflict as exc:
         raise HTTPException(
             status_code=status.HTTP_409_CONFLICT,

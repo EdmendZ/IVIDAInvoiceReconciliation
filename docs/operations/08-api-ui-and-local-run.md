@@ -124,6 +124,11 @@ false，公网生产环境应使用 TLS。
 保持禁用并返回 401。真实值只能放入被忽略的 `.env` 或部署 Secret，不能提交到
 `.env.example`。
 
+多门店部署应改用 `TAPTOUCH_INTEGRATION_CREDENTIALS_JSON`，按调用方列出允许写入
+的 tenant/store。该配置存在时优先于单 Token；通过删除旧凭据并部署新配置完成
+吊销，通过短期同时保留新旧两个凭据完成轮换。生产环境应由 Secret Manager 生成
+该 JSON，不应把真实 Token 写进 Compose 文件。
+
 ## 分别启动
 
 API：
