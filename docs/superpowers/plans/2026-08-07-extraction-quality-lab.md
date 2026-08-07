@@ -25,13 +25,52 @@
 
 ## File Map
 
-**Create:** `app/experiments/{__init__,domain,ports,slicing,promotion,runner,feedback,reporting}.py`, `app/infra/postgres_experiment_repository.py`, `app/api/experiment_routes.py`, `app/cli/run_experiment.py`, `migrations/versions/20260807_12_add_extraction_quality_lab.py`.
+**Create:** `app/experiments/{__init__,domain,ports,slicing,promotion,runner,feedback,reporting}.py`, `app/infra/postgres_experiment_repository.py`, `app/api/experiment_routes.py`, `app/cli/create_experiment.py`, `app/cli/run_experiment.py`, `migrations/versions/20260807_12_add_extraction_quality_lab.py`.
 
 **Create frontend:** `frontend/src/experiments/{experimentTypes,experimentPresentation,experimentPresentation.test,ExperimentLabPage,ExperimentLabPage.test}.ts[x]`.
 
 **Modify:** `app/infra/database_models.py`, `app/api/dependencies.py`, `app/main.py`, `app/evaluation/runner.py`, `app/cli/evaluate_extraction.py`, `app/infra/postgres_review_repository.py`, `tests/fakes.py`, `frontend/src/app/App.tsx`, `frontend/src/styles.css`, and mapped documentation.
 
 Tasks 1–4 form Milestone 1: a usable persisted CLI experiment and fail-closed decision core. Tasks 5–7 form Milestone 2: governed human feedback plus the admin API/UI. Task 8 validates the combined interview workflow. Review and merge each milestone independently if implementation risk or PR size requires a split.
+
+## Recommended PR and Stop/Go Plan
+
+### PR A — Pure quality logic
+
+Includes Tasks 1–2 only: immutable contracts, business/error slicing, and fail-closed Promotion rules. It has no database, API, UI, or external model calls. Merge only when every hard-gate branch has a focused unit test.
+
+**Go condition:** slice counts include failed documents, business scenarios, field groups, and Evidence gaps; Promotion returns all three outcomes with explicit reasons.
+
+### PR B — Persisted CLI experiment MVP
+
+Includes Tasks 3–4: migration, repository, definition-creation CLI, real-run CLI, dataset identity, persisted progress, cancellation, and safe reporting. This is the **minimum interview-ready stopping point**. It can demonstrate reproducible model comparison from the terminal without committing to a new admin product surface.
+
+**Go condition:** one live-document smoke succeeds or persists a safe diagnostic failure; two saved 17-document runs can be compared without rerunning MinerU; migration upgrade/downgrade succeeds.
+
+**Stop condition:** if the 17-document evidence does not expose meaningful model/Prompt differences, pause before building UI. Improve the dataset and error slices first; a dashboard around inconclusive evidence has low interview value.
+
+### PR C — Governed human feedback
+
+Includes Tasks 5–6: Feedback Candidate extraction, immutable classification, admin API, and server-side Gold eligibility. This PR is independently valuable only after PR B produces stable model provenance.
+
+**Go condition:** a real Reviewer edit can be traced to Draft, Run, model, Prompt, old value, and new value; non-model-error feedback cannot enter Gold through either service or API.
+
+### PR D — Interview console and packaging
+
+Includes Tasks 7–8: text-first Lab page, documentation, full regression verification, and the 5–8 minute demo. Do not begin this PR until baseline/candidate data and at least one confirmed Feedback Candidate exist.
+
+**Go condition:** the demo explains one improvement, one remaining regression, cost/latency trade-offs, and why recommendation does not deploy automatically.
+
+## Scope Reduction Order
+
+If time becomes limited, cut scope in this order:
+
+1. Remove frontend creation forms; keep the Lab read-only and use CLIs for definitions/runs.
+2. Remove automatic Feedback backfill; collect only newly selected review versions.
+3. Omit persisted Markdown reports; retain structured JSON and deterministic rendering on demand.
+4. Keep only document type, field group, error type, and business scenario slices.
+
+Never cut dataset identity, failure-in-denominator behavior, critical-field gates, feedback confirmation, or the distinction between recommendation and deployment. Those are the capabilities that make the feature credible in an LLM application interview.
 
 ---
 
@@ -291,6 +330,7 @@ git commit -m "feat: persist extraction experiments"
 
 **Files:**
 - Create: `app/experiments/runner.py`
+- Create: `app/cli/create_experiment.py`
 - Create: `app/cli/run_experiment.py`
 - Modify: `app/evaluation/runner.py`
 - Modify: `app/cli/evaluate_extraction.py`
@@ -300,7 +340,8 @@ git commit -m "feat: persist extraction experiments"
 
 **Interfaces:**
 - Produces `ExperimentRunner.run(definition_id: str, output_root: Path, max_documents: int | None = None) -> EvaluationRun`.
-- CLI: `--definition-id`, `--output-root`, `--max-documents`.
+- Definition CLI: `--name`, `--role`, `--manifest`, and threshold arguments; it reads current Parser/Normalizer/Prompt/Schema provenance from the same runtime configuration used by evaluation.
+- Run CLI: `--definition-id`, `--output-root`, `--max-documents`.
 
 - [ ] **Step 1: Write orchestration tests**
 
@@ -342,9 +383,25 @@ Keep this helper free of database types. Copy each manifest case's `expected_out
 
 Create queued run → mark running → verify identity → call existing evaluator → slice results → complete. On execution exception, persist a stable code and safe message, then raise `ExperimentExecutionFailed`. Catch `KeyboardInterrupt` separately, persist `cancelled`, and re-raise it so the CLI exits normally for an interrupt.
 
-- [ ] **Step 5: Share real provider construction**
+- [ ] **Step 5: Share provider construction and add the definition CLI**
 
-Move provider setup into `build_real_parser(settings)` and `build_real_normalizer(settings)`. Both evaluation CLIs reuse them. The new CLI loads a definition, executes it, writes a safe report, and prints run ID and aggregate metrics only.
+Move provider setup into `build_real_parser(settings)` and `build_real_normalizer(settings)`. Both evaluation CLIs reuse them. `create_experiment` hashes the selected manifest and documents, records current provider/model/Prompt/Schema/parameter provenance, creates the immutable definition, and prints only its ID. `run_experiment` loads that definition, executes it, writes a safe report, and prints run ID and aggregate metrics only.
+
+Use an exact creation flow in the CLI test:
+
+```python
+exit_code = create_main([
+    "--name", "qwen-baseline",
+    "--role", "baseline",
+    "--manifest", "evaluation_data/manifest.json",
+    "--required-schema-valid-rate", "1",
+    "--minimum-field-accuracy", "0.95",
+    "--minimum-line-item-f1", "0.95",
+    "--minimum-evidence-coverage", "0.90",
+    "--max-cost-aud-per-document", "0.10",
+])
+assert exit_code == 0
+```
 
 - [ ] **Step 6: Verify**
 
@@ -355,7 +412,7 @@ Expected: PASS.
 - [ ] **Step 7: Commit**
 
 ```powershell
-git add app/experiments/runner.py app/cli/run_experiment.py app/evaluation/runner.py app/cli/evaluate_extraction.py tests/test_experiment_runner.py docs/ai/09-testing-and-evaluation.md docs/operations/08-api-ui-and-local-run.md
+git add app/experiments/runner.py app/cli/create_experiment.py app/cli/run_experiment.py app/evaluation/runner.py app/cli/evaluate_extraction.py tests/test_experiment_runner.py docs/ai/09-testing-and-evaluation.md docs/operations/08-api-ui-and-local-run.md
 git commit -m "feat: run persisted extraction experiments"
 ```
 
