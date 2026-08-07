@@ -1,18 +1,33 @@
+from collections.abc import Iterator
+from contextlib import contextmanager
+
+from fastapi.testclient import TestClient
+
 from app.api.dependencies import get_document_upload_service
 from app.main import app
 from app.services.document_upload_service import DocumentUploadService
-from tests.auth_helpers import reviewer_client
+from tests.auth_helpers import restore_override, reviewer_client
 from tests.fakes import InMemoryExtractionTaskRepository, InMemoryObjectStorage
 
 
-storage = InMemoryObjectStorage()
-repository = InMemoryExtractionTaskRepository()
-service = DocumentUploadService(storage, repository, max_bytes=1024)
-app.dependency_overrides[get_document_upload_service] = lambda: service
+@contextmanager
+def upload_client() -> Iterator[TestClient]:
+    service = DocumentUploadService(
+        InMemoryObjectStorage(),
+        InMemoryExtractionTaskRepository(),
+        max_bytes=1024,
+    )
+    previous = app.dependency_overrides.get(get_document_upload_service)
+    app.dependency_overrides[get_document_upload_service] = lambda: service
+    try:
+        with reviewer_client(app) as client:
+            yield client
+    finally:
+        restore_override(app, get_document_upload_service, previous)
 
 
 def test_upload_and_get_task() -> None:
-    with reviewer_client(app) as client:
+    with upload_client() as client:
         response = client.post(
             "/api/documents/upload",
             data={
@@ -33,7 +48,7 @@ def test_upload_and_get_task() -> None:
 
 
 def test_missing_task_returns_404() -> None:
-    with reviewer_client(app) as client:
+    with upload_client() as client:
         response = client.get("/api/extraction-tasks/missing")
 
         assert response.status_code == 404

@@ -17,7 +17,8 @@ Workflow。它包含四个固定 Job：
 - `postgres-integration`：迁移、真实数据库测试、回退再升级和 Alembic 检查；
 - `frontend`：Vitest、TypeScript 类型检查和 Vite 构建。
 
-后端和 PostgreSQL 测试报告作为 JUnit Artifact 保留 7 天。Fork PR 不需要仓库
+后端和 PostgreSQL 测试报告通过 `actions/upload-artifact@v7` 作为 JUnit Artifact
+保留 7 天。Fork PR 不需要仓库
 Secret，因此不会获得发布权限。
 
 ## PostgreSQL Service Container

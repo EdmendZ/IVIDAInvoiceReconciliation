@@ -105,7 +105,9 @@ def test_release_requires_ci_smoke_and_minimal_write_permissions() -> None:
     assert "packages: write" in workflow
     assert "docker compose" in workflow
     assert "tools/smoke_compose.py" in workflow
-    assert "ghcr.io" in workflow
+    assert any(
+        line.strip() == "registry: ghcr.io" for line in workflow.splitlines()
+    )
     assert "gh release create" in workflow
     assert ":latest" not in workflow
     assert "ssh" not in workflow.lower()
