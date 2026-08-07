@@ -35,11 +35,11 @@ Tasks 1–4 form Milestone 1: a usable persisted CLI experiment and fail-closed 
 
 ## Recommended PR and Stop/Go Plan
 
-### PR A — Pure quality logic
+### PR A — Dataset truth alignment and pure quality logic
 
-Includes Tasks 1–2 only: immutable contracts, business/error slicing, and fail-closed Promotion rules. It has no database, API, UI, or external model calls. Merge only when every hard-gate branch has a focused unit test.
+Includes Tasks 0–2: source-supported synthetic documents, immutable contracts, business/error slicing, and fail-closed Promotion rules. It has no database, API, UI, or external model calls. Merge only when every critical Gold field is source-supported and every hard-gate branch has a focused unit test.
 
-**Go condition:** slice counts include failed documents, business scenarios, field groups, and Evidence gaps; Promotion returns all three outcomes with explicit reasons.
+**Go condition:** supplier names and line numbers are visible in generated PDFs; the validator rejects unsupported critical Gold; slice counts include failed documents, business scenarios, field groups, and Evidence gaps; Promotion returns all three outcomes with explicit reasons.
 
 ### PR B — Persisted CLI experiment MVP
 
@@ -71,6 +71,92 @@ If time becomes limited, cut scope in this order:
 4. Keep only document type, field group, error type, and business scenario slices.
 
 Never cut dataset identity, failure-in-denominator behavior, critical-field gates, feedback confirmation, or the distinction between recommendation and deployment. Those are the capabilities that make the feature credible in an LLM application interview.
+
+---
+
+### Task 0: Align Synthetic Gold with Visible Source Facts
+
+**Files:**
+- Modify: `tools/generate_evaluation_dataset.py`
+- Modify: `tools/validate_evaluation_dataset.py`
+- Create: `tests/test_evaluation_source_support.py`
+- Modify: `docs/evaluation-dataset.md`
+- Modify: `docs/ai/09-testing-and-evaluation.md`
+
+**Interfaces:**
+- Consumes: generated PDF text, manifest cases, and Gold JSON.
+- Produces: `generate_dataset(output_root: Path) -> Path`; generated PDFs that explicitly print supplier name and item line numbers; `validate_document_source_support(source_text: str, gold: dict) -> list[SourceSupportError]`; `validate_source_support(dataset_root: Path) -> list[SourceSupportError]`.
+
+- [ ] **Step 1: Write failing source-support tests**
+
+```python
+def test_generated_invoice_prints_supplier_name_and_line_numbers(tmp_path):
+    root = generate_dataset(tmp_path)
+    pdf = root / "source_documents/pdf/case-01-exact-single/invoice__SCF-INV-260701.pdf"
+    gold = json.loads(
+        (root / "gold/case-01-exact-single/invoice__SCF-INV-260701.json")
+        .read_text(encoding="utf-8")
+    )
+    with pdfplumber.open(pdf) as document:
+        text = "\n".join(page.extract_text() or "" for page in document.pages)
+
+    assert gold["supplier"]["name"] in text
+    assert all(
+        str(item["line_number"]) in text
+        for item in gold["items"]
+        if item["line_number"] is not None
+    )
+
+
+def test_validator_rejects_unsupported_critical_gold():
+    errors = validate_document_source_support(
+        source_text="ABN 12 345 678 901",
+        gold={
+            "supplier": {"name": "Southern Cross Foodservice Pty Ltd"},
+            "items": [],
+        },
+    )
+
+    assert errors[0].field_path == "supplier.name"
+    assert errors[0].code == "GOLD_VALUE_NOT_IN_SOURCE"
+```
+
+- [ ] **Step 2: Run and verify the current generator fails**
+
+Run: `uv run pytest tests/test_evaluation_source_support.py -q`
+
+Expected: FAIL because the generated PDF does not visibly contain the supplier name or line-number column.
+
+- [ ] **Step 3: Render the missing source facts**
+
+In the supplier header, print `document.supplier.name` directly above its ABN and address. Change the item table header from `Code` to `Line, Code`, and render `1..n` from the same line number written to Gold. Do not infer these values inside the model Prompt.
+
+- [ ] **Step 4: Add source-support validation**
+
+Extract PDF text with the existing development dependency. Validate exact normalized support for `document_number`, `purchase_order_number`, `currency`, `supplier.name`, non-null SKU, and non-null line number. Report `case_id`, document path, field path, and stable error code. Keep numeric comparison formatting-tolerant but value-exact.
+
+- [ ] **Step 5: Regenerate and validate all 17 synthetic PDFs**
+
+Run: `uv run python tools/generate_evaluation_dataset.py`
+
+Run: `uv run python tools/validate_evaluation_dataset.py`
+
+Expected: 8 scenarios and 17 PDFs pass Schema, reconciliation, and source-support validation. Changed PDF hashes intentionally invalidate the old MinerU cache keys; do not delete old cache entries during generation.
+
+- [ ] **Step 6: Run dataset and evaluation regression tests**
+
+Run: `uv run pytest tests/test_evaluation_source_support.py tests/test_evaluation_metrics.py tests/test_evaluation_runner.py -q`
+
+Expected: PASS.
+
+- [ ] **Step 7: Commit the dataset contract**
+
+```powershell
+git add tools/generate_evaluation_dataset.py tools/validate_evaluation_dataset.py tests/test_evaluation_source_support.py docs/evaluation-dataset.md docs/ai/09-testing-and-evaluation.md
+git commit -m "test: align evaluation gold with source documents"
+```
+
+The generated `evaluation_data/` directory remains ignored and must not be committed.
 
 ---
 
@@ -727,6 +813,8 @@ git commit -m "docs: explain the extraction quality workflow"
 
 ## Final Review Checklist
 
+- [ ] Every critical non-null Gold value is visible in the generated PDF source.
+- [ ] The regenerated dataset has new hashes and a new post-fix baseline; historical unsupported-field metrics are not reused.
 - [ ] Definitions contain dataset, Parser, Normalizer, Prompt, Schema, parameters, thresholds, creator, and timestamp.
 - [ ] Completed runs preserve successful and failed documents.
 - [ ] Only the CLI invokes real providers for experiments.
