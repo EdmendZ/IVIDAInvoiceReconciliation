@@ -261,7 +261,7 @@ git commit -m "feat: add experiment contracts and error slicing"
 
 **Interfaces:**
 - Consumes: Task 1 contracts.
-- Produces: `decide_promotion(baseline: EvaluationRun, candidate: EvaluationRun, decided_by: str, now: datetime) -> PromotionDecision`; `render_promotion_markdown(decision: PromotionDecision) -> str`.
+- Produces: `decide_promotion(baseline: EvaluationRun, baseline_definition: ExperimentDefinition, candidate: EvaluationRun, candidate_definition: ExperimentDefinition, decided_by: str, now: datetime) -> PromotionDecision`; `render_promotion_markdown(decision: PromotionDecision) -> str`. Definitions are explicit inputs because runs alone do not contain dataset identity or thresholds.
 
 - [ ] **Step 1: Write failing gate tests**
 

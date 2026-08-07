@@ -48,6 +48,7 @@ class ComparisonCounts(BaseModel):
 class DocumentEvaluation(BaseModel):
     """单份单据的一次端到端评测结果，包括失败阶段与模型溯源。"""
     case_id: str
+    business_scenario: str = "unspecified"
     document_path: str
     document_type: str
     schema_valid: bool

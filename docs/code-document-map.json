@@ -80,6 +80,7 @@
         "app/infra/openai_normalization_provider.py",
         "app/resources/prompts/**",
         "app/evaluation/**",
+        "app/experiments/**",
         "app/cli/evaluate_extraction.py",
         "app/cli/compare_evaluations.py",
         "tools/generate_evaluation_dataset.py",

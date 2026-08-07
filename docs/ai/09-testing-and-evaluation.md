@@ -171,6 +171,19 @@ Gold 字段中有多少具有模型声明的 Evidence。它不能代替字段准
 
 当前单文档冒烟不足以选出生产默认模型。
 
+## 版本化实验与错误切片
+
+`app/experiments` 在原始评测器之上定义不可变的数据集身份、实验门槛和
+Promotion Decision。错误不会只保留为一串文本：系统按文档类型、manifest 中的
+业务场景、字段组、Schema 失败和 Evidence 缺失形成稳定切片。Promotion 必须显式
+接收 baseline/candidate 的 Run 与 ExperimentDefinition，不能从当前 `.env` 偷读
+门槛或把不同数据集的结果放在一起比较。
+
+当前阶段只实现纯领域契约、切片和 fail-closed 决策；持久化、CLI、Admin API 与
+Lab 页面按实施计划后续接入。任何缺少完整运行或数据集身份的比较均为
+`inconclusive`，关键门槛回归为 `rejected`，只有无回归且存在明确改善时才是
+`recommended`。
+
 ## 面试复习点
 
 - 软件测试与模型评测是两套互补证据；
