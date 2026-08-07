@@ -52,8 +52,15 @@ uv run python tools\validate_evaluation_dataset.py
 
 - PDF 文件存在且只有一页。
 - PDF 包含合成材料声明和 AUD 字段。
+- Document Number、PO、币种、供应商名称、SKU 和非空行号等关键 Gold 值在
+  PDF 文本中有明确依据。
 - Gold JSON 能通过当前 Pydantic 数据模型。
 - 每个场景得到预期的比对分类和人工审核状态。
+
+生成器会在供应商抬头明确打印法定名称，并在 Invoice/Receive Note 商品表中
+打印 `Line` 列。这样模型评测不会因为 Gold 要求原件中不存在的行号而奖励推断或
+幻觉。PDF 原文支持校验只证明合成文档本身与 Gold 一致；如果 MinerU 没有保留
+PDF 中可见的字段，应单独归类为 Parser 错误，而不是通过 Prompt 要求模型猜测。
 
 真实客户文件只能在完成脱敏和内部批准后加入，并且仍应保留在 Git 忽略目录内。
 

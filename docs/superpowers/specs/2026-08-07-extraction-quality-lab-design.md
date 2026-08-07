@@ -67,15 +67,16 @@ Promotion Decision 只给出可解释的推荐结论。系统不得自动修改 
 
 ### 3.5 Gold 必须得到原件支持
 
-Prompt 评测不能奖励模型猜测原件中不存在的值。对现有合成样本的只读检查发现，
-Gold 要求供应商名称和商品行号，但对应 PDF 的 MinerU Markdown 没有供应商名称，
-商品表也没有行号列。当前 Prompt 要求“只复制原文支持的值”，因此这类差异不能
-归因于 Prompt 质量。
+Prompt 评测不能奖励模型猜测其输入中不存在的值。对现有合成样本的只读检查发现，
+PDF 已打印供应商名称，但 MinerU Markdown 没有保留它；Gold 还要求商品行号，而
+原 PDF 商品表没有行号列。当前 Prompt 要求“只复制原文支持的值”，因此前者属于
+Parser 信息损失，后者属于数据契约错误，都不能归因于 Prompt 质量。
 
-在第一次 Prompt baseline/candidate 实验前，必须重新生成合成 PDF，使供应商名称
-和行号成为明确可见的原文事实，并同步重建 Gold、文件哈希和 MinerU 缓存。数据集
-校验器必须验证关键非空 Gold 字段能够在 PDF 文本或表格中定位。旧数据上的 89.47%
-字段准确率和相关错误只作为历史诊断，不得作为新 Prompt 的 baseline。
+在第一次 Prompt baseline/candidate 实验前，必须重新生成合成 PDF，使行号成为
+明确可见的原文事实，并同步重建文件哈希和 MinerU 缓存。数据集校验器必须验证
+关键非空 Gold 字段能够在 PDF 文本或表格中定位；实验错误切片还必须区分 Parser
+丢失和 Normalizer 错误。旧数据上的 89.47% 字段准确率只作为历史诊断，不得作为
+新 Prompt 的 baseline。
 
 ## 4. 领域对象
 

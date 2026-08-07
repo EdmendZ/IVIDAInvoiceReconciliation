@@ -596,12 +596,13 @@ def render_pdf(document: Document, output_path: Path) -> None:
     )
 
     if document.document_type == "invoice":
-        table_data = [["Code", "Description", "Unit", "Qty", "Unit Price", "GST", "Line Total"]]
-        for item in document.items:
+        table_data = [["Line", "Code", "Description", "Unit", "Qty", "Unit Price", "GST", "Line Total"]]
+        for index, item in enumerate(document.items, start=1):
             amount = item_amount(item)
             assert amount is not None
             table_data.append(
                 [
+                    str(index),
                     item.sku,
                     item.description,
                     item.unit,
@@ -611,16 +612,16 @@ def render_pdf(document: Document, output_path: Path) -> None:
                     f"${amount:.2f}",
                 ]
             )
-        widths = [23, 60, 25, 14, 22, 17, 23]
+        widths = [10, 20, 55, 19, 13, 21, 17, 23]
     else:
-        headers = ["Code", "Description", "Unit", "Qty Received", "Condition"]
-        widths = [27, 71, 30, 25, 31]
+        headers = ["Line", "Code", "Description", "Unit", "Qty Received", "Condition"]
+        widths = [10, 24, 66, 25, 24, 29]
         if document.show_prices:
-            headers.insert(4, "Recorded Price")
-            widths = [24, 61, 25, 23, 25, 26]
+            headers.insert(5, "Recorded Price")
+            widths = [10, 22, 55, 23, 21, 24, 23]
         table_data = [headers]
-        for item in document.items:
-            row = [item.sku, item.description, item.unit, str(item.quantity)]
+        for index, item in enumerate(document.items, start=1):
+            row = [str(index), item.sku, item.description, item.unit, str(item.quantity)]
             if document.show_prices:
                 row.append(f"${item.unit_price:.3f}")
             row.append("Accepted")
@@ -639,7 +640,7 @@ def render_pdf(document: Document, output_path: Path) -> None:
                     ("FONTSIZE", (0, 0), (-1, -1), 7.5),
                     ("GRID", (0, 0), (-1, -1), 0.35, colors.HexColor("#B8C4CE")),
                     ("VALIGN", (0, 0), (-1, -1), "MIDDLE"),
-                    ("ALIGN", (3, 1), (-1, -1), "RIGHT"),
+                    ("ALIGN", (4, 1), (-1, -1), "RIGHT"),
                     ("ROWBACKGROUNDS", (0, 1), (-1, -1), [colors.white, colors.HexColor("#F7F9FB")]),
                     ("TOPPADDING", (0, 0), (-1, -1), 5),
                     ("BOTTOMPADDING", (0, 0), (-1, -1), 5),
@@ -796,4 +797,3 @@ This directory is generated and intentionally ignored by Git.
 
 if __name__ == "__main__":
     build_dataset()
-

@@ -85,20 +85,17 @@ Never cut dataset identity, failure-in-denominator behavior, critical-field gate
 
 **Interfaces:**
 - Consumes: generated PDF text, manifest cases, and Gold JSON.
-- Produces: `generate_dataset(output_root: Path) -> Path`; generated PDFs that explicitly print supplier name and item line numbers; `validate_document_source_support(source_text: str, gold: dict) -> list[SourceSupportError]`; `validate_source_support(dataset_root: Path) -> list[SourceSupportError]`.
+- Produces: generated PDFs that explicitly print supplier name and item line numbers; `validate_document_source_support(source_text: str, gold: dict) -> list[SourceSupportError]`.
 
 - [ ] **Step 1: Write failing source-support tests**
 
 ```python
 def test_generated_invoice_prints_supplier_name_and_line_numbers(tmp_path):
-    root = generate_dataset(tmp_path)
-    pdf = root / "source_documents/pdf/case-01-exact-single/invoice__SCF-INV-260701.pdf"
-    gold = json.loads(
-        (root / "gold/case-01-exact-single/invoice__SCF-INV-260701.json")
-        .read_text(encoding="utf-8")
-    )
-    with pdfplumber.open(pdf) as document:
-        text = "\n".join(page.extract_text() or "" for page in document.pages)
+    document = CASES[0].invoice
+    pdf = tmp_path / "invoice.pdf"
+    render_pdf(document, pdf)
+    text = PdfReader(pdf).pages[0].extract_text()
+    gold = document_json(document)
 
     assert gold["supplier"]["name"] in text
     assert all(
@@ -125,11 +122,11 @@ def test_validator_rejects_unsupported_critical_gold():
 
 Run: `uv run pytest tests/test_evaluation_source_support.py -q`
 
-Expected: FAIL because the generated PDF does not visibly contain the supplier name or line-number column.
+Expected: FAIL because the generated PDF does not visibly contain the line-number column.
 
 - [ ] **Step 3: Render the missing source facts**
 
-In the supplier header, print `document.supplier.name` directly above its ABN and address. Change the item table header from `Code` to `Line, Code`, and render `1..n` from the same line number written to Gold. Do not infer these values inside the model Prompt.
+Preserve the existing supplier name in the legal-entity header. Change the item table header from `Code` to `Line, Code`, and render `1..n` from the same line number written to Gold. Do not infer missing Parser values inside the model Prompt.
 
 - [ ] **Step 4: Add source-support validation**
 
