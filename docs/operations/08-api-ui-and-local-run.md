@@ -139,6 +139,51 @@ npm run dev
 
 必须同时有 API 和 Worker。只有 API 时上传可以成功，但 Run 会一直 queued。
 
+## 运行持久化抽取实验
+
+先确保数据库迁移到 head、`.env` 中 MinerU/Normalization 配置可用，并至少存在
+一个 active Admin。创建不可变 baseline 定义：
+
+```powershell
+uv run python -m app.cli.create_experiment `
+  --name qwen-baseline `
+  --role baseline `
+  --manifest evaluation_data/manifest.json `
+  --required-schema-valid-rate 1 `
+  --minimum-field-accuracy 0.95 `
+  --minimum-line-item-f1 0.95 `
+  --minimum-evidence-coverage 0.90
+```
+
+命令标准输出只返回 definition ID。随后执行：
+
+```powershell
+uv run python -m app.cli.run_experiment `
+  --definition-id <definition-id> `
+  --output-root evaluation_data/results
+```
+
+执行前会重算 Manifest 和全部原件 Hash，并核对当前 Provider、Model 与 Prompt；
+不一致时在调用模型前失败。逐文档失败仍保存在结果与指标分母中，Ctrl+C 会将运行
+标记为 cancelled。终端只输出 run ID 和聚合指标，详细预测与报告写入指定目录。
+
+### 5–8 分钟 Quality Lab 演示顺序
+
+真实 API 前提：PostgreSQL 已迁移、MinerU 与 Normalization 凭据有效，并已保存一组
+跑满 17 份合成文档的 baseline/candidate 证据。现场只跑一个 candidate 文档，避免
+网络等待占满演示：
+
+1. 用 Admin 登录 `/lab`，展示已完成 baseline 及其 dataset identity；
+2. 用 `app.cli.run_experiment --definition-id ... --max-documents 1` 实跑一个 candidate 文档；
+3. 返回 `/lab` 展示 Parser、Normalizer、Prompt 与数据集来源；
+4. 选择已保存的完整 baseline/candidate Run，比较所有 hard gate 与质量 gate；
+5. 展开一个业务场景或错误类型 Slice，解释失败文档仍在分母；
+6. 将一个 Feedback Candidate 分类，演示只有 `model_error` 可勾选 Gold；
+7. 创建 Promotion Decision，说明 `recommended`、`rejected`、`inconclusive`；
+8. 明确 Decision 不会部署模型，生产配置仍需独立发布审批。
+
+不要在演示中提交 `.env`、凭据、客户文档、完整预测或私有 Gold。
+
 ## PyCharm 运行
 
 1. 将解释器设置为项目 `.venv\Scripts\python.exe`；

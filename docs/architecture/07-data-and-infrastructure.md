@@ -152,6 +152,18 @@ Worker 定期向 `worker_heartbeats` 写入：
 Runtime API 根据 `last_seen_at` 是否超过阈值判断 online/offline。它用于解释
 排队状态，不是完整监控系统。
 
+## 抽取质量实验的持久化边界
+
+质量实验不复用生产抽取任务表。`experiment_definitions` 固化可复现输入与模型配置，
+`evaluation_runs` 保存一次运行的全量逐文档证据和切片，`feedback_candidates` 承接
+人工修订但在确认前不污染 gold，`promotion_decisions` 保存 fail-closed 晋升检查。
+
+定义在数据库层不可变；运行只能通过带旧状态条件的 UPDATE 前进，因此重复 Worker、
+取消与完成竞争时最多一个转换成功。完成运行必须同时写入聚合指标以及所有成功/失败
+文档，且 `summary.document_count` 与文档数量一致，避免只展示成功样本造成指标偏高。
+反馈进入 gold 还需要人工分类为 `model_error`；“可接受变体”、纠错本身错误和业务
+上下文变化都只能留作审计或后续分析。
+
 ## 迁移顺序
 
 `migrations/versions` 记录 Schema 演进：
@@ -167,6 +179,7 @@ Runtime API 根据 `last_seen_at` 是否超过阈值判断 online/offline。它�
 9. cancellation；
 10. model provenance；
 11. reconciliation cases、case items、case actions 与不可变触发器。
+12. extraction quality experiment definitions、runs、feedback 与 promotion decisions。
 
 这组迁移本身反映了项目的设计演进：先建立文件与任务，再增加 AI 解析、
 人工治理、核对和可观测性。

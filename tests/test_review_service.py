@@ -158,6 +158,7 @@ def test_approval_creates_immutable_approved_version() -> None:
         repository.reject(approved.version_id)
     actions = repository.list_actions(version.version_id)
     assert [item.action for item in actions] == ["review_started", "approved"]
+    assert repository.get_action(actions[0].action_id) == actions[0]
 
 
 def test_blocking_arithmetic_issue_prevents_approval() -> None:

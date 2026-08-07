@@ -133,6 +133,13 @@ PostgreSQL 和 MinIO 可以使用现有服务器；database 与 bucket 必须使
 使用 `app.cli.compare_evaluations` 可以比较不同 Prompt 或模型的
 `summary.json`，而不重复调用 MinerU。
 
+Admin 可在 <http://127.0.0.1:5274/lab> 使用 Extraction Quality Lab 查看不可变实验
+定义、完整运行指标、错误切片、Promotion Gate 和待确认 Feedback Candidate。真实模型
+实验只由 `app.cli.create_experiment` / `app.cli.run_experiment` 执行；Web API 不调用
+外部模型。推荐结论不会自动切换生产配置，只有 Admin 确认的 `model_error` 才有 Gold
+资格。详细命令与 5–8 分钟演示顺序见
+[API、UI 与本地运行](docs/operations/08-api-ui-and-local-run.md)。
+
 模型选择不是写死的：先用同一份 MinerU 缓存分别评测 Max、Plus 或 Flash，
 再按 Schema 通过率、字段准确率、行项目 F1、证据覆盖率、延迟和成本选择。
 当前单文档结果只是链路冒烟测试，不作为生产模型结论。具体依据见

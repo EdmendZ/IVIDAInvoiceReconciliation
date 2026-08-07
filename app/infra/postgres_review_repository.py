@@ -84,8 +84,7 @@ class PostgresReviewRepository:
             row = session.execute(
                 select(DocumentVersionRow).where(
                     DocumentVersionRow.version_id == version_id,
-                    DocumentVersionRow.status
-                    == DocumentVersionStatus.APPROVED.value,
+                    DocumentVersionRow.status == DocumentVersionStatus.APPROVED.value,
                 )
             ).scalar_one_or_none()
             return self._to_version(row) if row else None
@@ -98,9 +97,7 @@ class PostgresReviewRepository:
         with self._session_factory() as session:
             statement = select(DocumentVersionRow)
             if status is not None:
-                statement = statement.where(
-                    DocumentVersionRow.status == status.value
-                )
+                statement = statement.where(DocumentVersionRow.status == status.value)
             rows = session.execute(
                 statement.order_by(DocumentVersionRow.created_at.desc())
             ).scalars()
@@ -116,8 +113,7 @@ class PostgresReviewRepository:
                 update(DocumentVersionRow)
                 .where(
                     DocumentVersionRow.version_id == version_id,
-                    DocumentVersionRow.status
-                    == DocumentVersionStatus.DRAFT.value,
+                    DocumentVersionRow.status == DocumentVersionStatus.DRAFT.value,
                 )
                 .values(
                     status=DocumentVersionStatus.APPROVED.value,
@@ -141,8 +137,7 @@ class PostgresReviewRepository:
                 update(DocumentVersionRow)
                 .where(
                     DocumentVersionRow.version_id == version_id,
-                    DocumentVersionRow.status
-                    == DocumentVersionStatus.DRAFT.value,
+                    DocumentVersionRow.status == DocumentVersionStatus.DRAFT.value,
                 )
                 .values(status=DocumentVersionStatus.REJECTED.value)
             )
@@ -190,15 +185,14 @@ class PostgresReviewRepository:
                 .where(ReviewActionRow.version_id == version_id)
                 .order_by(ReviewActionRow.created_at)
             ).scalars()
-            return [
-                ReviewAction.model_validate(
-                    {
-                        column.name: getattr(row, column.name)
-                        for column in ReviewActionRow.__table__.columns
-                    }
-                )
-                for row in rows
-            ]
+            return [self._to_action(row) for row in rows]
+
+    def get_action(self, action_id: str) -> ReviewAction | None:
+        """按 ID 读取单条追加式审核事实。"""
+
+        with self._session_factory() as session:
+            row = session.get(ReviewActionRow, action_id)
+            return self._to_action(row) if row else None
 
     @staticmethod
     def _to_version(row: DocumentVersionRow) -> DocumentVersion:
@@ -206,5 +200,14 @@ class PostgresReviewRepository:
             {
                 column.name: getattr(row, column.name)
                 for column in DocumentVersionRow.__table__.columns
+            }
+        )
+
+    @staticmethod
+    def _to_action(row: ReviewActionRow) -> ReviewAction:
+        return ReviewAction.model_validate(
+            {
+                column.name: getattr(row, column.name)
+                for column in ReviewActionRow.__table__.columns
             }
         )

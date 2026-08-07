@@ -109,9 +109,8 @@ def _dataset(root: Path) -> Path:
         "cases": [
             {
                 "case_id": "case-1",
-                "documents": [
-                    "source_documents/pdf/case-1/invoice__INV-1.pdf"
-                ],
+                "expected_outcome": "exact match",
+                "documents": ["source_documents/pdf/case-1/invoice__INV-1.pdf"],
             }
         ]
     }

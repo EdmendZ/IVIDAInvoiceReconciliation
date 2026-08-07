@@ -66,20 +66,24 @@ class ExtractionEvaluationRunner:
         dataset_root = manifest_path.parent
         documents: list[DocumentEvaluation] = []
         for case in manifest["cases"]:
+            business_scenario = case.get("expected_outcome")
+            if not business_scenario:
+                raise ValueError(
+                    f"manifest case {case.get('case_id', '<unknown>')} "
+                    "lacks expected_outcome"
+                )
             for relative_document in case["documents"]:
                 if max_documents is not None and len(documents) >= max_documents:
                     break
                 source_path = dataset_root / relative_document
                 document_type = self._document_type(source_path.name)
                 gold_path = (
-                    dataset_root
-                    / "gold"
-                    / case["case_id"]
-                    / f"{source_path.stem}.json"
+                    dataset_root / "gold" / case["case_id"] / f"{source_path.stem}.json"
                 )
                 documents.append(
                     self._evaluate_one(
                         case_id=case["case_id"],
+                        business_scenario=business_scenario,
                         source_path=source_path,
                         gold_path=gold_path,
                         document_type=document_type,
@@ -108,6 +112,7 @@ class ExtractionEvaluationRunner:
         self,
         *,
         case_id: str,
+        business_scenario: str,
         source_path: Path,
         gold_path: Path,
         document_type: DocumentType,
@@ -127,6 +132,7 @@ class ExtractionEvaluationRunner:
                 self._progress(f"failed to parse {source_path.name}: {exc}")
                 return self._failure(
                     case_id=case_id,
+                    business_scenario=business_scenario,
                     source_path=source_path,
                     document_type=document_type,
                     gold=gold,
@@ -145,11 +151,10 @@ class ExtractionEvaluationRunner:
             )
         except Exception as exc:
             latency_ms = round((perf_counter() - started) * 1000)
-            self._progress(
-                f"failed to normalize {source_path.name}: {exc}"
-            )
+            self._progress(f"failed to normalize {source_path.name}: {exc}")
             return self._failure(
                 case_id=case_id,
+                business_scenario=business_scenario,
                 source_path=source_path,
                 document_type=document_type,
                 gold=gold,
@@ -166,11 +171,10 @@ class ExtractionEvaluationRunner:
             gold,
             {item.field_path for item in normalized.evidence},
         )
-        evidence_paths = sorted(
-            {item.field_path for item in normalized.evidence}
-        )
+        evidence_paths = sorted({item.field_path for item in normalized.evidence})
         return DocumentEvaluation(
             case_id=case_id,
+            business_scenario=business_scenario,
             document_path=str(source_path),
             document_type=document_type.value,
             schema_valid=True,
@@ -189,6 +193,7 @@ class ExtractionEvaluationRunner:
         self,
         *,
         case_id: str,
+        business_scenario: str,
         source_path: Path,
         document_type: DocumentType,
         gold: dict,
@@ -203,6 +208,7 @@ class ExtractionEvaluationRunner:
         error_code = getattr(error, "code", None)
         return DocumentEvaluation(
             case_id=case_id,
+            business_scenario=business_scenario,
             document_path=str(source_path),
             document_type=document_type.value,
             schema_valid=False,
@@ -233,13 +239,9 @@ class ExtractionEvaluationRunner:
             )
             remote_job_id = submission.remote_job_id
             self._cache.put_pending(source, remote_job_id)
-            self._progress(
-                f"submitted {filename} to MinerU as {remote_job_id}"
-            )
+            self._progress(f"submitted {filename} to MinerU as {remote_job_id}")
         else:
-            self._progress(
-                f"resuming {filename} from MinerU job {remote_job_id}"
-            )
+            self._progress(f"resuming {filename} from MinerU job {remote_job_id}")
         for _ in range(self._max_polls):
             result = self._parser.poll(remote_job_id)
             if result.state == ParseState.SUCCEEDED and result.result is not None:
@@ -291,9 +293,7 @@ class ExtractionEvaluationRunner:
         missing = sum(item.counts.missing_lines for item in documents)
         extra = sum(item.counts.extra_lines for item in documents)
         evidence_total = sum(item.counts.evidence_total for item in documents)
-        evidence_covered = sum(
-            item.counts.evidence_covered for item in documents
-        )
+        evidence_covered = sum(item.counts.evidence_covered for item in documents)
         latencies = sorted(item.latency_ms for item in documents)
         p95_index = max(0, round((len(latencies) - 1) * 0.95))
         costs = [
@@ -315,8 +315,7 @@ class ExtractionEvaluationRunner:
                 else Decimal("1")
             ),
             line_item_f1=(
-                Decimal(2 * matched)
-                / Decimal(2 * matched + missing + extra)
+                Decimal(2 * matched) / Decimal(2 * matched + missing + extra)
                 if 2 * matched + missing + extra
                 else Decimal("1")
             ),
@@ -328,12 +327,8 @@ class ExtractionEvaluationRunner:
             p50_latency_ms=round(median(latencies)),
             p95_latency_ms=latencies[p95_index],
             average_cost_aud=(
-                total_cost / Decimal(len(costs))
-                if total_cost is not None
-                else None
+                total_cost / Decimal(len(costs)) if total_cost is not None else None
             ),
             total_cost_aud=total_cost,
-            parser_cache_hits=sum(
-                item.parser_cache_hit for item in documents
-            ),
+            parser_cache_hits=sum(item.parser_cache_hit for item in documents),
         )

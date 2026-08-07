@@ -70,6 +70,14 @@ Gold JSON 是人工确定的期望结构。没有 Gold，只能展示模型输�
 - Evidence 覆盖率；
 - Schema 失败率。
 
+Gold 还必须得到原件支持。当前合成数据生成器会显式打印供应商名称和商品行号，
+校验器会检查关键 Gold 值能否在 PDF 文本中定位。否则，一个遵守“不得推断”的
+模型可能因为正确返回 `null` 而被错误扣分。
+
+PDF 中存在但 MinerU Markdown 中缺失的字段属于 Parser 信息损失；MinerU 已保留
+但结构化模型抽取错误的字段才适合用于 Prompt A/B 实验。端到端指标仍应记录两类
+失败，但错误分析必须区分责任阶段。
+
 ## 评测流程
 
 ```mermaid
@@ -162,6 +170,30 @@ Gold 字段中有多少具有模型声明的 Evidence。它不能代替字段准
 5. 查看错误切片，而不是只看总分。
 
 当前单文档冒烟不足以选出生产默认模型。
+
+## 版本化实验与错误切片
+
+`app/experiments` 在原始评测器之上定义不可变的数据集身份、实验门槛和
+Promotion Decision。错误不会只保留为一串文本：系统按文档类型、manifest 中的
+业务场景、字段组、Schema 失败和 Evidence 缺失形成稳定切片。Promotion 必须显式
+接收 baseline/candidate 的 Run 与 ExperimentDefinition，不能从当前 `.env` 偷读
+门槛或把不同数据集的结果放在一起比较。
+
+实验定义、完整运行结果、人工反馈候选和晋升决定已通过独立 PostgreSQL 表持久化；
+实验定义不可修改，运行状态使用条件更新，完成指标必须包含成功与失败的全部文档。
+创建/执行 CLI 会记录并校验 Manifest、全部原件 Hash 及 Provider/Model/Prompt
+来源；Manifest 的每个 Case 必须显式提供 `expected_outcome` 作为业务场景切片。
+Admin API 与 Lab 页面按实施计划后续接入。任何缺少完整运行或数据集身份的比较均为
+`inconclusive`，关键门槛回归为 `rejected`，只有无回归且存在明确改善时才是
+`recommended`。
+
+人工审核修改只生成待治理的 Feedback Candidate：商品行使用 SKU/规范化描述稳定
+匹配，无可靠身份时退回整表差异。只有 Admin 确认为 `model_error` 的候选具有 Gold
+资格；其他分类和后续变更以追加记录保留，不能静默改写既有评测事实。
+
+Promotion Decision 是可审计的推荐证据，**不会自动修改生产模型配置**。即使结果为
+`recommended`，仍需由独立发布流程显式更新配置并完成回归；数据集身份不一致、
+运行不完整或关键证据缺失时必须输出 `inconclusive`，不能把“未知”包装成通过。
 
 ## 面试复习点
 
