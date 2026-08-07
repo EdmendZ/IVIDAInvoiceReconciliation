@@ -7,6 +7,7 @@ import { UploadPage } from "../upload/UploadPage";
 import { ReconciliationPage } from "../reconcile/ReconciliationPage";
 import { CaseDetailPage } from "../cases/CaseDetailPage";
 import { CaseQueuePage } from "../cases/CaseQueuePage";
+import { ExperimentLabPage } from "../experiments/ExperimentLabPage";
 
 export function App() {
   const [user, setUser] = useState<User | null | undefined>(undefined);
@@ -78,6 +79,14 @@ export function App() {
           >
             Cases
           </button>
+          {user.role === "admin" ? (
+            <button
+              className={path === "/lab" ? "active" : ""}
+              onClick={() => navigate("/lab")}
+            >
+              Quality Lab
+            </button>
+          ) : null}
         </nav>
         <div className="user-chip">
           <span>{user.username}</span>
@@ -96,6 +105,12 @@ export function App() {
       <main>
         {path === "/upload" ? (
           <UploadPage onNavigate={navigate} />
+        ) : path === "/lab" ? (
+          user.role === "admin" ? (
+            <ExperimentLabPage />
+          ) : (
+            <div className="page"><p className="error-banner">Admin access required.</p></div>
+          )
         ) : path === "/reconcile" ? (
           <ReconciliationPage />
         ) : caseMatch ? (
