@@ -74,6 +74,17 @@ Plus/Flash 对照。
 离线复算为 89.47%，没有再次调用模型。该案例说明评测代码本身也必须有测试
 和可复算输出。
 
+## 从实验到晋升决定
+
+Quality Lab 以不可变 dataset identity 绑定 Manifest 与全部原件 Hash，baseline 与
+candidate 只有在数据集相同且运行完成时才能比较。Schema、关键字段、准确率、行项
+F1、Evidence、成本和目标 Slice 会逐项保存为 Gate；缺证据或无明确改善时输出
+`inconclusive`，硬门槛或质量回归则为 `rejected`。
+
+人工修订不会直接污染 Gold。每个字段变化先成为可追溯 Feedback Candidate，Admin
+区分 `model_error`、可接受变体、人工修订错误和业务上下文新增，只有确认后的模型错误
+具有 Gold 资格。Promotion Decision 也只是推荐，不会自动修改生产模型配置或触发部署。
+
 ## 面试陈述边界
 
 可以陈述：

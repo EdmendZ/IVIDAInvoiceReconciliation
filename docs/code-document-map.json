@@ -83,13 +83,19 @@
         "app/experiments/**",
         "app/cli/evaluate_extraction.py",
         "app/cli/compare_evaluations.py",
+        "app/cli/create_experiment.py",
+        "app/cli/run_experiment.py",
         "tools/generate_evaluation_dataset.py",
         "tools/validate_evaluation_dataset.py"
       ],
       "documents": [
         "docs/ai/04-extraction-pipeline.md",
         "docs/ai/09-testing-and-evaluation.md",
+        "docs/business/05-review-and-versioning.md",
         "docs/interview/model-selection.md",
+        "docs/operations/08-api-ui-and-local-run.md",
+        "docs/reference/11-api-contracts.md",
+        "docs/reference/12-database-dictionary.md",
         "docs/architecture/14-source-code-walkthrough.md",
         "docs/architecture/decisions/0001-split-parser-and-normalizer.md",
         "docs/reference/18-code-comment-guide.md"
