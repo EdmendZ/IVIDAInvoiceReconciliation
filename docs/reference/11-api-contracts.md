@@ -3,8 +3,31 @@
 ## 阅读方式
 
 本项目的 OpenAPI 页面位于 `/docs`，本文件重点解释端点在业务流程中的位置、
-权限和状态语义。除健康检查和登录外，业务端点都需要有效的
-`ivida_review_session` Cookie。
+权限和状态语义。浏览器业务端点需要有效的 `ivida_review_session` Cookie；
+Taptouch 机器集成端点使用独立 Bearer Token。
+
+## Taptouch Receiving 集成
+
+### `POST /api/integrations/taptouch/receiving-records`
+
+请求头：`Authorization: Bearer <TAPTOUCH_INTEGRATION_TOKEN>`。
+
+请求是一份完整 Receiving Snapshot，必填外部 tenant、store、supplier、receiving
+身份，单调递增的 `external_version`，`active|voided` 状态，带时区的收货/更新时间、
+币种、供应商、门店和至少一条商品行。具体示例见
+[Taptouch Receiving 集成流程](../business/02-taptouch-receiving-integration.md)。
+
+| 状态 | 语义 |
+|---|---|
+| 201 | 首次或更高版本已创建，`created=true` |
+| 200 | 当前版本的相同内容重放，`created=false` |
+| 401 | Token 缺少、错误，或服务端未配置 Token |
+| 409 | 旧版本 `stale_external_version`，或同版本不同内容 `external_version_conflict` |
+| 422 | Payload 不符合严格 Schema |
+
+该端点不创建 Extraction Task、Draft、Reviewer 或 Review Action。响应中的 Version
+使用 `source_kind=taptouch_receiving` 和
+`trust_method=upstream_authoritative`。
 
 ## 认证端点
 
@@ -79,7 +102,7 @@ Result 中的 `approval_allowed` 固定为 false，提醒调用方不能从机�
 | 方法 | 路径 | 用途 |
 |---|---|---|
 | GET | `/api/review/tasks` | 审核队列 |
-| GET | `/api/review/approved-versions` | 可用于核对的批准版本 |
+| GET | `/api/review/approved-versions` | 可用于核对的可信当前版本 |
 | POST | `/api/review/tasks/{task_id}/start` | 幂等创建/读取首个 Version |
 | GET | `/api/review/versions/{version_id}` | Version、Evidence、Issues、Model Run |
 | POST | `/api/review/versions/{version_id}/validate` | 编辑时实时预校验 |
@@ -113,8 +136,10 @@ Result 中的 `approval_allowed` 固定为 false，提醒调用方不能从机�
 
 查询参数：`invoice_version_id`
 
-只接受已批准 Invoice Version。返回所有已批准 Receive Note 的候选分数、
-confidence、recommended 和信号列表。
+只接受可信 Invoice Version。返回人工批准的 Receive Note，以及每个上游身份当前
+最新且有效的 Taptouch Receiving 候选。响应除分数、confidence、recommended 和
+信号外，还包含 source kind、trust method、store、外部 receiving ID、外部版本和
+上游更新时间。
 
 ### `POST /api/reconciliations`
 

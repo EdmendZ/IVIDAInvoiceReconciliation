@@ -55,8 +55,9 @@ Set-Location E:\ZephyrLLM\Projects\IVIDAInvoiceReconciliation
 
 实现：`frontend/src/reconcile/ReconciliationPage.tsx`
 
-只能选择批准版本。先选择 Invoice，再查看解释性 Receive Note 候选，最后选择
-一张或多张执行核对。结果创建成功后可点击 `Export CSV` 下载该次持久化快照；
+只能选择可信不可变版本。先选择 Invoice，再查看解释性 Receive Note 候选；候选
+会标出人工上传或 Taptouch Receiving 来源。最后选择一张或多张执行核对。结果
+创建成功后可点击 `Export CSV` 下载该次持久化快照；
 文件使用 UTF-8 BOM 和标准 CSV 转义，可直接由 Excel 打开。
 
 ### Cases
@@ -83,8 +84,10 @@ Set-Location E:\ZephyrLLM\Projects\IVIDAInvoiceReconciliation
 | `/api/reconciliations` | 候选、批准版本核对和历史结果 |
 | `/api/reconciliation-cases` | 差异 Case 队列、详情、认领和处理工作流 |
 | `/api/runtime` | API、数据库、MinIO、Worker 状态 |
+| `/api/integrations/taptouch` | Bearer Token 保护的结构化 Receiving 导入 |
 
-业务路由要求 reviewer/admin 身份。开发环境才注册原始 JSON 对比等诊断接口。
+浏览器业务路由要求 reviewer/admin 身份。Taptouch 集成使用独立 Bearer Token。
+开发环境才注册原始 JSON 对比等诊断接口。
 
 ## 认证
 
@@ -106,6 +109,7 @@ Set-Location E:\ZephyrLLM\Projects\IVIDAInvoiceReconciliation
 `.env.example` 按职责分为：
 
 - APP/CORS/上传限制；
+- Taptouch 集成 Token；
 - PostgreSQL；
 - MinIO；
 - MinerU；
@@ -115,6 +119,10 @@ Set-Location E:\ZephyrLLM\Projects\IVIDAInvoiceReconciliation
 `MINIO_ACCESS_KEY` 类似账号标识，`MINIO_SECRET_KEY` 类似密码。
 `MINIO_SECURE=true` 表示通过 HTTPS/TLS 连接 MinIO；本机 HTTP 环境通常为
 false，公网生产环境应使用 TLS。
+
+`TAPTOUCH_INTEGRATION_TOKEN` 是机器接口凭据。本地可使用随机值；未配置时接口
+保持禁用并返回 401。真实值只能放入被忽略的 `.env` 或部署 Secret，不能提交到
+`.env.example`。
 
 ## 分别启动
 

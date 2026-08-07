@@ -12,6 +12,7 @@ IVIDA 发票（Invoice）与收货单（Receive Note）比对原型。该项目�
 
 - 独立 FastAPI 服务，默认端口 `8200`
 - Invoice / Receive Note 标准 JSON 数据模型
+- Taptouch Receiving 结构化、幂等、带版本导入（绕过 OCR 和虚假人工审核）
 - 支持“一张发票对应多张收货单”的确定性行项目比对
 - 数量、单价、金额容差与差异分类
 - PDF、PNG、JPEG 原件上传与安全格式校验
@@ -26,7 +27,7 @@ IVIDA 发票（Invoice）与收货单（Receive Note）比对原型。该项目�
 
 当前已接通 MinerU 文档解析和 OpenAI-compatible 结构化模型，并保留
 `MODEL_PROVIDER=disabled` 作为未配置环境的安全默认值。模型只生成审核草稿；
-最终比对只接受人工批准后的不可变版本。
+最终比对只接受人工批准的上传版本，或当前有效的 Taptouch 上游权威版本。
 
 ## 启动
 
@@ -95,6 +96,7 @@ API 不再使用进程内 `BackgroundTasks`。必须单独运行
 ```dotenv
 DATABASE_URL=postgresql+psycopg://postgres:YOUR_PASSWORD@YOUR_HOST:5432/ivida_invoice_reconciliation
 MINIO_BUCKET_NAME=ivida-invoice-documents
+TAPTOUCH_INTEGRATION_TOKEN=YOUR_RANDOM_LOCAL_TOKEN
 ```
 
 这样两个项目可以共用 MinIO 服务进程，但不会共用业务数据。
@@ -153,7 +155,7 @@ Admin 可在 <http://127.0.0.1:5274/lab> 使用 Extraction Quality Lab 查看不
 - `Reconcile`：选择已批准 Invoice 和一个或多个 Receive Note，展示逐行差异。
 - `Cases`：查看公共待办和本人 Case；负责人逐项填写结论，Admin 处理审批或作废决定。
 - 账号创建：`python -m app.cli.create_admin --username reviewer --role reviewer`
-- 只有已批准且不可变的 Invoice/Receive Note 版本可以调用生产对账接口。
+- 只有人工批准的上传版本或当前有效的 Taptouch 权威版本可以调用生产对账接口。
 - 编辑会创建新版本；批准版本与审核记录由 PostgreSQL 触发器保护。
 
 Reconciliation 是不可覆盖的规则计算快照；Case 只保存可变的人工处理状态和审计

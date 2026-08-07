@@ -6,15 +6,17 @@
 2. 帮助开发者沿着一张单据的生命周期定位代码；
 3. 帮助面试时用清晰、诚实、可验证的方式介绍项目。
 
-项目定位是 **AI 辅助财务单据审核 Pilot**。MinerU 和大模型负责从非结构化
-文件中提取候选数据；Pydantic、确定性规则和人工审核负责约束结果。系统不会
-让大模型直接批准付款。
+项目定位是 **Taptouch Back Office 的 AI 辅助收货对账 Pilot**。MinerU 和大模型
+负责从外部非结构化文件中提取候选数据；Taptouch 结构化 Receiving 走权威导入；
+Pydantic、确定性规则和信任门禁负责约束结果。系统不会让大模型直接批准付款。
 
 ## 推荐阅读顺序
 
 | 顺序 | 文档 | 解决的问题 |
 |---:|---|---|
 | 1 | [业务全景](business/01-business-overview.md) | 为什么需要 Invoice 与 Receive Note 核对？ |
+| 1A | [产品定位](business/00-product-positioning.md) | Taptouch、外部文件和 Zeemart 参考的边界是什么？ |
+| 1B | [Taptouch Receiving 集成](business/02-taptouch-receiving-integration.md) | 结构化收货如何幂等进入对账？ |
 | 2 | [架构与代码地图](architecture/02-architecture-and-code-map.md) | 每一层负责什么，代码从哪里开始看？ |
 | 3 | [单据生命周期](business/03-document-lifecycle.md) | Task、Run、Draft、Version 为什么不能合并？ |
 | 4 | [AI 抽取链路](ai/04-extraction-pipeline.md) | MinerU、LLM、Schema、Evidence 如何协作？ |
@@ -24,6 +26,8 @@
 | 8 | [API、前端与本机运行](operations/08-api-ui-and-local-run.md) | 如何启动、访问和演示完整流程？ |
 | 9 | [测试与模型评测](ai/09-testing-and-evaluation.md) | 如何证明业务规则和模型效果不是“看起来能跑”？ |
 | 10 | [面试复习手册](interview/10-interview-handbook.md) | 面试官可能追问什么，应该如何回答？ |
+
+后续范围与真实接入缺口见 [产品缺口与路线](business/08-product-gaps-and-roadmap.md)。
 
 源码级参考：
 
