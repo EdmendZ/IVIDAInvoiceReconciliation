@@ -1,0 +1,127 @@
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+  workflow_dispatch:
+  workflow_call:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+env:
+  PYTHON_VERSION: "3.12"
+  NODE_VERSION: "22"
+  UV_VERSION: "0.11.26"
+
+jobs:
+  quality:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-python@v6
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+      - uses: astral-sh/setup-uv@v7
+        with:
+          version: ${{ env.UV_VERSION }}
+          enable-cache: true
+      - run: uv sync --locked --all-groups
+      - run: uv run python -m compileall -q app tests tools
+      - name: Resolve comparison base
+        id: base
+        shell: bash
+        run: |
+          base="${{ github.event.pull_request.base.sha || github.event.before }}"
+          if [[ -z "$base" || "$base" =~ ^0+$ ]]; then base="HEAD~1"; fi
+          echo "sha=$base" >> "$GITHUB_OUTPUT"
+      - run: uv run python tools/check_documentation_sync.py --base-ref "${{ steps.base.outputs.sha }}"
+      - run: git diff --check "${{ steps.base.outputs.sha }}"...HEAD
+
+  backend:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-python@v6
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+      - uses: astral-sh/setup-uv@v7
+        with:
+          version: ${{ env.UV_VERSION }}
+          enable-cache: true
+      - run: uv sync --locked --all-groups
+      - run: uv run pytest --ignore=tests/test_postgres_reconciliation_case_integration.py --junitxml=backend-junit.xml
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: backend-junit
+          path: backend-junit.xml
+          retention-days: 7
+
+  postgres-integration:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:18
+        env:
+          POSTGRES_USER: ivida_ci
+          POSTGRES_PASSWORD: ci-only-password
+          POSTGRES_DB: ivida_ci
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U ivida_ci -d ivida_ci"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 12
+    env:
+      DATABASE_URL: postgresql+psycopg://ivida_ci:ci-only-password@127.0.0.1:5432/ivida_ci
+      IVIDA_TEST_POSTGRES_URL: postgresql+psycopg://ivida_ci:ci-only-password@127.0.0.1:5432/ivida_ci
+      APP_ENV: test
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-python@v6
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+      - uses: astral-sh/setup-uv@v7
+        with:
+          version: ${{ env.UV_VERSION }}
+          enable-cache: true
+      - run: uv sync --locked --all-groups
+      - run: uv run alembic upgrade head
+      - run: uv run pytest tests/test_postgres_reconciliation_case_integration.py --junitxml=postgres-junit.xml
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: postgres-junit
+          path: postgres-junit.xml
+          retention-days: 7
+      - run: uv run alembic downgrade -1
+      - run: uv run alembic upgrade head
+      - run: uv run alembic current
+      - run: uv run alembic heads
+      - run: uv run alembic check
+
+  frontend:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: frontend
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-node@v6
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+      - run: npm ci
+      - run: npm test -- --run
+      - run: npm run typecheck
+      - run: npm run build

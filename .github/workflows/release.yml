@@ -1,0 +1,125 @@
+name: Release
+
+on:
+  push:
+    tags: ["v*"]
+  workflow_dispatch:
+    inputs:
+      version:
+        description: Pre-release version such as v0.2.0-rc.1
+        required: true
+
+permissions:
+  contents: read
+
+jobs:
+  verify:
+    uses: ./.github/workflows/ci.yml
+
+  release:
+    needs: verify
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      packages: write
+    env:
+      VERSION: ${{ github.event.inputs.version || github.ref_name }}
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-python@v6
+        with:
+          python-version: "3.12"
+      - uses: astral-sh/setup-uv@v7
+        with:
+          version: "0.11.26"
+          enable-cache: true
+      - run: uv sync --locked --all-groups
+      - name: Validate version
+        shell: bash
+        run: |
+          [[ "$VERSION" =~ ^v[0-9]+\.[0-9]+\.[0-9]+(-[0-9A-Za-z.-]+)?$ ]]
+      - name: Resolve lowercase image prefix
+        id: image
+        shell: bash
+        run: |
+          echo "prefix=ghcr.io/${GITHUB_REPOSITORY,,}" >> "$GITHUB_OUTPUT"
+          echo "SHORT_SHA=${GITHUB_SHA::7}" >> "$GITHUB_ENV"
+      - name: Build local release candidates
+        shell: bash
+        run: |
+          docker build --target api -t "${{ steps.image.outputs.prefix }}-api:sha-$SHORT_SHA" .
+          docker build --target worker -t "${{ steps.image.outputs.prefix }}-worker:sha-$SHORT_SHA" .
+          docker build -t "${{ steps.image.outputs.prefix }}-frontend:sha-$SHORT_SHA" frontend
+      - name: Smoke local release candidates
+        shell: bash
+        env:
+          IVIDA_IMAGE_PREFIX: ${{ steps.image.outputs.prefix }}
+        run: |
+          export IVIDA_IMAGE_TAG="sha-$SHORT_SHA"
+          cp .env.compose.example .env.compose
+          docker compose --env-file .env.compose -f compose.yaml -f compose.release.yaml up -d
+          cleanup() { docker compose --env-file .env.compose -f compose.yaml -f compose.release.yaml down -v; }
+          trap cleanup EXIT
+          uv run python tools/smoke_compose.py
+          docker compose --env-file .env.compose -f compose.yaml -f compose.release.yaml exec -T api .venv/bin/alembic current
+      - name: Scan API image
+        uses: aquasecurity/trivy-action@a9c7b0f06e461e9d4b4d1711f154ee024b8d7ab8
+        with:
+          image-ref: ${{ steps.image.outputs.prefix }}-api:sha-${{ env.SHORT_SHA }}
+          format: table
+          severity: CRITICAL,HIGH
+          exit-code: "1"
+      - name: Scan Worker image
+        uses: aquasecurity/trivy-action@a9c7b0f06e461e9d4b4d1711f154ee024b8d7ab8
+        with:
+          image-ref: ${{ steps.image.outputs.prefix }}-worker:sha-${{ env.SHORT_SHA }}
+          format: table
+          severity: CRITICAL,HIGH
+          exit-code: "1"
+      - name: Scan Frontend image
+        uses: aquasecurity/trivy-action@a9c7b0f06e461e9d4b4d1711f154ee024b8d7ab8
+        with:
+          image-ref: ${{ steps.image.outputs.prefix }}-frontend:sha-${{ env.SHORT_SHA }}
+          format: table
+          severity: CRITICAL,HIGH
+          exit-code: "1"
+      - uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      - name: Push version and SHA tags
+        shell: bash
+        run: |
+          for service in api worker frontend; do
+            image="${{ steps.image.outputs.prefix }}-$service"
+            docker tag "$image:sha-$SHORT_SHA" "$image:$VERSION"
+            docker push "$image:sha-$SHORT_SHA"
+            docker push "$image:$VERSION"
+          done
+      - name: Write release manifest
+        shell: bash
+        run: |
+          {
+            echo "# IVIDA $VERSION"
+            echo
+            echo "- Commit: \`$GITHUB_SHA\`"
+            echo "- Alembic: \`$(uv run alembic heads | tr -d '\r')\`"
+            for service in api worker frontend; do
+              image="${{ steps.image.outputs.prefix }}-$service:$VERSION"
+              docker pull "$image" >/dev/null
+              echo "- $service: \`$(docker inspect --format='{{index .RepoDigests 0}}' "$image")\`"
+            done
+          } > release-manifest.md
+      - name: Create GitHub Release
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        shell: bash
+        run: |
+          if [[ "$GITHUB_EVENT_NAME" == "workflow_dispatch" ]]; then
+            gh release create "$VERSION" release-manifest.md compose.release.yaml \
+              --notes-file release-manifest.md --prerelease --target "$GITHUB_SHA"
+          else
+            gh release create "$VERSION" release-manifest.md compose.release.yaml \
+              --notes-file release-manifest.md --target "$GITHUB_SHA"
+          fi

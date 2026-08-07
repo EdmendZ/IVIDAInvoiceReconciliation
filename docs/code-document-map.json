@@ -134,6 +134,25 @@
         "docs/reference/18-code-comment-guide.md",
         "README.md"
       ]
+    },
+    {
+      "name": "ci-cd-and-delivery",
+      "code_patterns": [
+        ".github/**",
+        "Dockerfile",
+        "frontend/Dockerfile",
+        "frontend/nginx.conf",
+        ".dockerignore",
+        "frontend/.dockerignore",
+        "compose*.yaml",
+        ".env.compose.example",
+        "tools/smoke_compose.py"
+      ],
+      "documents": [
+        "README.md",
+        "docs/operations/20-ci-cd-and-release.md",
+        "docs/operations/08-api-ui-and-local-run.md"
+      ]
     }
   ]
 }
