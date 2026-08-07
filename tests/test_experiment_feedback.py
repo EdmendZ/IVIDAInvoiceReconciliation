@@ -9,6 +9,7 @@ from app.domain.document_versions import (
     DocumentVersionStatus,
     ReviewAction,
 )
+from app.domain.document_sources import DocumentSourceKind, DocumentTrustMethod
 from app.domain.documents import DocumentType
 from app.domain.extraction_runs import ExtractionRun, ExtractionRunStatus
 from app.experiments.domain import FeedbackClassification
@@ -116,6 +117,8 @@ def _service():
         status=DocumentVersionStatus.DRAFT,
         created_by="reviewer-1",
         created_at=NOW,
+        source_kind=DocumentSourceKind.INVOICE_UPLOAD,
+        trust_method=DocumentTrustMethod.UNTRUSTED,
     )
     action = ReviewAction(
         action_id="action-1",

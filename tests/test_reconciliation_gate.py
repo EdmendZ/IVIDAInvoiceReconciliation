@@ -6,6 +6,7 @@ from app.domain.document_versions import (
     DocumentVersion,
     DocumentVersionStatus,
 )
+from app.domain.document_sources import DocumentSourceKind, DocumentTrustMethod
 from app.domain.documents import DocumentType
 from app.services.reconciliation_application_service import (
     DocumentNotApproved,
@@ -93,6 +94,16 @@ def _version(
             else None
         ),
         created_at=datetime.now(UTC),
+        source_kind=(
+            DocumentSourceKind.INVOICE_UPLOAD
+            if document_type == DocumentType.INVOICE
+            else DocumentSourceKind.EXTERNAL_RECEIVE_NOTE_UPLOAD
+        ),
+        trust_method=(
+            DocumentTrustMethod.HUMAN_APPROVED
+            if status == DocumentVersionStatus.APPROVED
+            else DocumentTrustMethod.UNTRUSTED
+        ),
     )
 
 

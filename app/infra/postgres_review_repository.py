@@ -11,6 +11,8 @@ from app.domain.document_versions import (
     DocumentVersionStatus,
     ReviewAction,
 )
+from app.domain.document_sources import DocumentSourceKind, DocumentTrustMethod
+from app.domain.documents import DocumentType
 from app.infra.database_models import DocumentVersionRow, ReviewActionRow
 
 
@@ -59,6 +61,12 @@ class PostgresReviewRepository:
                 status=DocumentVersionStatus.DRAFT,
                 created_by=created_by,
                 created_at=datetime.now(UTC),
+                source_kind=(
+                    DocumentSourceKind.INVOICE_UPLOAD
+                    if DocumentType(document_type) == DocumentType.INVOICE
+                    else DocumentSourceKind.EXTERNAL_RECEIVE_NOTE_UPLOAD
+                ),
+                trust_method=DocumentTrustMethod.UNTRUSTED,
             )
             session.add(DocumentVersionRow(**version.model_dump(mode="python")))
             session.commit()
@@ -119,6 +127,7 @@ class PostgresReviewRepository:
                     status=DocumentVersionStatus.APPROVED.value,
                     approved_by=user_id,
                     approved_at=now,
+                    trust_method=DocumentTrustMethod.HUMAN_APPROVED.value,
                 )
             )
             if result.rowcount != 1:

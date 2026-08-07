@@ -7,6 +7,7 @@ from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import sessionmaker
 from sqlalchemy.pool import StaticPool
 
+from app.domain.document_sources import DocumentSourceKind, DocumentTrustMethod
 from app.domain.document_versions import DocumentVersion, DocumentVersionStatus
 from app.domain.documents import DocumentType
 from app.domain.reconciliation import (
@@ -129,6 +130,12 @@ def _approved_version(
         approved_by="reviewer-1",
         approved_at=NOW,
         created_at=NOW,
+        source_kind=(
+            DocumentSourceKind.INVOICE_UPLOAD
+            if document_type == DocumentType.INVOICE
+            else DocumentSourceKind.EXTERNAL_RECEIVE_NOTE_UPLOAD
+        ),
+        trust_method=DocumentTrustMethod.HUMAN_APPROVED,
     )
 
 
@@ -302,6 +309,12 @@ def test_atomic_create_inserts_parent_rows_before_foreign_key_children() -> None
                     "approved_by": "reviewer-1",
                     "approved_at": NOW,
                     "created_at": NOW,
+                    "source_kind": (
+                        "invoice_upload"
+                        if document_type == "invoice"
+                        else "external_receive_note_upload"
+                    ),
+                    "trust_method": "human_approved",
                 }
                 for version_id, document_type in [
                     ("invoice-version-1", "invoice"),
