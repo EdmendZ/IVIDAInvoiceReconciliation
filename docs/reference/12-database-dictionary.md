@@ -91,16 +91,25 @@ SQLAlchemy 映射位于 `app/infra/database_models.py`，Schema 演进位于
 
 ### `document_versions`
 
-人工审核版本：
+人工上传或结构化上游记录共享的规范版本表：
 
-- task_id 和 source_draft_id；
-- version_number；
+- task_id、source_draft_id、version_number：上传来源必填，Taptouch 来源为空；
 - document_type 和 document_json；
 - draft/approved/rejected；
-- created_by、approved_by、approved_at。
+- created_by、approved_by、approved_at；
+- source_kind：`invoice_upload`、`external_receive_note_upload`、
+  `taptouch_receiving`；
+- trust_method：`untrusted`、`human_approved`、`upstream_authoritative`；
+- source_system；
+- external_tenant_id、external_brand_id、external_store_id、
+  external_supplier_id、external_receiving_id；
+- external_version、record_status、upstream_updated_at。
 
-`task_id + version_number` 唯一。Draft 使用 RESTRICT 关系，避免有 Version 时
-删除来源 Draft。
+上传来源保持 `task_id + version_number` 唯一，Draft 使用 RESTRICT 关系。
+Taptouch 来源使用 `source_system + external_tenant_id + external_store_id +
+external_receiving_id + external_version` 唯一。Check Constraints 保证上传链路与
+上游链路不能混合：Taptouch 只能是 approved、upstream_authoritative 的
+Receive Note，且不能伪造 task/draft/created_by/approved_by。
 
 ### `review_actions`
 

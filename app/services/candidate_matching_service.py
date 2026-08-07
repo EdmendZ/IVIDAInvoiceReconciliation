@@ -6,8 +6,9 @@
 from __future__ import annotations
 
 import re
-from datetime import date
+from datetime import date, datetime
 
+from app.domain.document_sources import DocumentSourceKind, DocumentTrustMethod
 from app.domain.documents import Invoice, LineItem, ReceiveNote
 from app.domain.reconciliation_candidates import (
     CandidateSignal,
@@ -112,6 +113,12 @@ def assess_candidate(
     invoice: Invoice,
     receive_note: ReceiveNote,
     receive_note_version_id: str,
+    source_kind: DocumentSourceKind = DocumentSourceKind.EXTERNAL_RECEIVE_NOTE_UPLOAD,
+    trust_method: DocumentTrustMethod = DocumentTrustMethod.HUMAN_APPROVED,
+    external_store_id: str | None = None,
+    external_receiving_id: str | None = None,
+    external_version: int | None = None,
+    upstream_updated_at: datetime | None = None,
 ) -> ReconciliationCandidate:
     """用身份、币种、日期和商品重叠信号评估一张收货单。"""
 
@@ -253,6 +260,12 @@ def assess_candidate(
             if receive_note.document_date
             else None
         ),
+        source_kind=source_kind,
+        trust_method=trust_method,
+        external_store_id=external_store_id,
+        external_receiving_id=external_receiving_id,
+        external_version=external_version,
+        upstream_updated_at=upstream_updated_at,
         score=bounded_score,
         confidence=confidence,
         recommended=bounded_score >= 60 and not has_blocking_conflict,

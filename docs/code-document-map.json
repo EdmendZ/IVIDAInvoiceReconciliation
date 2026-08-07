@@ -1,6 +1,25 @@
 {
   "groups": [
     {
+      "name": "taptouch-receiving-integration",
+      "code_patterns": [
+        "app/domain/document_sources.py",
+        "app/domain/taptouch_receiving.py",
+        "app/services/taptouch_receiving_import_service.py",
+        "app/infra/postgres_taptouch_receiving_repository.py",
+        "app/api/integration_auth.py",
+        "app/api/taptouch_integration_routes.py"
+      ],
+      "documents": [
+        "docs/business/00-product-positioning.md",
+        "docs/business/02-taptouch-receiving-integration.md",
+        "docs/business/08-product-gaps-and-roadmap.md",
+        "docs/reference/11-api-contracts.md",
+        "docs/reference/12-database-dictionary.md",
+        "README.md"
+      ]
+    },
+    {
       "name": "document-lifecycle-and-worker",
       "code_patterns": [
         "app/domain/extraction_*.py",

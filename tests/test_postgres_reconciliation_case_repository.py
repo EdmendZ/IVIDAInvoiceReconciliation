@@ -342,6 +342,27 @@ def test_terminal_item_trigger_locks_parent_cases_in_stable_order() -> None:
     )
 
 
+def test_provenance_backfill_temporarily_suspends_approved_version_trigger() -> None:
+    output = StringIO()
+    config = Config("alembic.ini", output_buffer=output)
+    config.set_main_option("path_separator", "os")
+
+    command.upgrade(config, "head", sql=True)
+
+    sql = " ".join(output.getvalue().lower().split())
+    disable = sql.index(
+        "alter table document_versions disable trigger "
+        "protect_approved_document_versions"
+    )
+    backfill = sql.index("update document_versions set source_kind", disable)
+    enable = sql.index(
+        "alter table document_versions enable trigger "
+        "protect_approved_document_versions",
+        backfill,
+    )
+    assert disable < backfill < enable
+
+
 def test_cross_reconciliation_item_and_cross_case_action_are_rejected_on_sqlite() -> None:
     factory = _factory()
     writer = PostgresReconciliationRepository(factory)

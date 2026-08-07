@@ -11,6 +11,12 @@ from app.domain.document_versions import (
     DocumentVersionStatus,
     ReviewAction,
 )
+from app.domain.document_sources import (
+    DocumentSourceKind,
+    DocumentTrustMethod,
+    UpstreamRecordStatus,
+)
+from app.domain.documents import DocumentType
 from app.infra.database_models import DocumentVersionRow, ReviewActionRow
 
 
@@ -59,6 +65,12 @@ class PostgresReviewRepository:
                 status=DocumentVersionStatus.DRAFT,
                 created_by=created_by,
                 created_at=datetime.now(UTC),
+                source_kind=(
+                    DocumentSourceKind.INVOICE_UPLOAD
+                    if DocumentType(document_type) == DocumentType.INVOICE
+                    else DocumentSourceKind.EXTERNAL_RECEIVE_NOTE_UPLOAD
+                ),
+                trust_method=DocumentTrustMethod.UNTRUSTED,
             )
             session.add(DocumentVersionRow(**version.model_dump(mode="python")))
             session.commit()
@@ -85,9 +97,73 @@ class PostgresReviewRepository:
                 select(DocumentVersionRow).where(
                     DocumentVersionRow.version_id == version_id,
                     DocumentVersionRow.status == DocumentVersionStatus.APPROVED.value,
+                    DocumentVersionRow.trust_method.in_(
+                        [
+                            DocumentTrustMethod.HUMAN_APPROVED.value,
+                            DocumentTrustMethod.UPSTREAM_AUTHORITATIVE.value,
+                        ]
+                    ),
                 )
             ).scalar_one_or_none()
-            return self._to_version(row) if row else None
+            if row is None:
+                return None
+            version = self._to_version(row)
+            if version.source_kind != DocumentSourceKind.TAPTOUCH_RECEIVING:
+                return version
+            if version.record_status != UpstreamRecordStatus.ACTIVE:
+                return None
+            latest = session.execute(
+                select(func.max(DocumentVersionRow.external_version)).where(
+                    DocumentVersionRow.source_system == version.source_system,
+                    DocumentVersionRow.external_tenant_id
+                    == version.external_tenant_id,
+                    DocumentVersionRow.external_store_id == version.external_store_id,
+                    DocumentVersionRow.external_receiving_id
+                    == version.external_receiving_id,
+                )
+            ).scalar_one()
+            return version if version.external_version == latest else None
+
+    def list_reconciliation_versions(self) -> list[DocumentVersion]:
+        """Return trusted uploads and only the current active upstream snapshot."""
+
+        with self._session_factory() as session:
+            rows = session.execute(
+                select(DocumentVersionRow)
+                .where(
+                    DocumentVersionRow.status
+                    == DocumentVersionStatus.APPROVED.value,
+                    DocumentVersionRow.trust_method.in_(
+                        [
+                            DocumentTrustMethod.HUMAN_APPROVED.value,
+                            DocumentTrustMethod.UPSTREAM_AUTHORITATIVE.value,
+                        ]
+                    ),
+                )
+                .order_by(
+                    DocumentVersionRow.external_version.desc().nullslast(),
+                    DocumentVersionRow.created_at.desc(),
+                )
+            ).scalars()
+            result: list[DocumentVersion] = []
+            seen_external: set[tuple[str | None, ...]] = set()
+            for row in rows:
+                version = self._to_version(row)
+                if version.source_kind != DocumentSourceKind.TAPTOUCH_RECEIVING:
+                    result.append(version)
+                    continue
+                identity = (
+                    version.source_system,
+                    version.external_tenant_id,
+                    version.external_store_id,
+                    version.external_receiving_id,
+                )
+                if identity in seen_external:
+                    continue
+                seen_external.add(identity)
+                if version.record_status == UpstreamRecordStatus.ACTIVE:
+                    result.append(version)
+            return result
 
     def list_versions(
         self,
@@ -119,6 +195,7 @@ class PostgresReviewRepository:
                     status=DocumentVersionStatus.APPROVED.value,
                     approved_by=user_id,
                     approved_at=now,
+                    trust_method=DocumentTrustMethod.HUMAN_APPROVED.value,
                 )
             )
             if result.rowcount != 1:

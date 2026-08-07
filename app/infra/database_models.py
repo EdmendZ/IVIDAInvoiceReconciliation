@@ -377,27 +377,27 @@ class DocumentVersionRow(Base):
     __tablename__ = "document_versions"
 
     version_id: Mapped[str] = mapped_column(String(36), primary_key=True)
-    task_id: Mapped[str] = mapped_column(
+    task_id: Mapped[str | None] = mapped_column(
         String(36),
         ForeignKey("extraction_tasks.task_id", ondelete="CASCADE"),
-        nullable=False,
+        nullable=True,
     )
-    source_draft_id: Mapped[str] = mapped_column(
+    source_draft_id: Mapped[str | None] = mapped_column(
         String(36),
         ForeignKey("document_drafts.draft_id", ondelete="RESTRICT"),
-        nullable=False,
+        nullable=True,
     )
-    version_number: Mapped[int] = mapped_column(Integer, nullable=False)
+    version_number: Mapped[int | None] = mapped_column(Integer, nullable=True)
     document_type: Mapped[str] = mapped_column(String(32), nullable=False)
     document_json: Mapped[dict] = mapped_column(
         JSON().with_variant(JSONB(), "postgresql"),
         nullable=False,
     )
     status: Mapped[str] = mapped_column(String(32), nullable=False)
-    created_by: Mapped[str] = mapped_column(
+    created_by: Mapped[str | None] = mapped_column(
         String(36),
         ForeignKey("admin_users.user_id", ondelete="RESTRICT"),
-        nullable=False,
+        nullable=True,
     )
     approved_by: Mapped[str | None] = mapped_column(
         String(36),
@@ -412,6 +412,20 @@ class DocumentVersionRow(Base):
         DateTime(timezone=True),
         nullable=False,
     )
+    source_kind: Mapped[str] = mapped_column(String(64), nullable=False)
+    trust_method: Mapped[str] = mapped_column(String(64), nullable=False)
+    source_system: Mapped[str | None] = mapped_column(String(64), nullable=True)
+    external_tenant_id: Mapped[str | None] = mapped_column(String(255), nullable=True)
+    external_brand_id: Mapped[str | None] = mapped_column(String(255), nullable=True)
+    external_store_id: Mapped[str | None] = mapped_column(String(255), nullable=True)
+    external_supplier_id: Mapped[str | None] = mapped_column(String(255), nullable=True)
+    external_receiving_id: Mapped[str | None] = mapped_column(String(255), nullable=True)
+    external_version: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    record_status: Mapped[str | None] = mapped_column(String(32), nullable=True)
+    upstream_updated_at: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True),
+        nullable=True,
+    )
 
     __table_args__ = (
         Index("ix_document_versions_task_id", "task_id"),
@@ -421,6 +435,51 @@ class DocumentVersionRow(Base):
             "task_id",
             "version_number",
             unique=True,
+        ),
+        UniqueConstraint(
+            "source_system",
+            "external_tenant_id",
+            "external_store_id",
+            "external_receiving_id",
+            "external_version",
+            name="uq_document_versions_external_version",
+        ),
+        CheckConstraint(
+            "source_kind IN ('invoice_upload', "
+            "'external_receive_note_upload', 'taptouch_receiving')",
+            name="ck_document_versions_source_kind",
+        ),
+        CheckConstraint(
+            "trust_method IN ('human_approved', "
+            "'upstream_authoritative', 'untrusted')",
+            name="ck_document_versions_trust_method",
+        ),
+        CheckConstraint(
+            "(source_kind IN ('invoice_upload', 'external_receive_note_upload') "
+            "AND ((source_kind = 'invoice_upload' AND document_type = 'invoice') "
+            "OR (source_kind = 'external_receive_note_upload' "
+            "AND document_type = 'receive_note')) "
+            "AND task_id IS NOT NULL AND source_draft_id IS NOT NULL "
+            "AND version_number IS NOT NULL AND created_by IS NOT NULL "
+            "AND source_system IS NULL AND external_tenant_id IS NULL "
+            "AND external_brand_id IS NULL AND external_store_id IS NULL "
+            "AND external_supplier_id IS NULL "
+            "AND external_receiving_id IS NULL AND external_version IS NULL "
+            "AND record_status IS NULL AND upstream_updated_at IS NULL "
+            "AND ((status = 'approved' AND trust_method = 'human_approved') "
+            "OR (status <> 'approved' AND trust_method = 'untrusted'))) OR "
+            "(source_kind = 'taptouch_receiving' AND document_type = 'receive_note' "
+            "AND task_id IS NULL AND source_draft_id IS NULL "
+            "AND version_number IS NULL AND created_by IS NULL "
+            "AND approved_by IS NULL AND source_system = 'taptouch' "
+            "AND external_tenant_id IS NOT NULL AND external_store_id IS NOT NULL "
+            "AND external_supplier_id IS NOT NULL "
+            "AND external_receiving_id IS NOT NULL AND external_version IS NOT NULL "
+            "AND record_status IN ('active', 'voided') "
+            "AND external_version >= 1 AND upstream_updated_at IS NOT NULL "
+            "AND approved_at IS NOT NULL AND status = 'approved' "
+            "AND trust_method = 'upstream_authoritative')",
+            name="ck_document_versions_source_shape",
         ),
     )
 

@@ -42,6 +42,7 @@ services:
       MINIO_SECRET_KEY: ${MINIO_ROOT_PASSWORD:-ivida-demo-only}
       MINIO_BUCKET_NAME: ${MINIO_BUCKET_NAME:-ivida-invoice-documents}
       MINIO_SECURE: "false"
+      TAPTOUCH_INTEGRATION_TOKEN: ${TAPTOUCH_INTEGRATION_TOKEN:-change-me-for-local-demo}
       MODEL_PROVIDER: disabled
       MINERU_API_TOKEN: ${MINERU_API_TOKEN:-disabled-local-demo}
       NORMALIZATION_API_KEY: ${NORMALIZATION_API_KEY:-disabled-local-demo}

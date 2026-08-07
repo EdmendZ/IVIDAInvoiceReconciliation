@@ -6,7 +6,6 @@ from pydantic import BaseModel
 from app.api.auth_dependencies import require_reviewer
 from app.api.dependencies import get_review_service
 from app.domain.admin_users import AuthenticatedUser
-from app.domain.document_versions import DocumentVersionStatus
 from app.domain.documents import DocumentType
 from app.infra.postgres_review_repository import (
     ApprovedVersionImmutable,
@@ -69,7 +68,7 @@ def list_approved_versions(
     del user
     return [
         version.model_dump(mode="json")
-        for version in service.list_versions(DocumentVersionStatus.APPROVED)
+        for version in service.list_reconciliation_versions()
     ]
 
 

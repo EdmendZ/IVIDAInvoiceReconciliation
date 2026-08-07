@@ -301,6 +301,11 @@ class ReviewService:
 
         return self._reviews.list_versions(status=status)
 
+    def list_reconciliation_versions(self) -> list[DocumentVersion]:
+        """列出当前可用于对账的人工批准或上游权威版本。"""
+
+        return self._reviews.list_reconciliation_versions()
+
     def list_queue(self) -> list[dict]:
         """为审核队列组合每个 Task 最新 Version 与机器问题摘要。"""
 
