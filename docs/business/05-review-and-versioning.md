@@ -99,6 +99,18 @@ Invoice 和 Receive Note 可能布局相似。如果一张发票被误分类为�
 
 不能只依赖前端，因为 HTTP 请求可以绕过 UI，浏览器状态也可能过期。
 
+## 审核修改如何形成模型反馈
+
+`FeedbackService` 从不可变 Version、追加式 `ReviewAction`、精确来源 Draft 和原始
+Extraction Run 组合出可追溯候选，记录模型/Prompt、字段路径及 old/new value。
+字典递归比较；商品行先按唯一 SKU、再按规范化描述匹配，避免排序变化制造伪差异；
+没有稳定身份或存在重复身份时退回整个 `items` 列表差异，不冒充精确字段反馈。
+
+候选不会自动成为 Gold。只有 Admin 可以确认分类，并且只有 `model_error` 能将
+`include_in_gold` 设为 true；可接受变体、人工纠错错误和业务上下文新增都保留审计，
+但不能作为模型应从原件推断出的标准答案。重复收集保持幂等；已确认判断发生变化时
+创建带 `supersedes_candidate_id` 的新候选，不覆盖原确认记录。
+
 ## 常见追问
 
 ### 为什么不是“四眼审批”
@@ -110,7 +122,8 @@ Pilot 当前只有 reviewer/admin 角色和单人批准。生产财务系统通�
 
 Evidence 描述的是机器抽取时的原文来源。人工编辑后应结合原件再次核对。
 当前 Version 保存修改动作，但尚未为每次人工修改生成独立 Evidence，这是一项
-可明确说明的改进方向。
+可明确说明的改进方向。Feedback Candidate 保存的是治理和训练评测线索，不等于
+原件 Evidence。
 
 ### 为什么批准版本必须不可变
 
@@ -124,3 +137,4 @@ Evidence 描述的是机器抽取时的原文来源。人工编辑后应结合�
 - Live Validation 改善体验，Server Validation 才是信任边界；
 - Reclassification 解决同号 Invoice/Receive Note 的严重误分类风险；
 - Approved Version 是核对服务唯一可信输入。
+- Reviewer 修改只是反馈候选；Admin 分类确认后，只有模型错误才有 Gold 资格。
