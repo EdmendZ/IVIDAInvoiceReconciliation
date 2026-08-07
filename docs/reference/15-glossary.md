@@ -58,6 +58,27 @@ Draft、Version 混用，代码能运行，团队仍会在需求和面试中产�
 | Invoice Only | 商品只出现在发票 |
 | Receive Note Only | 商品只出现在收货记录 |
 
+## 差异处理 Case
+
+| 术语 | 含义 |
+|---|---|
+| Reconciliation Case | 对一个需要人工复核的核对结果进行调查、处置和审批的业务对象 |
+| Case Item | Case 内一项可处置差异，可以是商品行、采购订单冲突或币种冲突 |
+| Case Claim / 认领 | Reviewer 主动承担一个未分配 Case 的业务处理责任 |
+| Assignee / 负责人 | 当前有权编辑 `in_progress` Case Item 的 Reviewer |
+| Resolution Type | Reviewer 为 Case Item 选择的标准化处置结论 |
+| Business Exception | 差异真实但业务上可接受；全部 Item 均为该类型时可提交批准 |
+| Document Data Error | 来源单据数据错误，需要提交作废 |
+| Matching Error | 候选单据或商品匹配错误，需要提交作废 |
+| Waiting for Documents | 等待补充证据的临时结论，会阻止提交 |
+| Reassign / 改派 | Admin 把未结束的已分配 Case 转交给另一有效 Reviewer，并记录原因 |
+| Return / 退回 | Admin 将待决 Case 退回 Reviewer 继续处理，并记录原因 |
+| Revision | Case 的递增并发版本；修改请求必须携带当前值以防覆盖他人更新 |
+| Case Action | 认领、处置变更、提交、退回等不可变的追加式审计事件 |
+
+Case Claim 与下文的 Worker Claim 只是中文都可译为“领取”，业务不同：前者分配人工
+调查责任，后者通过数据库锁和 Lease 分配异步计算任务。
+
 ## 异步与可靠性
 
 | 术语 | 含义 |

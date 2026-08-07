@@ -11,7 +11,7 @@
 
 | 存储 | 保存内容 |
 |---|---|
-| PostgreSQL | Task、Run、解析文本、Draft、Evidence、Issue、Version、Action、Session、Reconciliation |
+| PostgreSQL | Task、Run、解析文本、Draft、Evidence、Issue、Version、Action、Session、Reconciliation、Case/Item/Case Action |
 | MinIO | 原始 PDF/图片、MinerU ZIP 产物 |
 
 MongoDB 和 Milvus 当前都不是发票核对链路的依赖。
@@ -39,6 +39,8 @@ flowchart TD
 - 一个 Task 可以产生多个 Version；
 - 每个 Version 有多条 Review Action；
 - 一次 Reconciliation 引用一个 Invoice Version 和多个 Receive Note Version。
+- 只有异常 Reconciliation 拥有唯一的 Reconciliation Case；Case 再拥有多条
+  Case Item 和只追加的 Case Action。
 
 ## 为什么解析 Markdown 存 PostgreSQL，ZIP 存 MinIO
 
@@ -91,6 +93,44 @@ Task/Run ID 使不同项目、不同上传和不同尝试不会覆盖彼此。
 PostgreSQL 相比 MongoDB 的主要优势不是“更高级”，而是关系、约束、事务和
 条件更新更符合此业务。
 
+## Reconciliation 与 Case 的数据边界
+
+`reconciliations.result_json` 和 `reconciliation_line_results` 保存规则引擎生成的
+不可变计算快照。人工处置不会改写数量、金额、匹配状态或 `requires_review`；
+`reconciliation_cases`、`case_items` 和 `case_actions` 单独保存负责人、处理结论、
+流程状态和审计历史。清洁结果不创建 Case，`cleared` 只是读取时的展示含义。
+
+`ReconciliationApplicationService.compare` 在计算结果后先生成稳定的行结果 ID，
+再由纯 Factory 为异常结果生成 Case、Item 和初始 `created` Action。
+`PostgresReconciliationRepository.create` 使用同一个 Session 依次写入 Reconciliation、
+Receive Note 关联、行结果和可选 Case 聚合。因为这些 Row 没有 ORM relationship，
+Repository 会在外键父子层之间显式 flush 以固定真实数据库的插入顺序，但最后仍只
+提交一次。因此任一 Case Item 或 Action 写入失败时，Reconciliation 也会一起回滚，
+不会留下“有异常、无待办”的部分成功状态。
+
+## Case 并发与不可变保护
+
+- `reconciliation_cases` 对 `reconciliation_id` 唯一，保证一个异常快照最多一个 Case；
+- `revision` 从 1 开始，每次写操作都携带 `expected_revision`；Repository 用
+  `case_id + revision` 条件更新，认领还把 `status=unassigned` 和负责人为空放进
+  同一 UPDATE；未命中时区分 `CASE_ALREADY_CLAIMED` 与 `CASE_REVISION_CONFLICT`；
+- 认领还要求 Case 仍为 `unassigned` 且没有负责人，因此并发认领只有一个提交者
+  能获得负责人身份；
+- 每次成功变更在同一事务更新 Case/Item、递增 revision，并追加恰好一条 Action；
+- 独立详情读取在多条 SELECT 前后核对 revision 并有限重试，避免 READ COMMITTED
+  下混入两个版本；mutation 响应从刚提交的 bundle 构造，不在 commit 后重新读取
+  可能已被下一位操作者推进的当前状态；
+- 复合外键在数据库层强制 Item 行属于 Case 的 Reconciliation，并强制 Item Action
+  只能引用同一 `case_id` 下的 Item；
+- `case_actions` 的 PostgreSQL 触发器拒绝 UPDATE/DELETE；Case 进入 `approved` 或
+  `voided` 后，Case 拒绝 UPDATE/DELETE，Item 拒绝 INSERT/UPDATE/DELETE。Item 触发器在检查
+  父 Case 时加行锁，避免终态转换与 Item 更新竞态穿透。
+
+服务层仍是权限和状态机的第一道边界：只有当前负责人 Reviewer 能编辑和提交，
+Admin 负责重新分派与最终决定。数据库触发器用于阻止绕过服务的终态或审计篡改，
+不能替代服务层规则。终态不提供恢复；需要纠正时必须批准正确的新单据版本并创建
+新的 Reconciliation。
+
 ## Worker 租约
 
 `claim_next()` 不是简单读取第一条 queued 记录。Repository 必须原子地声明：
@@ -125,7 +165,8 @@ Runtime API 根据 `last_seen_at` 是否超过阈值判断 online/offline。它�
 7. reconciliation records；
 8. worker heartbeats；
 9. cancellation；
-10. model provenance。
+10. model provenance；
+11. reconciliation cases、case items、case actions 与不可变触发器。
 
 这组迁移本身反映了项目的设计演进：先建立文件与任务，再增加 AI 解析、
 人工治理、核对和可观测性。
@@ -145,6 +186,8 @@ Runtime API 根据 `last_seen_at` 是否超过阈值判断 online/offline。它�
 
 - PostgreSQL 保存关系和审计状态，MinIO 保存二进制对象；
 - Task/Run/Draft/Version 的外键关系表达业务生命周期；
+- Reconciliation 计算快照与 Case 人工流程分表，避免人工操作污染确定性结果；
+- 单事务创建、条件 revision 更新和追加式 Action 分别解决部分成功、丢失更新和审计覆盖；
 - Magic Bytes 比浏览器 MIME 更可信；
 - 租约与心跳解决不同问题：前者防重复领取，后者说明 Worker 是否活着；
 - 当前单 Worker Pilot 不应包装成高可用平台。

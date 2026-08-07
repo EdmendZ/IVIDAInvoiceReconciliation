@@ -16,13 +16,23 @@ from app.domain.reconciliation import (
     ReconciliationTolerance,
 )
 from app.domain.reconciliation_candidates import ReconciliationCandidate
-from app.domain.reconciliation_records import ReconciliationRecord
+from app.domain.reconciliation_records import (
+    ReconciliationPersistenceBundle,
+    ReconciliationRecord,
+)
 from app.services.candidate_matching_service import assess_candidate
+from app.services.reconciliation_case_factory import build_case_bundle
 from app.services.reconciliation_service import reconcile
 
 
 class DocumentNotApproved(RuntimeError):
     """输入版本未批准或业务类型与调用位置不一致。"""
+
+    pass
+
+
+class ReconciliationNotFound(LookupError):
+    """请求的已持久化核对记录不存在。"""
 
     pass
 
@@ -39,10 +49,15 @@ class ApprovedVersionReader(Protocol):
     ) -> list[DocumentVersion]: ...
 
 
-class ReconciliationWriter(Protocol):
-    """保存核对输入版本和确定性结果的最小写端口。"""
+class ReconciliationRepository(Protocol):
+    """保存并读取不可变核对结果的最小持久化端口。"""
 
-    def create(self, record: ReconciliationRecord) -> ReconciliationRecord: ...
+    def create(
+        self,
+        bundle: ReconciliationPersistenceBundle,
+    ) -> ReconciliationRecord: ...
+
+    def get(self, reconciliation_id: str) -> ReconciliationRecord | None: ...
 
 
 class ReconciliationApplicationService:
@@ -52,7 +67,7 @@ class ReconciliationApplicationService:
         self,
         *,
         review_repository: ApprovedVersionReader,
-        reconciliation_repository: ReconciliationWriter,
+        reconciliation_repository: ReconciliationRepository,
     ) -> None:
         self._reviews = review_repository
         self._reconciliations = reconciliation_repository
@@ -118,18 +133,32 @@ class ReconciliationApplicationService:
                 tolerance=tolerance or ReconciliationTolerance(),
             )
         )
+        now = datetime.now(UTC)
+        record = ReconciliationRecord(
+            reconciliation_id=str(uuid4()),
+            invoice_version_id=invoice_version.version_id,
+            receive_note_version_ids=[version.version_id for version in note_versions],
+            result=result,
+            created_by=created_by,
+            created_at=now,
+        )
+        line_result_ids = [str(uuid4()) for _ in result.lines]
+        case = build_case_bundle(record, line_result_ids, now=now)
         return self._reconciliations.create(
-            ReconciliationRecord(
-                reconciliation_id=str(uuid4()),
-                invoice_version_id=invoice_version.version_id,
-                receive_note_version_ids=[
-                    version.version_id for version in note_versions
-                ],
-                result=result,
-                created_by=created_by,
-                created_at=datetime.now(UTC),
+            ReconciliationPersistenceBundle(
+                record=record,
+                line_result_ids=line_result_ids,
+                case=case,
             )
         )
+
+    def get_record(self, reconciliation_id: str) -> ReconciliationRecord:
+        """返回持久化快照；不存在时使用稳定业务异常而非泄漏仓储细节。"""
+
+        record = self._reconciliations.get(reconciliation_id)
+        if record is None:
+            raise ReconciliationNotFound("Reconciliation not found")
+        return record
 
     def _require_approved(
         self,

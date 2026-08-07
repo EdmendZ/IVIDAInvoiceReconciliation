@@ -5,6 +5,8 @@ import { ReviewDocumentPage } from "../review/ReviewDocumentPage";
 import { ReviewQueuePage } from "../review/ReviewQueuePage";
 import { UploadPage } from "../upload/UploadPage";
 import { ReconciliationPage } from "../reconcile/ReconciliationPage";
+import { CaseDetailPage } from "../cases/CaseDetailPage";
+import { CaseQueuePage } from "../cases/CaseQueuePage";
 
 export function App() {
   const [user, setUser] = useState<User | null | undefined>(undefined);
@@ -42,6 +44,7 @@ export function App() {
   }
 
   const versionMatch = path.match(/^\/review\/([^/]+)$/);
+  const caseMatch = path.match(/^\/cases\/([^/]+)$/);
 
   return (
     <div className="app-shell">
@@ -69,6 +72,12 @@ export function App() {
           >
             Reconcile
           </button>
+          <button
+            className={path === "/cases" || caseMatch ? "active" : ""}
+            onClick={() => navigate("/cases")}
+          >
+            Cases
+          </button>
         </nav>
         <div className="user-chip">
           <span>{user.username}</span>
@@ -89,6 +98,14 @@ export function App() {
           <UploadPage onNavigate={navigate} />
         ) : path === "/reconcile" ? (
           <ReconciliationPage />
+        ) : caseMatch ? (
+          <CaseDetailPage
+            caseId={decodeURIComponent(caseMatch[1])}
+            user={user}
+            onNavigate={navigate}
+          />
+        ) : path === "/cases" ? (
+          <CaseQueuePage user={user} onNavigate={navigate} />
         ) : versionMatch ? (
           <ReviewDocumentPage
             versionId={decodeURIComponent(versionMatch[1])}

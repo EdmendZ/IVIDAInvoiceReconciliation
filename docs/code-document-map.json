@@ -52,10 +52,14 @@
       "name": "reconciliation",
       "code_patterns": [
         "app/domain/reconciliation*.py",
+        "app/domain/reconciliation_cases.py",
         "app/services/candidate_matching_service.py",
         "app/services/reconciliation*.py",
+        "app/services/reconciliation_case_*.py",
         "app/infra/postgres_reconciliation_repository.py",
-        "frontend/src/reconcile/**"
+        "app/infra/postgres_reconciliation_case_repository.py",
+        "frontend/src/reconcile/**",
+        "frontend/src/cases/**"
       ],
       "documents": [
         "docs/business/06-reconciliation-rules.md",
@@ -114,6 +118,7 @@
         "app/services/auth_service.py",
         "app/services/runtime_status_service.py",
         "frontend/src/**",
+        "frontend/src/cases/**",
         "scripts/**",
         "run_api.py",
         "run_extraction_worker.py",

@@ -25,6 +25,10 @@ from app.services.validation_service import ValidationService
 from app.infra.postgres_reconciliation_repository import (
     PostgresReconciliationRepository,
 )
+from app.infra.postgres_admin_repository import PostgresAdminRepository
+from app.infra.postgres_reconciliation_case_repository import (
+    PostgresReconciliationCaseRepository,
+)
 from app.services.reconciliation_application_service import (
     ReconciliationApplicationService,
 )
@@ -32,6 +36,7 @@ from app.infra.postgres_worker_runtime_repository import (
     PostgresWorkerRuntimeRepository,
 )
 from app.services.runtime_status_service import RuntimeStatusService
+from app.services.reconciliation_case_service import ReconciliationCaseService
 
 
 @lru_cache
@@ -96,6 +101,30 @@ def get_reconciliation_application_service() -> ReconciliationApplicationService
         reconciliation_repository=PostgresReconciliationRepository(
             get_session_factory()
         ),
+    )
+
+
+@lru_cache
+def get_reconciliation_case_repository() -> PostgresReconciliationCaseRepository:
+    """返回差异 Case 仓储，统一承载读模型和乐观锁写入。"""
+
+    return PostgresReconciliationCaseRepository(get_session_factory())
+
+
+@lru_cache
+def get_admin_repository() -> PostgresAdminRepository:
+    """返回后台用户仓储，供认证和 Case 分派读取同一账号事实。"""
+
+    return PostgresAdminRepository(get_session_factory())
+
+
+@lru_cache
+def get_reconciliation_case_service() -> ReconciliationCaseService:
+    """装配差异处理工作流及有效 Reviewer 查询。"""
+
+    return ReconciliationCaseService(
+        get_reconciliation_case_repository(),
+        active_reviewer_reader=get_admin_repository(),
     )
 
 

@@ -10,6 +10,16 @@ export type User = {
   role: "reviewer" | "admin";
 };
 
+export class ApiError extends Error {
+  constructor(
+    message: string,
+    readonly status: number,
+    readonly code?: string,
+  ) {
+    super(message);
+  }
+}
+
 export async function api<T>(
   path: string,
   options: RequestInit = {},
@@ -26,8 +36,26 @@ export async function api<T>(
     window.dispatchEvent(new CustomEvent("ivida:unauthorized"));
   }
   if (!response.ok) {
-    const body = await response.json().catch(() => ({}));
-    throw new Error(body.detail ?? `Request failed (${response.status})`);
+    const body: unknown = await response.json().catch(() => ({}));
+    const detail =
+      typeof body === "object" && body !== null && "detail" in body
+        ? (body as { detail?: unknown }).detail
+        : undefined;
+    const structuredDetail =
+      typeof detail === "object" && detail !== null
+        ? (detail as { code?: unknown; message?: unknown })
+        : undefined;
+    const message =
+      typeof detail === "string"
+        ? detail
+        : typeof structuredDetail?.message === "string"
+          ? structuredDetail.message
+          : `Request failed (${response.status})`;
+    const code =
+      typeof structuredDetail?.code === "string"
+        ? structuredDetail.code
+        : undefined;
+    throw new ApiError(message, response.status, code);
   }
   if (response.status === 204) {
     return undefined as T;
@@ -51,4 +79,25 @@ export async function uploadDocument<T>(formData: FormData): Promise<T> {
     throw new Error(body.detail ?? `Upload failed (${response.status})`);
   }
   return response.json() as Promise<T>;
+}
+
+export async function downloadFile(path: string): Promise<void> {
+  const response = await fetch(path, { credentials: "include" });
+  if (response.status === 401) {
+    window.dispatchEvent(new CustomEvent("ivida:unauthorized"));
+  }
+  if (!response.ok) {
+    const body = await response.json().catch(() => ({}));
+    throw new Error(body.detail ?? `Download failed (${response.status})`);
+  }
+  const disposition = response.headers.get("Content-Disposition") ?? "";
+  const filename = disposition.match(/filename="([^"]+)"/)?.[1] ?? "export.csv";
+  const url = URL.createObjectURL(await response.blob());
+  const anchor = document.createElement("a");
+  anchor.href = url;
+  anchor.download = filename;
+  document.body.append(anchor);
+  anchor.click();
+  anchor.remove();
+  URL.revokeObjectURL(url);
 }

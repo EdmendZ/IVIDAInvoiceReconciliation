@@ -15,6 +15,8 @@ CORE_MODULES = [
     Path("app/services/review_service.py"),
     Path("app/services/candidate_matching_service.py"),
     Path("app/services/reconciliation_application_service.py"),
+    Path("app/services/reconciliation_case_factory.py"),
+    Path("app/services/reconciliation_case_service.py"),
     Path("app/services/reconciliation_service.py"),
     Path("app/workers/extraction_worker.py"),
     Path("app/evaluation/runner.py"),
@@ -28,6 +30,9 @@ CORE_PUBLIC_TYPES = {
     Path("app/services/review_service.py"): {"ReviewService"},
     Path("app/services/reconciliation_application_service.py"): {
         "ReconciliationApplicationService"
+    },
+    Path("app/services/reconciliation_case_service.py"): {
+        "ReconciliationCaseService"
     },
     Path("app/evaluation/runner.py"): {"ExtractionEvaluationRunner"},
 }

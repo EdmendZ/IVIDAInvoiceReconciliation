@@ -131,12 +131,42 @@ Application Service 先要求 Invoice Version 已批准，再遍历已批准 Rec
 - `app/api/routes.py::create_reconciliation`
 - `ReconciliationApplicationService.compare`
 - `reconciliation_service.reconcile`
+- `reconciliation_case_factory.build_case_bundle`
 - `PostgresReconciliationRepository.create`
 
 `compare()` 负责信任门禁和持久化；`reconcile()` 负责纯算法。这种分离让规则
-单元测试无需数据库。
+单元测试无需数据库。Application Service 在结果生成后为每行分配稳定 ID；异常
+结果交给纯 Case Factory 生成 Case、必须处理的 Items 和初始 `created` Action，
+清洁结果则返回空 Case。Repository 在同一个 Session 中写入计算快照、行结果和
+可选 Case 聚合；父子外键层之间显式 flush，但只在最后提交一次，任一步失败都会
+整体回滚。
 
-## 9. 模型评测
+## 9. 认领并处理差异 Case
+
+入口：
+
+- `frontend/src/cases/CaseQueuePage.tsx`
+- `frontend/src/cases/CaseDetailPage.tsx`
+- `app/api/reconciliation_case_routes.py`
+- `app/services/reconciliation_case_service.py`
+- `app/infra/postgres_reconciliation_case_repository.py`
+
+读取链路按 `(created_at, case_id)` 稳定排序。Reviewer 可以查看全部 Case，但只有
+当前负责人能修改 Item 或提交；`unassigned` Case 由 Reviewer 主动认领。Admin
+可以对已有负责人的非终态 Case 重新分派，并只在相应待决状态执行批准、退回或
+作废。前端按钮只是提示，权限、负责人和状态门禁都由 Service 再次校验。
+
+每个变更请求都带 `expected_revision`。Service 校验当前 revision 后只构造一个
+Action；Repository 用条件 UPDATE 递增 revision、更新当前读模型并在同一事务插入
+该 Action。条件未命中返回 `CASE_REVISION_CONFLICT`，前端刷新最新详情但不自动
+重放用户操作。认领竞争还会返回 `CASE_ALREADY_CLAIMED`，不会产生双负责人。
+
+`ReconciliationRecord` 始终是不可变的计算事实，Case 是可变人工流程；详情页不会
+把编辑后的 Reconciliation JSON 发回后端。`approved` 和 `voided` 是不可变终态，
+Service、Repository 条件更新和 PostgreSQL 触发器共同保护。若批准版本或匹配关系
+需要纠正，应创建新的批准版本和新的 Reconciliation，而不是恢复旧 Case。
+
+## 10. 模型评测
 
 入口：
 
@@ -160,6 +190,9 @@ Application Service 先要求 Invoice Version 已批准，再遍历已批准 Rec
 | 审核无法批准 | review_service、validation_service |
 | 候选不合理 | candidate_matching_service 及 signals |
 | 数量比对错误 | reconciliation_service `_aggregate` |
+| Case 无法认领或提交 | reconciliation_case_service 的角色、负责人、状态与 revision 门禁 |
+| Case 列表或历史异常 | postgres_reconciliation_case_repository 的筛选、排序和 Action join |
+| 同时操作提示冲突 | 请求的 `expected_revision` 与当前 Case revision |
 | 评测分数异常 | field_metrics、Gold、evidence path |
 
 ## 推荐源码阅读顺序
@@ -172,7 +205,9 @@ Application Service 先要求 Invoice Version 已批准，再遍历已批准 Rec
 6. `app/services/review_service.py`
 7. `app/services/candidate_matching_service.py`
 8. `app/services/reconciliation_service.py`
-9. `app/evaluation/runner.py`
-10. 最后阅读 PostgreSQL Repository 和 API 路由
+9. `app/services/reconciliation_case_factory.py`
+10. `app/services/reconciliation_case_service.py`
+11. `app/evaluation/runner.py`
+12. 最后阅读 PostgreSQL Repository 和 API 路由
 
 先理解业务再读基础设施，可以避免把 SQLAlchemy 字段误当成架构本身。

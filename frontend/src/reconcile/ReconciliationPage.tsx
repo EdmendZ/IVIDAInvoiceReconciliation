@@ -1,6 +1,6 @@
 import { useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { api } from "../api/client";
+import { api, downloadFile } from "../api/client";
 
 /**
  * 对账页分成两个不同决策：
@@ -123,6 +123,18 @@ export function ReconciliationPage() {
       setError(problem instanceof Error ? problem.message : "Comparison failed");
     } finally {
       setBusy(false);
+    }
+  }
+
+  async function exportCsv() {
+    if (!result) return;
+    setError("");
+    try {
+      await downloadFile(
+        `/api/reconciliations/${encodeURIComponent(result.reconciliation_id)}/export.csv`,
+      );
+    } catch (problem) {
+      setError(problem instanceof Error ? problem.message : "Export failed");
     }
   }
 
@@ -271,6 +283,7 @@ export function ReconciliationPage() {
                 ? "Review required"
                 : "Matched"}
             </span>
+            <button onClick={exportCsv}>Export CSV</button>
           </div>
           <div className="metric-strip">
             <div><strong>{result.result.summary.total_lines}</strong><span>Lines</span></div>

@@ -49,6 +49,30 @@ flowchart TD
 
 Validation Issue 是业务数据问题，不应通过重启 Worker 解决。
 
+## Reconciliation Case 稳定错误码
+
+Case 错误响应固定为
+`{"detail":{"code":"CASE_...","message":"..."}}`。前端应依据 `code`
+采取动作，不要匹配可能调整的 message 文案。
+
+| 错误码 | HTTP | 含义 | 建议处理 |
+|---|---:|---|---|
+| CASE_NOT_FOUND | 404 | Case 不存在 | 刷新列表并确认 Case ID |
+| CASE_ASSIGNEE_REQUIRED | 403 | 当前用户不是负责人 Reviewer | 只读查看，或联系 Admin 重新分派 |
+| CASE_ADMIN_REQUIRED | 403 | 操作只允许 Admin | 切换为 Admin 或停止该操作 |
+| CASE_REVISION_CONFLICT | 409 | `expected_revision` 已过期 | 重新读取详情后再决定是否重试 |
+| CASE_ALREADY_CLAIMED | 409 | Case 已被其他 Reviewer 认领 | 刷新详情并转为只读 |
+| CASE_REVIEWER_REQUIRED | 403 | 认领者不是 Reviewer | 使用 Reviewer 账号认领 |
+| CASE_INVALID_TRANSITION | 409 | 当前状态不允许目标操作 | 刷新状态并按允许流转操作 |
+| CASE_ITEMS_INCOMPLETE | 409 | 有未处理项或仍在等待材料 | 补齐所有处理结论和备注 |
+| CASE_SUBMISSION_CONFLICT | 409 | 处理类型与批准/作废目标冲突 | `business_exception` 提交批准；数据/匹配错误提交作废 |
+| CASE_TERMINAL | 409 | `approved` 或 `voided` 已不可变 | 如需重核，基于正确批准版本创建新 Reconciliation |
+| CASE_INVALID_ASSIGNEE | 409 | 目标不是 active Reviewer | 从 Admin assignees 接口重新选择 |
+| CASE_ITEM_NOT_FOUND | 409 | Item 不属于当前 Case 或已失效 | 刷新 Case 详情，不复用旧 Item ID |
+
+Revision 冲突不是服务器故障，也不应自动覆盖新数据。客户端收到
+`CASE_REVISION_CONFLICT` 后应刷新详情，让用户基于最新状态重新确认操作。
+
 ## HTTP 错误
 
 ### 401/403
@@ -68,6 +92,7 @@ Validation Issue 是业务数据问题，不应通过重启 Worker 解决。
 - Version 不是最新 Draft；
 - Version 仍有 Blocking Issue；
 - 核对输入不是批准版本或类型错误。
+- Case revision 已过期、状态已经变化或处理类型与提交目标冲突。
 
 先读响应 detail，不要把 409 当成服务器崩溃。
 
@@ -76,6 +101,7 @@ Validation Issue 是业务数据问题，不应通过重启 Worker 解决。
 - 上传文件为空、过大或格式伪装；
 - JSON/Schema 不合法；
 - 驳回没有填写原因；
+- Case 重新分派/退回缺少原因，或处理结论缺少备注；
 - Pydantic 参数约束失败。
 
 ### 503
