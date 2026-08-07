@@ -60,6 +60,14 @@ def upgrade() -> None:
     for column in columns:
         op.add_column("document_versions", column)
 
+    # Revision 20260729_06 protects approved snapshots from every UPDATE. This
+    # migration must backfill provenance on those existing rows, so suspend only
+    # that table trigger inside the transactional DDL window and restore it
+    # immediately after the one controlled update.
+    op.execute(
+        "ALTER TABLE document_versions "
+        "DISABLE TRIGGER protect_approved_document_versions"
+    )
     op.execute(
         """
         UPDATE document_versions
@@ -72,6 +80,10 @@ def upgrade() -> None:
                 ELSE 'untrusted'
             END
         """
+    )
+    op.execute(
+        "ALTER TABLE document_versions "
+        "ENABLE TRIGGER protect_approved_document_versions"
     )
     op.alter_column("document_versions", "source_kind", nullable=False)
     op.alter_column("document_versions", "trust_method", nullable=False)
