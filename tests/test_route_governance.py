@@ -61,6 +61,21 @@ def test_case_routes_require_authentication(method: str, path: str) -> None:
 
 
 def test_case_assignee_route_requires_authentication() -> None:
-    assert TestClient(app).get(
-        "/api/reconciliation-cases/assignees"
-    ).status_code == 401
+    assert TestClient(app).get("/api/reconciliation-cases/assignees").status_code == 401
+
+
+@pytest.mark.parametrize(
+    ("method", "path"),
+    [
+        ("get", "/api/experiments"),
+        ("post", "/api/experiments"),
+        ("get", "/api/experiments/experiment-1"),
+        ("get", "/api/experiment-runs"),
+        ("get", "/api/experiment-runs/run-1"),
+        ("post", "/api/promotion-decisions"),
+        ("get", "/api/feedback-candidates"),
+        ("post", "/api/feedback-candidates/feedback-1/confirm"),
+    ],
+)
+def test_experiment_routes_require_authentication(method: str, path: str) -> None:
+    assert TestClient(app).request(method, path, json={}).status_code == 401

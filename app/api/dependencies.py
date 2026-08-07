@@ -37,6 +37,8 @@ from app.infra.postgres_worker_runtime_repository import (
 )
 from app.services.runtime_status_service import RuntimeStatusService
 from app.services.reconciliation_case_service import ReconciliationCaseService
+from app.experiments.feedback import FeedbackService
+from app.infra.postgres_experiment_repository import PostgresExperimentRepository
 
 
 @lru_cache
@@ -167,4 +169,23 @@ def get_runtime_status_service() -> RuntimeStatusService:
     return RuntimeStatusService(
         get_worker_runtime_repository(),
         offline_after_seconds=settings.worker_offline_after_seconds,
+    )
+
+
+@lru_cache
+def get_experiment_repository() -> PostgresExperimentRepository:
+    """返回质量实验定义、运行、反馈和晋升决定仓储。"""
+
+    return PostgresExperimentRepository(get_session_factory())
+
+
+@lru_cache
+def get_feedback_service() -> FeedbackService:
+    """装配人工审核事实到治理反馈候选的转换服务。"""
+
+    return FeedbackService(
+        review_repository=get_review_repository(),
+        draft_repository=get_draft_repository(),
+        run_repository=get_run_repository(),
+        experiment_repository=get_experiment_repository(),
     )

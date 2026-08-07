@@ -194,21 +194,24 @@ class PostgresExperimentRepository:
     def create_feedback_candidates(
         self, candidates: list[FeedbackCandidate]
     ) -> list[FeedbackCandidate]:
-        with self._factory() as session:
-            for item in candidates:
-                data = item.model_dump(mode="json")
-                session.add(
-                    FeedbackCandidateRow(
-                        candidate_id=item.candidate_id,
-                        payload=data,
-                        classification=data["classification"],
-                        include_in_gold=item.include_in_gold,
-                        confirmed_by=item.confirmed_by,
-                        confirmed_at=item.confirmed_at,
-                        created_at=item.created_at,
+        try:
+            with self._factory() as session:
+                for item in candidates:
+                    data = item.model_dump(mode="json")
+                    session.add(
+                        FeedbackCandidateRow(
+                            candidate_id=item.candidate_id,
+                            payload=data,
+                            classification=data["classification"],
+                            include_in_gold=item.include_in_gold,
+                            confirmed_by=item.confirmed_by,
+                            confirmed_at=item.confirmed_at,
+                            created_at=item.created_at,
+                        )
                     )
-                )
-            session.commit()
+                session.commit()
+        except IntegrityError as exc:
+            raise ExperimentConflict("feedback candidate already exists") from exc
         return candidates
 
     def list_feedback_candidates(
@@ -261,19 +264,22 @@ class PostgresExperimentRepository:
             return self._feedback(row)
 
     def save_decision(self, decision: PromotionDecision) -> PromotionDecision:
-        with self._factory() as session:
-            session.add(
-                PromotionDecisionRow(
-                    decision_id=decision.decision_id,
-                    baseline_run_id=decision.baseline_run_id,
-                    candidate_run_id=decision.candidate_run_id,
-                    outcome=decision.outcome.value,
-                    payload=decision.model_dump(mode="json"),
-                    decided_by=decision.decided_by,
-                    decided_at=decision.decided_at,
+        try:
+            with self._factory() as session:
+                session.add(
+                    PromotionDecisionRow(
+                        decision_id=decision.decision_id,
+                        baseline_run_id=decision.baseline_run_id,
+                        candidate_run_id=decision.candidate_run_id,
+                        outcome=decision.outcome.value,
+                        payload=decision.model_dump(mode="json"),
+                        decided_by=decision.decided_by,
+                        decided_at=decision.decided_at,
+                    )
                 )
-            )
-            session.commit()
+                session.commit()
+        except IntegrityError as exc:
+            raise ExperimentConflict(decision.decision_id) from exc
         return decision
 
     def get_decision(self, decision_id: str) -> PromotionDecision | None:

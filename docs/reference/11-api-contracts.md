@@ -280,6 +280,33 @@ Case 业务错误统一为：
 明确锚定该请求刚提交的 revision；即使另一位用户随后立即推进 Case，也不会把后续
 状态误装进前一请求的成功响应。
 
+## Extraction Quality Lab（Admin）
+
+以下端点全部依赖 Admin Session；未登录返回 401，Reviewer 返回 403：
+
+| 方法 | 路径 | 含义 |
+|---|---|---|
+| POST / GET | `/api/experiments` | 创建不可变定义 / 列表 |
+| GET | `/api/experiments/{id}` | 定义详情 |
+| GET | `/api/experiment-runs?experiment_id=` | 运行列表，可按定义过滤 |
+| GET | `/api/experiment-runs/{id}` | 含逐文档结果和切片的运行详情 |
+| POST | `/api/promotion-decisions` | 比较已持久化 baseline/candidate |
+| GET | `/api/feedback-candidates?confirmed=` | 待治理或已确认反馈 |
+| POST | `/api/feedback-candidates/{id}/confirm` | 分类并确认 Gold 资格 |
+
+创建定义时客户端提交数据集身份、模型/Prompt/Schema 来源和门槛，服务器分配 ID、
+`created_by` 和时间。晋升请求只提交两个 Run ID；服务器读取各自不可变定义并保存
+完整检查。反馈确认请求为：
+
+```json
+{"classification": "model_error", "include_in_gold": true}
+```
+
+只有 `model_error` 最终可能进入 Gold；其他分类由服务端强制设为 false。不存在返回
+404，唯一键或不可变状态竞争返回 409，非法门槛/分类返回 422。API **没有**执行真实
+实验的端点，外部 Parser/Normalizer 只能由受控 CLI/作业调用，避免 HTTP 请求触发
+昂贵长任务。
+
 ## 开发诊断端点
 
 只有 `APP_ENV=dev` 时注册：
@@ -296,7 +323,7 @@ Case 业务错误统一为：
 | 状态 | 在本项目中的含义 |
 |---:|---|
 | 200 | 查询或同步业务操作成功 |
-| 201 | 原件与 Task 已创建 |
+| 201 | 原件、Task、实验定义或晋升决定已创建 |
 | 202 | Run 已排队，尚未完成 |
 | 204 | 登出成功且无响应体 |
 | 401 | 未登录或 Session 无效 |
@@ -313,4 +340,5 @@ Case 业务错误统一为：
 - Draft Result 不提供批准捷径；
 - Review 和 Reconciliation 都有服务端门禁；
 - Case 每次变更都携带 revision，并返回统一详情读模型；
+- 实验 API 只治理持久化证据，不在请求线程调用外部模型；
 - 开发诊断端点与真实批准版本流程明确分离。
