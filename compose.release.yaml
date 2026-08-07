@@ -1,0 +1,13 @@
+services:
+  migrate:
+    image: ${IVIDA_IMAGE_PREFIX}-api:${IVIDA_IMAGE_TAG}
+    build: !reset null
+  api:
+    image: ${IVIDA_IMAGE_PREFIX}-api:${IVIDA_IMAGE_TAG}
+    build: !reset null
+  worker:
+    image: ${IVIDA_IMAGE_PREFIX}-worker:${IVIDA_IMAGE_TAG}
+    build: !reset null
+  frontend:
+    image: ${IVIDA_IMAGE_PREFIX}-frontend:${IVIDA_IMAGE_TAG}
+    build: !reset null

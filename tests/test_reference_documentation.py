@@ -93,3 +93,36 @@ def test_troubleshooting_guide_lists_validation_rule_codes() -> None:
     assert rule_codes
     for rule_code in rule_codes:
         assert rule_code in guide, rule_code
+
+
+def test_ci_cd_runbook_documents_release_and_rollback_boundaries() -> None:
+    runbook = Path("docs/operations/20-ci-cd-and-release.md").read_text(
+        encoding="utf-8"
+    )
+
+    for term in (
+        "GitHub-hosted Runner",
+        "PostgreSQL Service Container",
+        "IVIDA_TEST_POSTGRES_URL",
+        "GHCR",
+        "镜像 Digest",
+        "Alembic revision",
+        "不自动 downgrade",
+        "不连接现有服务器",
+    ):
+        assert term in runbook
+
+
+def test_delivery_files_are_governed_by_documentation_map() -> None:
+    groups = {
+        group["name"]: group
+        for group in json.loads(
+            Path("docs/code-document-map.json").read_text(encoding="utf-8")
+        )["groups"]
+    }
+    delivery = groups["ci-cd-and-delivery"]
+
+    assert ".github/**" in delivery["code_patterns"]
+    assert "Dockerfile" in delivery["code_patterns"]
+    assert "compose*.yaml" in delivery["code_patterns"]
+    assert "docs/operations/20-ci-cd-and-release.md" in delivery["documents"]

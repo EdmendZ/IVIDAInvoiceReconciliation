@@ -157,6 +157,18 @@ Reconciliation 是不可覆盖的规则计算快照；Case 只保存可变的人
 完整启动顺序、恢复和备份说明见
 [docs/operations/review-workflow.md](docs/operations/review-workflow.md)。
 
+## CI/CD 与容器演示
+
+[![CI](https://github.com/EdmendZ/IVIDAInvoiceReconciliation/actions/workflows/ci.yml/badge.svg)](https://github.com/EdmendZ/IVIDAInvoiceReconciliation/actions/workflows/ci.yml)
+[![CodeQL](https://github.com/EdmendZ/IVIDAInvoiceReconciliation/actions/workflows/codeql.yml/badge.svg)](https://github.com/EdmendZ/IVIDAInvoiceReconciliation/actions/workflows/codeql.yml)
+
+复制 `.env.compose.example` 为 `.env.compose` 后，可运行
+`docker compose --env-file .env.compose up --build -d` 启动完整本地演示栈。
+`v*` Tag 会在完整 CI、Compose Smoke 和镜像扫描通过后发布三个 GHCR 镜像及
+GitHub Release。该流程用于模拟企业交付，不代表已经部署到生产服务器。命令、
+回滚边界和仓库设置见
+[CI/CD、容器发布与回滚](docs/operations/20-ci-cd-and-release.md)。
+
 ## 不连接外部服务学习业务规则
 
 在 PyCharm 中直接右键运行根目录的 `demo_business_flow.py`，可以观察一张

@@ -1,0 +1,88 @@
+name: ivida-invoice-reconciliation
+
+services:
+  postgres:
+    image: postgres:18
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-ivida_demo}
+      POSTGRES_USER: ${POSTGRES_USER:-ivida_demo}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-ivida-demo-only}
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-ivida_demo} -d ${POSTGRES_DB:-ivida_demo}"]
+      interval: 5s
+      timeout: 5s
+      retries: 12
+    volumes:
+      - postgres-data:/var/lib/postgresql
+
+  minio:
+    image: minio/minio:RELEASE.2024-12-18T13-15-44Z
+    command: server /data --console-address :9001
+    environment:
+      MINIO_ROOT_USER: ${MINIO_ROOT_USER:-ivida-demo}
+      MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD:-ivida-demo-only}
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://127.0.0.1:9000/minio/health/live"]
+      interval: 5s
+      timeout: 5s
+      retries: 12
+    volumes:
+      - minio-data:/data
+
+  migrate:
+    build:
+      context: .
+      target: api
+    command: [".venv/bin/alembic", "upgrade", "head"]
+    environment: &backend-env
+      APP_ENV: ${APP_ENV:-demo}
+      DATABASE_URL: postgresql+psycopg://${POSTGRES_USER:-ivida_demo}:${POSTGRES_PASSWORD:-ivida-demo-only}@postgres:5432/${POSTGRES_DB:-ivida_demo}
+      MINIO_ENDPOINT: minio:9000
+      MINIO_ACCESS_KEY: ${MINIO_ROOT_USER:-ivida-demo}
+      MINIO_SECRET_KEY: ${MINIO_ROOT_PASSWORD:-ivida-demo-only}
+      MINIO_BUCKET_NAME: ${MINIO_BUCKET_NAME:-ivida-invoice-documents}
+      MINIO_SECURE: "false"
+      MODEL_PROVIDER: disabled
+      MINERU_API_TOKEN: ${MINERU_API_TOKEN:-disabled-local-demo}
+      NORMALIZATION_API_KEY: ${NORMALIZATION_API_KEY:-disabled-local-demo}
+      NORMALIZATION_MODEL: ${NORMALIZATION_MODEL:-disabled-local-demo}
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+  api:
+    build:
+      context: .
+      target: api
+    environment: *backend-env
+    depends_on:
+      migrate:
+        condition: service_completed_successfully
+      minio:
+        condition: service_healthy
+    ports:
+      - "8200:8200"
+
+  worker:
+    build:
+      context: .
+      target: worker
+    environment: *backend-env
+    depends_on:
+      migrate:
+        condition: service_completed_successfully
+      minio:
+        condition: service_healthy
+
+  frontend:
+    build:
+      context: frontend
+    depends_on:
+      api:
+        condition: service_healthy
+    ports:
+      - "5274:8080"
+
+volumes:
+  postgres-data:
+  minio-data:

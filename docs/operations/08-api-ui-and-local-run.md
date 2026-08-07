@@ -189,3 +189,6 @@ Get-NetTCPConnection -LocalPort 8200 -State Listen
 - Review 有 Evidence 和 Model Run；
 - 已准备一张 Invoice 加两张 Receive Note 的一对多案例；
 - 终端和截图不显示 Token、密码或真实财务数据。
+
+容器化完整演示、GitHub Actions 发布和回滚边界见
+[CI/CD、容器发布与回滚](20-ci-cd-and-release.md)。
