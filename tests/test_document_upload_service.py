@@ -39,6 +39,37 @@ def test_upload_persists_original_and_task() -> None:
     assert storage.objects[task.storage_object_key][0] == b"%PDF-1.7 test invoice"
 
 
+def test_prepare_upload_writes_only_the_object() -> None:
+    service, storage, repository = _service()
+
+    prepared = service.prepare_upload(
+        document_type=DocumentType.RECEIVE_NOTE,
+        filename="receiving.png",
+        data=b"\x89PNG\r\n\x1a\nreceiving",
+    )
+
+    assert repository.tasks == {}
+    assert prepared.task.status == ExtractionStatus.UPLOADED
+    assert storage.objects[prepared.task.storage_object_key][0].endswith(b"receiving")
+
+
+def test_upload_preserves_repository_error_when_cleanup_also_fails() -> None:
+    class FailingRepository(InMemoryExtractionTaskRepository):
+        def create(self, task):
+            raise RuntimeError("database failed")
+
+    class FailingCleanupStorage(InMemoryObjectStorage):
+        def delete(self, object_key: str) -> None:
+            raise OSError("cleanup failed")
+
+    service = DocumentUploadService(
+        FailingCleanupStorage(), FailingRepository(), max_bytes=1024
+    )
+
+    with pytest.raises(RuntimeError, match="database failed"):
+        service.upload(DocumentType.INVOICE, "invoice.pdf", b"%PDF-1.7 invoice")
+
+
 @pytest.mark.parametrize(
     ("filename", "data"),
     [
@@ -55,4 +86,3 @@ def test_invalid_documents_are_rejected(filename: str, data: bytes) -> None:
 
     assert storage.objects == {}
     assert repository.tasks == {}
-

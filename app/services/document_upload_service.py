@@ -7,6 +7,7 @@ MinIO 写入与任务创建失败时不会留下无法追踪的孤立对象。
 from __future__ import annotations
 
 import hashlib
+import logging
 import re
 from datetime import UTC, datetime
 from pathlib import Path
@@ -14,7 +15,11 @@ from uuid import uuid4
 
 from app.domain.documents import DocumentType
 from app.domain.extraction_tasks import ExtractionStatus, ExtractionTask
+from app.domain.workspace import PreparedUpload
 from app.services.ports import ExtractionTaskRepository, ObjectStorage
+
+
+logger = logging.getLogger(__name__)
 
 
 class DocumentValidationError(ValueError):
@@ -82,6 +87,36 @@ class DocumentUploadService:
     ) -> ExtractionTask:
         """验证并持久化一份原件，返回文件级的长期 Task。"""
 
+        prepared = self.prepare_upload(
+            document_type=document_type,
+            filename=filename,
+            data=data,
+            purchase_order_hint=purchase_order_hint,
+        )
+        task = prepared.task
+        try:
+            self._repository.create(task)
+        except Exception:
+            try:
+                self._storage.delete(task.storage_object_key)
+            except Exception:
+                logger.exception(
+                    "Failed to compensate uploaded object after task creation failure",
+                    extra={"task_id": task.task_id},
+                )
+            raise
+        return task
+
+    def prepare_upload(
+        self,
+        *,
+        document_type: DocumentType,
+        filename: str,
+        data: bytes,
+        purchase_order_hint: str | None = None,
+    ) -> PreparedUpload:
+        """验证并保存原件，但不写数据库。"""
+
         if not data:
             raise DocumentValidationError("Uploaded document is empty")
         if len(data) > self._max_bytes:
@@ -110,14 +145,8 @@ class DocumentUploadService:
             updated_at=now,
         )
 
-        # 先保存原件再创建数据库记录；若数据库失败，补偿删除对象，避免孤儿文件。
         self._storage.put(object_key, data, detected_content_type)
-        try:
-            self._repository.create(task)
-        except Exception:
-            self._storage.delete(object_key)
-            raise
-        return task
+        return PreparedUpload(task=task)
 
     def get_task(self, task_id: str) -> ExtractionTask:
         """读取单个 Task，并把 Repository 的 None 转为领域错误。"""
