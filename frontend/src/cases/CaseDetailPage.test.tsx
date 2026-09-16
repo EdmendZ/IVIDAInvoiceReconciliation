@@ -180,6 +180,22 @@ afterEach(() => {
 });
 
 describe("CaseDetailPage reviewer workflow", () => {
+  it("hides every legacy mutation when opened read-only", async () => {
+    vi.spyOn(globalThis, "fetch").mockResolvedValueOnce(jsonResponse(detail()));
+    const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+    render(
+      <QueryClientProvider client={queryClient}>
+        <CaseDetailPage caseId="case-a" user={REVIEWER} onNavigate={vi.fn()} readOnly />
+      </QueryClientProvider>,
+    );
+
+    expect(await screen.findByText("INV-100")).toBeTruthy();
+    expect(screen.queryByRole("button", { name: "保存处置结果" })).toBeNull();
+    expect(screen.queryByRole("button", { name: "提交审批" })).toBeNull();
+    expect(screen.queryByRole("button", { name: "申请作废" })).toBeNull();
+    expect(screen.getByText("未处置")).toBeTruthy();
+  });
+
   it("separates actionable differences from immutable exact and tolerance lines", async () => {
     vi.spyOn(globalThis, "fetch").mockResolvedValueOnce(jsonResponse(detail()));
     renderPage();

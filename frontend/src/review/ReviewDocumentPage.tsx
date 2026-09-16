@@ -58,9 +58,11 @@ type ValidationPreview = {
 export function ReviewDocumentPage({
   versionId,
   onNavigate,
+  readOnly = false,
 }: {
   versionId: string;
   onNavigate: (path: string, replace?: boolean) => void;
+  readOnly?: boolean;
 }) {
   const detail = useQuery({
     queryKey: ["review-version", versionId],
@@ -89,7 +91,7 @@ export function ReviewDocumentPage({
   useEffect(() => {
     // 450ms 防抖避免用户每敲一个字符就请求后端。AbortController 取消过期请求，
     // 防止较早响应晚到并覆盖最新 JSON 对应的校验结果。
-    if (!detail.data || detail.data.version.status !== "draft") return;
+    if (readOnly || !detail.data || detail.data.version.status !== "draft") return;
     let document: Record<string, unknown>;
     try {
       const parsed: unknown = JSON.parse(editor);
@@ -146,7 +148,7 @@ export function ReviewDocumentPage({
       window.clearTimeout(timer);
       controller.abort();
     };
-  }, [detail.data, editor, versionId]);
+  }, [detail.data, editor, readOnly, versionId]);
 
   const displayedIssues = useMemo(
     () => validationPreview?.issues ?? detail.data?.issues ?? [],
@@ -281,7 +283,7 @@ export function ReviewDocumentPage({
               id="review-document-type"
               name="document_type"
               value={selectedType}
-              disabled={busy || detail.data.version.status !== "draft"}
+              disabled={readOnly || busy || detail.data.version.status !== "draft"}
               onChange={(event) => {
                 setSelectedType(
                   event.target.value as "invoice" | "receive_note",
@@ -293,7 +295,7 @@ export function ReviewDocumentPage({
               <option value="receive_note">收货单</option>
             </select>
           </label>
-          <button
+          {!readOnly && <button
             disabled={
               busy ||
               detail.data.version.status !== "draft" ||
@@ -302,9 +304,9 @@ export function ReviewDocumentPage({
             onClick={reclassify}
           >
             保存分类为新版本
-          </button>
+          </button>}
         </div>
-        {selectedType === detail.data.version.document_type ? (
+        {!readOnly && selectedType === detail.data.version.document_type ? (
           <label
             className="type-confirmation"
             htmlFor="confirm-document-type"
@@ -323,11 +325,11 @@ export function ReviewDocumentPage({
             </strong>
             .
           </label>
-        ) : (
+        ) : !readOnly ? (
           <div className="type-warning">
             请先保存新的单据分类，再批准。
           </div>
-        )}
+        ) : null}
       </section>
       <div className="review-layout">
         <aside className="source-panel">
@@ -397,6 +399,7 @@ export function ReviewDocumentPage({
             evidence={detail.data.evidence}
             issues={displayedIssues}
             onChange={setEditor}
+            readOnly={readOnly}
           />
         </div>
         <aside className="issues-panel">
@@ -432,7 +435,7 @@ export function ReviewDocumentPage({
         </aside>
       </div>
       {message && <div className="error-banner">{message}</div>}
-      <footer className="action-bar">
+      {!readOnly && <footer className="action-bar">
         <button disabled={busy} onClick={save}>保存为新版本</button>
         <button
           className="danger"
@@ -458,7 +461,7 @@ export function ReviewDocumentPage({
         >
           批准
         </button>
-      </footer>
+      </footer>}
     </section>
   );
 }

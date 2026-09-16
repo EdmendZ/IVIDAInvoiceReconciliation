@@ -90,7 +90,7 @@ const sourceLabels: Record<ApprovedVersion["source_kind"], string> = {
   taptouch_receiving: "TapTouch 收货记录",
 };
 
-export function ReconciliationPage() {
+export function ReconciliationPage({ readOnly = false }: { readOnly?: boolean }) {
   const versions = useQuery({
     queryKey: ["approved-versions"],
     queryFn: () =>
@@ -168,6 +168,7 @@ export function ReconciliationPage() {
           <label htmlFor="invoice-version">已批准的发票</label>
           <select
             id="invoice-version"
+            disabled={readOnly}
             value={invoiceId}
             onChange={(event) => {
               setInvoiceId(event.target.value);
@@ -206,6 +207,7 @@ export function ReconciliationPage() {
               >
                 <input
                   type="checkbox"
+                  disabled={readOnly}
                   checked={noteIds.includes(candidate.receive_note_version_id)}
                   onChange={(event) =>
                     setNoteIds((current) =>
@@ -275,13 +277,13 @@ export function ReconciliationPage() {
             )}
           </div>
         </fieldset>
-        <button
+        {!readOnly && <button
           className="primary compare-button"
           disabled={!invoiceId || !noteIds.length || busy}
           onClick={compare}
         >
           {busy ? "正在核对…" : "开始核对"}
-        </button>
+        </button>}
       </div>
 
       {error && <div className="error-banner">{error}</div>}

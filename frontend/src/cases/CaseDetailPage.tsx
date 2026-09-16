@@ -25,10 +25,12 @@ export function CaseDetailPage({
   caseId,
   user,
   onNavigate,
+  readOnly = false,
 }: {
   caseId: string;
   user: User;
   onNavigate: (path: string) => void;
+  readOnly?: boolean;
 }) {
   const queryClient = useQueryClient();
   const [busyItemId, setBusyItemId] = useState<string | null>(null);
@@ -46,7 +48,7 @@ export function CaseDetailPage({
         `/api/reconciliation-cases/${encodeURIComponent(caseId)}`,
       ),
   });
-  const reassignable = detail.data
+  const reassignable = !readOnly && detail.data
     ? canReassignCase(detail.data.case, user)
     : false;
   const assignees = useQuery({
@@ -83,9 +85,9 @@ export function CaseDetailPage({
   }
 
   const data = detail.data;
-  const editable = canEditCase(data.case, user);
+  const editable = !readOnly && canEditCase(data.case, user);
   const submission = editable ? availableSubmission(data.items) : null;
-  const decisions = adminActions(data.case, user);
+  const decisions = readOnly ? [] : adminActions(data.case, user);
   const result = data.reconciliation.result;
   const summary = result.summary;
   const lineResults = data.line_results ?? [];

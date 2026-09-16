@@ -121,6 +121,7 @@ function Field({
   onValue,
   required = false,
   type = "text",
+  readOnly = false,
 }: {
   label: string;
   path: Array<string | number>;
@@ -129,6 +130,7 @@ function Field({
   onValue: (path: Array<string | number>, value: unknown) => void;
   required?: boolean;
   type?: "text" | "date";
+  readOnly?: boolean;
 }) {
   const value = textValue(atPath(document, path));
   const fieldPath = evidencePath(path);
@@ -151,10 +153,12 @@ function Field({
         {required && <b aria-label="必填">*</b>}
       </span>
       <input
+        aria-label={label}
         id={inputId}
         name={fieldPath}
         type={type}
         value={value}
+        readOnly={readOnly}
         onChange={(event) =>
           onValue(path, event.target.value || (required ? "" : null))
         }
@@ -177,11 +181,13 @@ export function StructuredDocumentEditor({
   evidence,
   issues,
   onChange,
+  readOnly = false,
 }: {
   editor: string;
   evidence: Evidence[];
   issues: FieldIssue[];
   onChange: (value: string) => void;
+  readOnly?: boolean;
 }) {
   const [mode, setMode] = useState<"form" | "json">("form");
   const parsed = useMemo(() => {
@@ -258,6 +264,7 @@ export function StructuredDocumentEditor({
           aria-label="结构化单据 JSON"
           className="json-editor"
           value={editor}
+          readOnly={readOnly}
           onChange={(event) => onChange(event.target.value)}
           spellCheck={false}
         />
@@ -278,6 +285,7 @@ export function StructuredDocumentEditor({
                 evidence={evidence}
                 onValue={setValue}
                 required
+                readOnly={readOnly}
               />
               <Field
                 label="单据日期"
@@ -286,6 +294,7 @@ export function StructuredDocumentEditor({
                 evidence={evidence}
                 onValue={setValue}
                 type="date"
+                readOnly={readOnly}
               />
               <Field
                 label="采购订单号"
@@ -293,6 +302,7 @@ export function StructuredDocumentEditor({
                 document={parsed}
                 evidence={evidence}
                 onValue={setValue}
+                readOnly={readOnly}
               />
               <Field
                 label="币种"
@@ -301,6 +311,7 @@ export function StructuredDocumentEditor({
                 evidence={evidence}
                 onValue={setValue}
                 required
+                readOnly={readOnly}
               />
             </div>
           </section>
@@ -320,6 +331,7 @@ export function StructuredDocumentEditor({
                   document={parsed}
                   evidence={evidence}
                   onValue={setValue}
+                  readOnly={readOnly}
                 />
                 <Field
                   label="ABN / 企业注册号"
@@ -327,6 +339,7 @@ export function StructuredDocumentEditor({
                   document={parsed}
                   evidence={evidence}
                   onValue={setValue}
+                  readOnly={readOnly}
                 />
                 <Field
                   label="地址"
@@ -334,6 +347,7 @@ export function StructuredDocumentEditor({
                   document={parsed}
                   evidence={evidence}
                   onValue={setValue}
+                  readOnly={readOnly}
                 />
               </div>
             </section>
@@ -345,23 +359,27 @@ export function StructuredDocumentEditor({
                 <span className="eyebrow">商品明细</span>
                 <h4>商品与数量</h4>
               </div>
-              <button type="button" onClick={addItem}>
-                添加商品行
-              </button>
+              {!readOnly && (
+                <button type="button" onClick={addItem}>
+                  添加商品行
+                </button>
+              )}
             </div>
             <div className="line-editor-list">
               {items().map((item, index) => (
                 <article className="line-editor-card" key={index}>
                   <div className="line-editor-heading">
                     <strong>商品行 {index + 1}</strong>
-                    <button
-                      className="danger"
-                      disabled={items().length <= 1}
-                      onClick={() => removeItem(index)}
-                      type="button"
-                    >
-                      移除
-                    </button>
+                    {!readOnly && (
+                      <button
+                        className="danger"
+                        disabled={items().length <= 1}
+                        onClick={() => removeItem(index)}
+                        type="button"
+                      >
+                        移除
+                      </button>
+                    )}
                   </div>
                   <div className="field-grid line-fields">
                     <Field
@@ -370,6 +388,7 @@ export function StructuredDocumentEditor({
                       document={parsed}
                       evidence={evidence}
                       onValue={setValue}
+                      readOnly={readOnly}
                     />
                     <Field
                       label="商品描述"
@@ -378,6 +397,7 @@ export function StructuredDocumentEditor({
                       evidence={evidence}
                       onValue={setValue}
                       required
+                      readOnly={readOnly}
                     />
                     <Field
                       label="数量"
@@ -386,6 +406,7 @@ export function StructuredDocumentEditor({
                       evidence={evidence}
                       onValue={setValue}
                       required
+                      readOnly={readOnly}
                     />
                     <Field
                       label="单位"
@@ -393,6 +414,7 @@ export function StructuredDocumentEditor({
                       document={parsed}
                       evidence={evidence}
                       onValue={setValue}
+                      readOnly={readOnly}
                     />
                     <Field
                       label="单价"
@@ -400,6 +422,7 @@ export function StructuredDocumentEditor({
                       document={parsed}
                       evidence={evidence}
                       onValue={setValue}
+                      readOnly={readOnly}
                     />
                     <Field
                       label="税额"
@@ -407,6 +430,7 @@ export function StructuredDocumentEditor({
                       document={parsed}
                       evidence={evidence}
                       onValue={setValue}
+                      readOnly={readOnly}
                     />
                     <Field
                       label="行金额"
@@ -414,6 +438,7 @@ export function StructuredDocumentEditor({
                       document={parsed}
                       evidence={evidence}
                       onValue={setValue}
+                      readOnly={readOnly}
                     />
                   </div>
                 </article>
@@ -435,6 +460,7 @@ export function StructuredDocumentEditor({
                 document={parsed}
                 evidence={evidence}
                 onValue={setValue}
+                readOnly={readOnly}
               />
               <Field
                 label="GST / 税额合计"
@@ -442,6 +468,7 @@ export function StructuredDocumentEditor({
                 document={parsed}
                 evidence={evidence}
                 onValue={setValue}
+                readOnly={readOnly}
               />
               <Field
                 label="总额"
@@ -449,6 +476,7 @@ export function StructuredDocumentEditor({
                 document={parsed}
                 evidence={evidence}
                 onValue={setValue}
+                readOnly={readOnly}
               />
             </div>
           </section>

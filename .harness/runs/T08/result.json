@@ -1,0 +1,61 @@
+{
+  "task_id": "T08",
+  "spec_version": "IR-SIMPLE-1.0.3",
+  "spec_sha256": "ba317333be98598676430d8262dd84ecadb143a6030458d3de7587b32c604c9b",
+  "base_commit": "b8a259a7de237fb359fef9a9901c40f18e448abc",
+  "current_metadata": {
+    "head": "b8a259a7de237fb359fef9a9901c40f18e448abc",
+    "enforcement": "diff-gate-only"
+  },
+  "candidate_commit": null,
+  "changed_files": [
+    ".harness/runs/T08/result.json",
+    "frontend/src/app/App.tsx",
+    "frontend/src/styles.css",
+    "frontend/src/review/StructuredDocumentEditor.tsx",
+    "frontend/src/review/ReviewDocumentPage.tsx",
+    "frontend/src/review/ReviewQueuePage.tsx",
+    "frontend/src/reconcile/ReconciliationPage.tsx",
+    "frontend/src/cases/CaseDetailPage.tsx",
+    "frontend/src/cases/CaseQueuePage.tsx",
+    "frontend/src/cases/CaseDetailPage.test.tsx",
+    "frontend/src/experiments/ExperimentLabPage.test.tsx",
+    "frontend/src/workspace/WorkspacePage.tsx",
+    "frontend/src/workspace/DocumentPage.tsx",
+    "frontend/src/workspace/WorkspacePage.test.tsx",
+    "frontend/src/workspace/DocumentPage.test.tsx"
+  ],
+  "commands": [
+    {
+      "argv": ["npm", "--prefix", "frontend", "test", "--", "--run"],
+      "exit_code": 0,
+      "log_sha256": "5c48e9b01c3f3a4d96f51c97e592740e9edcc0c873319303d1a45930e99cec31"
+    },
+    {
+      "argv": ["npm", "--prefix", "frontend", "run", "build"],
+      "exit_code": 0,
+      "log_sha256": "691f4d2a99329c935c0cc571a769b07897b3eff8e7cb87c30bc7b4b1bfaa4c9e"
+    },
+    {
+      "argv": [".venv/Scripts/python.exe", "tools/check_spec_contract.py", "--spec-root", "spec"],
+      "exit_code": 0,
+      "log_sha256": "cc7a933120f37ac5a8ef91a7cc5ba7d2f3c53cb459f7f59f08d6c0a24760a2a3"
+    },
+    {
+      "argv": [".venv/Scripts/python.exe", "tools/check_task_scope.py", "--task", "T08", "--base", "b8a259a7de237fb359fef9a9901c40f18e448abc", "--spec-root", "spec", "--evidence", ".git/ir-harness/freeze.json"],
+      "exit_code": 0,
+      "log_sha256": "aae1ba589a23624efcf97c1ca66a949af4a6c513d49d8717fe82bc888008479c"
+    },
+    {
+      "argv": ["git", "diff", "--check", "b8a259a7de237fb359fef9a9901c40f18e448abc"],
+      "exit_code": 0,
+      "log_sha256": "acc32a4c3a4064c51848482d3bb70221c0f0487f21bb28d7c96b6eed147e70eb"
+    }
+  ],
+  "acceptance_ids": ["A01", "A02", "A06", "A09", "A12", "A25", "A26", "A28"],
+  "known_limits": [
+    "Browser visual acceptance and screenshots remain coordinator-owned.",
+    "No real upstream service or external model call was required for frontend validation."
+  ],
+  "status": "passed"
+}

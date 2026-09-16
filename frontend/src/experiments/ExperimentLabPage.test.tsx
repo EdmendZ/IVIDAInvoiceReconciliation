@@ -40,6 +40,9 @@ describe("ExperimentLabPage", () => {
       if (String(input) === "/api/auth/me") {
         return response({ user_id: "reviewer-1", username: "reviewer", role: "reviewer" });
       }
+      if (String(input) === "/api/workspace/runtime") {
+        return response({ enabled: true, worker_online: true, last_sync_at: null, preview_lag_seconds: 0 });
+      }
       throw new Error(`Unexpected request: ${String(input)}`);
     });
     vi.stubGlobal("fetch", fetchMock);
@@ -47,7 +50,7 @@ describe("ExperimentLabPage", () => {
 
     expect(await screen.findByText("需要管理员权限。")).toBeTruthy();
     expect(screen.queryByRole("button", { name: "质量评测" })).toBeNull();
-    expect(fetchMock).toHaveBeenCalledTimes(1);
+    expect(fetchMock).toHaveBeenCalledTimes(2);
   });
 
   it("compares only completed runs and refreshes governed feedback", async () => {

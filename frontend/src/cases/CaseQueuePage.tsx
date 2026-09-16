@@ -20,9 +20,11 @@ const TABS: Array<{ id: CaseQueueTab; label: string }> = [
 export function CaseQueuePage({
   user,
   onNavigate,
+  readOnly = false,
 }: {
   user: User;
   onNavigate: (path: string) => void;
+  readOnly?: boolean;
 }) {
   const queryClient = useQueryClient();
   const [tab, setTab] = useState<CaseQueueTab>("unassigned");
@@ -222,7 +224,7 @@ export function CaseQueuePage({
               >
                 查看详情
               </button>
-              {tab === "unassigned" && user.role === "reviewer" && (
+              {!readOnly && tab === "unassigned" && user.role === "reviewer" && (
                 <button
                   className="primary"
                   disabled={claimingCaseId !== null}

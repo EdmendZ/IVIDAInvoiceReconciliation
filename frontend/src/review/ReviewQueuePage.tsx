@@ -17,8 +17,10 @@ type QueueItem = {
 
 export function ReviewQueuePage({
   onNavigate,
+  readOnly = false,
 }: {
   onNavigate: (path: string) => void;
+  readOnly?: boolean;
 }) {
   const queryClient = useQueryClient();
   const queue = useQuery({
@@ -28,6 +30,7 @@ export function ReviewQueuePage({
 
   async function open(item: QueueItem) {
     let versionId = item.version_id;
+    if (readOnly && !versionId) return;
     if (!versionId) {
       const version = await api<{ version_id: string }>(
         `/api/review/tasks/${item.task_id}/start`,
@@ -57,6 +60,7 @@ export function ReviewQueuePage({
         {queue.data?.map((item) => (
           <button
             className="queue-card"
+            disabled={readOnly && !item.version_id}
             key={item.task_id}
             onClick={() => open(item)}
           >
