@@ -52,3 +52,16 @@ def test_missing_po_is_warning() -> None:
         _invoice(purchase_order_number=None)
     )
     assert report.has_warning("PO_MISSING")
+
+
+def test_partial_tax_amounts_do_not_treat_missing_as_zero() -> None:
+    invoice = _invoice()
+    invoice.items[1].tax_amount = None
+    invoice.tax_total = 12
+    invoice.total = 112
+    assert not any(issue.rule_code == "TAX_TOTAL_MISMATCH" for issue in ValidationService().validate(invoice).issues)
+
+
+def test_all_known_tax_amounts_still_detect_mismatch() -> None:
+    report = ValidationService().validate(_invoice(tax_total="12", total="112"))
+    assert any(issue.rule_code == "TAX_TOTAL_MISMATCH" and issue.severity == IssueSeverity.BLOCKING for issue in report.issues)

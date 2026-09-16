@@ -103,7 +103,7 @@ class ValidationService:
                 )
             )
         if (
-            any(item.tax_amount is not None for item in document.items)
+            all(item.tax_amount is not None for item in document.items)
             and document.tax_total is not None
             and abs(calculated_tax - document.tax_total)
             > self._document_tolerance

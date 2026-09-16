@@ -1,0 +1,91 @@
+{
+  "task_id": "T02",
+  "spec_version": "IR-SIMPLE-1.0.1",
+  "spec_sha256": "83a71801452100220f177b0a480d441854bdb37ca7829b632245847eb6682300",
+  "base_commit": "5514b9cfea6c83f847e80edb31b5b8d357e8a5ef",
+  "candidate_commit": null,
+  "changed_files": [
+    "app/services/validation_service.py",
+    "app/services/workspace_matching.py",
+    "app/services/workspace_comparison.py",
+    "tests/test_validation_service.py",
+    "tests/test_workspace_matching.py",
+    "tests/test_workspace_comparison.py",
+    ".harness/runs/T02/result.json"
+  ],
+  "commands": [
+    {
+      "argv": [
+        ".venv/Scripts/python.exe",
+        "-m",
+        "pytest",
+        "tests/test_workspace_matching.py",
+        "tests/test_workspace_comparison.py",
+        "tests/test_validation_service.py",
+        "-q"
+      ],
+      "exit_code": 0,
+      "log_sha256": "feeba5f931a42b3eb97423d3ff87df70d7bfb9546e66502aa75144c629a76414",
+      "output": "......................................................                   [100%]\r\n"
+    },
+    {
+      "argv": [
+        ".venv/Scripts/python.exe",
+        "tools/check_task_scope.py",
+        "--task",
+        "T02",
+        "--base",
+        "5514b9cfea6c83f847e80edb31b5b8d357e8a5ef",
+        "--spec-root",
+        "spec",
+        "--evidence",
+        ".git/ir-harness/freeze.json"
+      ],
+      "exit_code": 0,
+      "log_sha256": "1dcc5ab01049e37b28885be78e007f9c0990d24bbacb687b98933a505c0351b4",
+      "output": "{\"enforcement\": \"diff-gate-only\", \"changed_files\": [\".harness/runs/T02/result.json\", \"app/services/validation_service.py\", \"app/services/workspace_comparison.py\", \"app/services/workspace_matching.py\", \"tests/test_validation_service.py\", \"tests/test_workspace_comparison.py\", \"tests/test_workspace_matching.py\"]}\r\n"
+    },
+    {
+      "argv": [
+        ".venv/Scripts/python.exe",
+        "tools/check_spec_contract.py",
+        "--spec-root",
+        "spec"
+      ],
+      "exit_code": 0,
+      "log_sha256": "cc7a933120f37ac5a8ef91a7cc5ba7d2f3c53cb459f7f59f08d6c0a24760a2a3",
+      "output": "Spec contract check passed (static references only).\r\n"
+    },
+    {
+      "argv": [
+        "git",
+        "diff",
+        "--check",
+        "5514b9cfea6c83f847e80edb31b5b8d357e8a5ef"
+      ],
+      "exit_code": 0,
+      "log_sha256": "4bdad5f54318497ccaf41d2ed141ce94544e5c6a7bf31c63eed56f6b476296db",
+      "output": "warning: in the working copy of 'app/services/validation_service.py', LF will be replaced by CRLF the next time Git touches it\nwarning: in the working copy of 'tests/test_validation_service.py', LF will be replaced by CRLF the next time Git touches it\n"
+    }
+  ],
+  "acceptance_ids": [
+    "A03",
+    "A04",
+    "A05",
+    "A06",
+    "A07",
+    "A08",
+    "A23",
+    "A24"
+  ],
+  "known_limits": [
+    "Pure functions receive repository-filtered same-scope ready nonvoid revisions; used_ids includes occupied and legacy-used receiving IDs.",
+    "Source kind is derived from origin: upstream=taptouch; extracted/manual=upload.",
+    "Cross-record duplicate invoice detection, manual-selection persistence, source void/currentness and claims require repository enforcement. normalize_identity supports its identity comparisons; blank normalized invoice numbers block comparison.",
+    "Unknown quantity cannot enter accepted Invoice/ReceiveNote schemas (positive quantity required).",
+    "No database, API, worker, confirmation, deployment or external service validation belongs to T02."
+  ],
+  "status": "passed",
+  "enforcement": "diff-gate-only",
+  "coordinator_acceptance": false
+}
