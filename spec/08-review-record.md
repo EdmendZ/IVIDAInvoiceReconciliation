@@ -35,3 +35,8 @@
 ## IR-SIMPLE-1.0.2 协调者遗漏修正
 
 已授权 CSV 导出包含 invoice_number、receive_note_numbers，但原 ConfirmationView 未提供编号，也没有历史修订读取端口，Service 无法按既定边界实现。补充两个历史编号字段，由 Repository 联查不可变修订生成，不新增存储或业务范围。T03 白名单对应增加领域文件及其测试。此修正不改变一次确认业务流程。
+
+
+## IR-SIMPLE-1.0.3 验证遗漏修正
+
+独立回归发现原有数据库字典测试要求每个新 ORM 表均有文档，因此将最小数据库字典同步提前到 T03。另补 T09 对已有 CI 文件的修改权限，接入真实 PostgreSQL 工作台测试；原 CI 仅运行旧 PostgreSQL 测试，不能让新测试长期静默跳过。未增加业务范围或开发平台。

@@ -26,6 +26,8 @@
 
 ## T03：持久化与事务
 
+v1.0.3：新增表必须同步数据库字典，避免原有文档测试在后续任务基线失败。
+
 v1.0.2 补全：仅在领域 DTO 增加 ConfirmationView.invoice_number / receive_note_numbers，并补往返测试；编号由不可变修订读取，供已有 CSV 导出使用。
 
 实现八张 ws 表和单一迁移、PostgresWorkspaceRepository 全部端口；intake 原 Task/Run 同事务，确认/claims/actions/幂等同事务。旧上游 Repository 加 scope advisory lock，除此不改其数据契约。JSONB/唯一约束/不可变表触发器在真实 PostgreSQL 验证；SQLite 测试不能代替。
@@ -61,6 +63,8 @@ GET 全只读；数据库/对象存储异常映射03错误，不吞掉输入冲�
 复用 StructuredDocumentEditor，但增加可选 readOnly prop（默认false），已完成/权威收货全部只读；以输入变动后保存触发预览，不自动提交未保存字段。旧历史组件增加 readOnly prop（默认false）隐藏写按钮但保留查询和 CSV；Case 不再可认领。
 
 ## T09：端到端回归与文档同步
+
+v1.0.3：允许修改现有 CI，将新 PostgreSQL 测试接入专用以 `_workspace_test` 结尾的 CI 数据库，显式设置 WORKSPACE_TEST_DATABASE_URL，不能只依赖默认 skip。
 
 仅在任务白名单内补 acceptance fixtures、API/worker 实际数据库串联测试和操作文档。此任务无权修复业务代码：失败必须给原任务开启新的修复上下文，保持原文件白名单，验收后再运行 T09。
 

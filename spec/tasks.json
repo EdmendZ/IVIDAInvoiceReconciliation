@@ -1,5 +1,5 @@
 {
-  "spec_version": "IR-SIMPLE-1.0.2",
+  "spec_version": "IR-SIMPLE-1.0.3",
   "execution": "strictly_sequential_fresh_sessions",
   "path_base": "repository_root",
   "deletes_allowed": false,
@@ -197,7 +197,8 @@
         "app/infra/database_models.py",
         "app/infra/postgres_taptouch_receiving_repository.py",
         "app/domain/workspace.py",
-        "tests/test_workspace_contracts.py"
+        "tests/test_workspace_contracts.py",
+        "docs/reference/12-database-dictionary.md"
       ],
       "create": [
         "app/infra/postgres_workspace_repository.py",
@@ -587,7 +588,8 @@
         "docs/reference/11-api-contracts.md",
         "docs/reference/12-database-dictionary.md",
         "docs/operations/08-api-ui-and-local-run.md",
-        "docs/operations/20-ci-cd-and-release.md"
+        "docs/operations/20-ci-cd-and-release.md",
+        ".github/workflows/ci.yml"
       ],
       "create": [
         "tests/test_workspace_acceptance.py",

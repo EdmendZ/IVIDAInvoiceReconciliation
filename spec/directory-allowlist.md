@@ -6,7 +6,7 @@
 |---|---|
 | `.env.compose.example` | T04 M |
 | `.env.example` | T04 M |
-| `.github/workflows/ci.yml` | T00 M |
+| `.github/workflows/ci.yml` | T00 M, T09 M |
 | `AGENTS.md` | T00 N |
 | `README.md` | T09 M |
 | `app/api/dependencies.py` | T06 M |
@@ -41,7 +41,7 @@
 | `docs/operations/08-api-ui-and-local-run.md` | T09 M |
 | `docs/operations/20-ci-cd-and-release.md` | T09 M |
 | `docs/reference/11-api-contracts.md` | T09 M |
-| `docs/reference/12-database-dictionary.md` | T09 M |
+| `docs/reference/12-database-dictionary.md` | T03 M, T09 M |
 | `frontend/src/api/client.ts` | T07 M |
 | `frontend/src/app/App.tsx` | T08 M |
 | `frontend/src/cases/CaseDetailPage.test.tsx` | T08 M |
