@@ -64,7 +64,7 @@ coverage 指商品行维度覆盖，不代表税费或总应付款完全验证�
 
 `PreviewView`：preview_id、input_revision_ids、scope_generation、rule_version、tolerances、input_sha256、result PreviewResult、created_at。
 
-`ConfirmationView`：confirmation_id、preview_id、resolution、note nullable、acknowledged_unverified_dimensions、result_snapshot PreviewResult、rule_version、tolerances、input_revision_ids、actor_id、created_at。
+`ConfirmationView`：confirmation_id、preview_id、invoice_number str、receive_note_numbers str[]、resolution、note nullable、acknowledged_unverified_dimensions、result_snapshot PreviewResult、rule_version、tolerances、input_revision_ids、actor_id、created_at。
 
 `ActionView`：action_id、action、actor_id nullable、reason nullable、old_revision nullable、new_revision、confirmation_id nullable、created_at。
 
@@ -206,3 +206,8 @@ workspacePresentation.ts 仅含 `displayStatusLabel`、`metricStatusLabel`、`ca
 - Runtime.preview_lag_seconds是最早未完成且preview_stale发票的updated_at距now的非负整数秒，无失效记录为0，worker离线为null。
 - 原件上传阶段最多沿用原`upload_max_bytes`；幂等日志hash不记录bytes；服务端白名单MIME由既有DocumentUploadService决定，不扩大文件类型。
 - stable blocking_codes完整集合：EMPTY_ITEM_KEY/UNIT_UNVERIFIED/UNIT_CONFLICT/SUPPLIER_UNVERIFIED/SUPPLIER_CONFLICT/CURRENCY_CONFLICT/UNSUPPORTED_CURRENCY/SOURCE_VOIDED/VALIDATION_BLOCKED/DUPLICATE_INVOICE/RECEIVING_IN_USE；候选reason_codes只用于推荐，不能冒充阻断代码。
+
+
+## 7. v1.0.2 导出契约补全
+
+ConfirmationView 的 invoice_number 和 receive_note_numbers 由 Repository 根据该 confirmation 的不可变 invoice_revision_id/receive_revision_ids 读取 payload.document_number 生成，收货顺序与 input_revision_ids 一致。不得读取当前版本替代历史编号；无需新增数据库列、表或路由。Service.export 直接使用此 DTO 的历史编号与 result_snapshot 生成 CSV。T03 同时补齐领域 DTO 和往返测试，其他领域接口不变。

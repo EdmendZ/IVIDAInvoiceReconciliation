@@ -26,6 +26,8 @@
 
 ## T03：持久化与事务
 
+v1.0.2 补全：仅在领域 DTO 增加 ConfirmationView.invoice_number / receive_note_numbers，并补往返测试；编号由不可变修订读取，供已有 CSV 导出使用。
+
 实现八张 ws 表和单一迁移、PostgresWorkspaceRepository 全部端口；intake 原 Task/Run 同事务，确认/claims/actions/幂等同事务。旧上游 Repository 加 scope advisory lock，除此不改其数据契约。JSONB/唯一约束/不可变表触发器在真实 PostgreSQL 验证；SQLite 测试不能代替。
 
 新增索引/约束只能是 02 所列，触发器禁止修改 ws_revisions/ws_previews/ws_confirmations/ws_actions 的既存行；允许 rollback 和迁移 downgrade 清空空表，不允许应用绕过触发器。

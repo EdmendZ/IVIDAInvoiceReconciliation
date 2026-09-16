@@ -17,7 +17,7 @@
 | `app/api/upload_routes.py` | T06 M |
 | `app/api/workspace_routes.py` | T06 N |
 | `app/core/config.py` | T04 M |
-| `app/domain/workspace.py` | T01 N |
+| `app/domain/workspace.py` | T01 N, T03 M |
 | `app/infra/database_models.py` | T03 M |
 | `app/infra/postgres_taptouch_receiving_repository.py` | T03 M |
 | `app/infra/postgres_workspace_repository.py` | T03 N |
@@ -77,7 +77,7 @@
 | `tests/test_workspace_acceptance.py` | T09 N |
 | `tests/test_workspace_api.py` | T06 N |
 | `tests/test_workspace_comparison.py` | T02 N |
-| `tests/test_workspace_contracts.py` | T01 N |
+| `tests/test_workspace_contracts.py` | T01 N, T03 M |
 | `tests/test_workspace_harness_acceptance.py` | T10 N |
 | `tests/test_workspace_legacy_gate.py` | T06 N |
 | `tests/test_workspace_matching.py` | T02 N |

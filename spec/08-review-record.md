@@ -30,3 +30,8 @@
 ## 1.0.1修正
 
 用户要求避免复杂化，已取消OS隔离和宿主前提。此前ENVIRONMENT_ISOLATION_REQUIRED不再适用；使用独立上下文、diff白名单和测试验收推进。
+
+
+## IR-SIMPLE-1.0.2 协调者遗漏修正
+
+已授权 CSV 导出包含 invoice_number、receive_note_numbers，但原 ConfirmationView 未提供编号，也没有历史修订读取端口，Service 无法按既定边界实现。补充两个历史编号字段，由 Repository 联查不可变修订生成，不新增存储或业务范围。T03 白名单对应增加领域文件及其测试。此修正不改变一次确认业务流程。
