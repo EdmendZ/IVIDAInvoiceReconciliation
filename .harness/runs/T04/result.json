@@ -1,0 +1,50 @@
+{
+  "task_id": "T04",
+  "spec_version": "IR-SIMPLE-1.0.3",
+  "spec_sha256": "ba317333be98598676430d8262dd84ecadb143a6030458d3de7587b32c604c9b",
+  "base_commit": "206ec471f6667b7b12d6530dc295663a588abb8c",
+  "candidate_commit": null,
+  "changed_files": [
+    ".env.compose.example",
+    ".env.example",
+    ".harness/runs/T04/result.json",
+    "app/core/config.py",
+    "app/workers/workspace_worker.py",
+    "compose.release.yaml",
+    "compose.yaml",
+    "run_workspace_worker.py",
+    "scripts/local_demo_common.ps1",
+    "start_local_demo.ps1",
+    "tests/test_delivery_configuration.py",
+    "tests/test_workspace_worker.py"
+  ],
+  "commands": [
+    {
+      "argv": [".\\.venv\\Scripts\\python.exe", "-m", "pytest", "tests/test_workspace_worker.py", "tests/test_delivery_configuration.py", "-q"],
+      "exit_code": 0,
+      "log_sha256": "816ead0483a2d68a061695c59a168f18dab69d908a01bbad9e20e8ee1c7692c6"
+    },
+    {
+      "argv": [".\\.venv\\Scripts\\python.exe", "tools/check_spec_contract.py", "--spec-root", "spec"],
+      "exit_code": 0,
+      "log_sha256": "cc7a933120f37ac5a8ef91a7cc5ba7d2f3c53cb459f7f59f08d6c0a24760a2a3"
+    },
+    {
+      "argv": [".\\.venv\\Scripts\\python.exe", "tools/check_task_scope.py", "--task", "T04", "--base", "206ec471f6667b7b12d6530dc295663a588abb8c", "--spec-root", "spec", "--evidence", ".git/ir-harness/freeze.json"],
+      "exit_code": 0,
+      "log_sha256": "65890e8473632adba187ee5fe769462582728325d44ccf1fda1046ccb56c4e82"
+    },
+    {
+      "argv": ["git", "diff", "--check", "206ec471f6667b7b12d6530dc295663a588abb8c"],
+      "exit_code": 0,
+      "log_sha256": "302239e018bad6b7dc05a67f1f3b74f99eef7a2ad5010d8c221143c2c0a15cf3"
+    }
+  ],
+  "acceptance_ids": ["A01", "A02", "A10", "A12", "A18", "A28"],
+  "known_limits": [
+    "No Docker execution was performed or required.",
+    "The assigned WorkspaceRepository protocol exposes no mutation for persisting a pure preview-computation exception as document.error_code; the worker logs it, increments TickSummary.errors, and continues. Source synchronization failures are persisted by the repository.",
+    "Ruff is not installed in the existing .venv; no dependency was installed because Ruff is not an assigned T04 command."
+  ],
+  "status": "passed"
+}

@@ -82,4 +82,5 @@ function Stop-IvidaRecord {
         return
     }
     Stop-Process -Id ([int]$Record.pid) -ErrorAction Stop
+    Wait-Process -Id ([int]$Record.pid) -Timeout 10 -ErrorAction SilentlyContinue
 }

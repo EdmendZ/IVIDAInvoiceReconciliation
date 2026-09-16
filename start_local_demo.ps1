@@ -76,6 +76,17 @@ if ($null -ne $existingWorker) {
     )
 }
 
+$existingWorkspaceWorker = Get-CimInstance Win32_Process |
+    Where-Object { $_.CommandLine -like "*run_workspace_worker.py*" } |
+    Select-Object -First 1
+if ($null -ne $existingWorkspaceWorker) {
+    $externalComponents.Add("workspace-worker") | Out-Null
+    Write-Host (
+        "workspace-worker already runs outside the launcher " +
+        "(PID $($existingWorkspaceWorker.ProcessId)); it will be reused but not stopped."
+    )
+}
+
 $created = [System.Collections.Generic.List[object]]::new()
 
 function Start-IvidaComponent {
@@ -132,6 +143,12 @@ try {
         -Arguments @("run_extraction_worker.py") `
         -WorkingDirectory $projectRoot `
         -CommandSignature "run_extraction_worker.py"
+    $workspaceWorker = Start-IvidaComponent `
+        -Name "workspace-worker" `
+        -Executable $python `
+        -Arguments @("run_workspace_worker.py") `
+        -WorkingDirectory $projectRoot `
+        -CommandSignature "run_workspace_worker.py"
     $frontend = Start-IvidaComponent `
         -Name "frontend" `
         -Executable $node `

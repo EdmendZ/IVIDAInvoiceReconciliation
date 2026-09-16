@@ -1,6 +1,5 @@
 from functools import lru_cache
-
-from pydantic import Field
+from pydantic import Field, model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
@@ -65,6 +64,24 @@ class Settings(BaseSettings):
     )
     worker_heartbeat_interval_seconds: int = Field(default=10, ge=1, le=60)
     worker_offline_after_seconds: int = Field(default=30, ge=5, le=300)
+
+    workspace_enabled: bool = False
+    workspace_tenant_id: str = ""
+    workspace_store_id: str = ""
+    workspace_poll_seconds: int = Field(default=3, ge=3, le=3)
+
+    @model_validator(mode="after")
+    def require_workspace_scope_when_enabled(self):
+        self.workspace_tenant_id = self.workspace_tenant_id.strip()
+        self.workspace_store_id = self.workspace_store_id.strip()
+        if self.workspace_enabled and not (
+            self.workspace_tenant_id and self.workspace_store_id
+        ):
+            raise ValueError(
+                "WORKSPACE_TENANT_ID and WORKSPACE_STORE_ID are required "
+                "when WORKSPACE_ENABLED=true"
+            )
+        return self
 
     @property
     def cors_origin_list(self) -> list[str]:
