@@ -5,7 +5,39 @@ on:
   push:
     branches: [main]
   workflow_dispatch:
+    inputs:
+      harness_task:
+        description: "Explicit current task ID; leave empty for ordinary branch CI"
+        type: string
+        required: false
+        default: ""
+      harness_base:
+        description: "Accepted task base commit"
+        type: string
+        required: false
+        default: ""
+      harness_freeze:
+        description: "Coordinator trusted freeze JSON (never a candidate report)"
+        type: string
+        required: false
+        default: ""
   workflow_call:
+    inputs:
+      harness_task:
+        description: "Explicit current task ID; leave empty for ordinary branch CI"
+        type: string
+        required: false
+        default: ""
+      harness_base:
+        description: "Accepted task base commit"
+        type: string
+        required: false
+        default: ""
+      harness_freeze:
+        description: "Coordinator trusted freeze JSON (never a candidate report)"
+        type: string
+        required: false
+        default: ""
 
 permissions:
   contents: read
@@ -35,6 +67,26 @@ jobs:
           enable-cache: true
       - run: uv sync --locked --all-groups
       - run: uv run python -m compileall -q app tests tools
+      - name: Validate frozen Spec references
+        run: uv run python tools/check_spec_contract.py --spec-root spec
+      - name: Validate explicitly declared task scope
+        env:
+          HARNESS_TASK: ${{ inputs.harness_task }}
+          HARNESS_BASE: ${{ inputs.harness_base }}
+          HARNESS_FREEZE: ${{ inputs.harness_freeze }}
+        shell: bash
+        run: |
+          if [[ -z "$HARNESS_TASK$HARNESS_BASE$HARNESS_FREEZE" ]]; then
+            echo "Ordinary CI: no task scope declared; static Spec and guard tests still run."
+            exit 0
+          fi
+          if [[ -z "$HARNESS_TASK" || -z "$HARNESS_BASE" || -z "$HARNESS_FREEZE" ]]; then
+            echo "All three task scope inputs are required together."
+            exit 1
+          fi
+          evidence="$RUNNER_TEMP/ir-harness-freeze.json"
+          printf '%s' "$HARNESS_FREEZE" > "$evidence"
+          uv run python tools/check_task_scope.py --task "$HARNESS_TASK" --base "$HARNESS_BASE" --spec-root spec --evidence "$evidence"
       - name: Resolve comparison base
         id: base
         shell: bash

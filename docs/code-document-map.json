@@ -177,7 +177,20 @@
       "documents": [
         "README.md",
         "docs/operations/20-ci-cd-and-release.md",
-        "docs/operations/08-api-ui-and-local-run.md"
+        "docs/operations/08-api-ui-and-local-run.md",
+        "AGENTS.md"
+      ]
+    },
+    {
+      "name": "frozen-task-harness",
+      "code_patterns": [
+        "tools/check_task_scope.py",
+        "tools/check_spec_contract.py",
+        "tests/test_harness_guards.py"
+      ],
+      "documents": [
+        "AGENTS.md",
+        "spec/06-harness.md"
       ]
     }
   ]
