@@ -9,6 +9,7 @@ from sqlalchemy.orm import Session, sessionmaker
 
 from app.domain.document_versions import DocumentVersion
 from app.infra.database_models import DocumentVersionRow
+from app.infra.postgres_workspace_repository import lock_workspace_scope
 from app.services.taptouch_receiving_import_service import (
     ReceivingIdentityConflict,
     ReceivingImportOutcome,
@@ -22,6 +23,7 @@ class PostgresTaptouchReceivingRepository:
 
     def import_version(self, version: DocumentVersion) -> ReceivingImportOutcome:
         with self._session_factory() as session:
+            lock_workspace_scope(session, version.external_tenant_id, version.external_store_id)
             existing = self._versions_for_identity(session, version, lock=True)
             outcome = self._decide(existing, version)
             if outcome is not None:

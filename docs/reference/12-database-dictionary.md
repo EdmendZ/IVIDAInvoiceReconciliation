@@ -310,3 +310,65 @@ RESTRICT 外键，防止审计证据被级联删除。
 - Session 保存 Hash；
 - RESTRICT 保护审计链，CASCADE 清理真正的组成对象；
 - JSONB 保存快照，但不替代关系设计。
+
+## 简化工作台（迁移 `20260916_15`）
+
+工作台新增八张 `ws_` 表，复用已有数据库 Base；不转换旧批准版本或旧核对结果。
+UUID 以 Text 保存，结构化内容在 PostgreSQL 使用 JSONB，时间为带时区的 UTC。
+
+### `ws_documents`
+
+单据当前工作状态。`document_id` 为主键，`tenant_id/store_id` 限定门店；上传的
+`task_id` 唯一并引用 `extraction_tasks`，上游身份使用四元素 canonical JSON 文本，
+同门店非空身份唯一。`revision` 支持乐观并发校验；处理、匹配、审核分别保存状态。
+`current_revision_id/current_preview_id/current_confirmation_id` 为初始延迟检查的外键。
+选择集合、失效标志和来源变更提醒保存在本表；显示状态及历史占用为查询派生。
+
+### `ws_revisions`
+
+追加式单据修订。`revision_id` 为主键，`(document_id, sequence)` 唯一；引用来源
+Draft 或旧 `document_versions`，保存 payload、证据、校验问题及内容 SHA-256。
+人工修订沿用原始证据，通过 `evidence_origin_revision_id` 指向其来源修订。
+数据库触发器禁止更新或删除既存行。
+
+### `ws_previews`
+
+追加式机器预览，以 `preview_id` 为主键；保存发票、输入修订集合、门店代次、
+选择来源、固定规则版本和容差、输入哈希及完整比对结果。
+`(invoice_document_id, input_sha256, rule_version)` 唯一；预览不表示人工批准。
+数据库触发器禁止更新或删除既存行。
+
+### `ws_confirmations`
+
+追加式正式确认，以 `confirmation_id` 为主键；引用发票、预览和不可变发票修订，
+保存收货修订集合、结果快照、规则和输入哈希、操作者、处理说明与未核验维度确认。
+历史导出的发票及收货编号读取这些不可变修订，不读取当前单据编号。
+重开不修改旧结果；数据库触发器禁止更新或删除既存行。
+
+### `ws_claims`
+
+整张收货单的当前占用。`receive_document_id` 为主键，引用发票及正式确认，
+保证一张收货单只被一个已完成发票占用；确认时写入，重开时释放。
+旧核对对上游收货的占用按原始来源身份查询派生，不另存标志列。
+
+### `ws_actions`
+
+追加式操作审计，以 `action_id` 为主键；引用单据、可选操作者和正式确认，
+保存动作、原因、变更前后单据 revision 与发生时间。
+按 `(document_id, created_at, action_id)` 索引；触发器禁止更新或删除既存行。
+
+### `ws_scopes`
+
+门店同步与并发状态。主键 `scope_id` 使用 tenant/store 的 canonical JSON 文本；
+`generation` 随影响候选或占用的变更递增，心跳本身不递增。
+`last_sync_at/last_error_code/updated_at` 描述后台同步状态。
+所有工作台写入及上游版本导入共享基于此身份的事务 advisory lock。
+
+### `ws_requests`
+
+成功变更的持久化幂等响应。联合主键为 `(scope_id, actor_id, idempotency_key)`，
+保存请求哈希、响应状态和完整响应 JSON。与业务变更同事务提交；失败响应不缓存，
+同 key 的不同请求返回冲突，重放不重复写历史或推进代次。
+
+工作台历史引用使用 RESTRICT 外键；列表中的 ID 在事务内验证。迁移仅允许在八张
+工作台表均无数据时降级；有数据时通过功能开关回退，保留全部历史。

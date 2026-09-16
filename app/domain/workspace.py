@@ -370,6 +370,8 @@ class PreviewView(WorkspaceDTO):
 class ConfirmationView(WorkspaceDTO):
     confirmation_id: UUIDString
     preview_id: UUIDString
+    invoice_number: str
+    receive_note_numbers: list[str]
     resolution: Resolution
     note: Reason | None = None
     acknowledged_unverified_dimensions: UniqueDimensions

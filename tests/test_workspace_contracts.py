@@ -178,3 +178,19 @@ def test_preview_keeps_tax_total_unverified_and_fixed_tolerances():
     with pytest.raises(ValidationError):
         w.Tolerances(amount="1.00")
     assert w.Tolerances().model_dump(mode="json") == dict(quantity="0", unit_price="0.01", amount="0.02")
+
+
+def test_confirmation_history_numbers_are_required_and_roundtrip():
+    data = dict(confirmation_id=ID, preview_id=OTHER, invoice_number="INV-original",
+                receive_note_numbers=["RN-02", "RN-01"], resolution="matched",
+                acknowledged_unverified_dimensions=["tax", "document_total"],
+                result_snapshot=dict(outcome="consistent", coverage="quantity_only",
+                    summary=dict(total_lines=0, different_lines=0, unverified_lines=0),
+                    subject=dict(supplier="equal", currency="equal")),
+                input_revision_ids=[ID, OTHER], actor_id=ID, created_at=NOW)
+    view = w.ConfirmationView(**data)
+    assert w.ConfirmationView.model_validate_json(view.model_dump_json()) == view
+    assert view.receive_note_numbers == ["RN-02", "RN-01"]
+    for field in ["invoice_number", "receive_note_numbers"]:
+        with pytest.raises(ValidationError):
+            w.ConfirmationView(**{key: value for key, value in data.items() if key != field})
