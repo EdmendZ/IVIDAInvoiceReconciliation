@@ -1,3 +1,4 @@
+import { label, systemMessage } from "../i18n";
 import { useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { api, downloadFile } from "../api/client";
@@ -84,9 +85,9 @@ type ReconciliationCandidate = {
 };
 
 const sourceLabels: Record<ApprovedVersion["source_kind"], string> = {
-  invoice_upload: "Uploaded Invoice",
-  external_receive_note_upload: "Uploaded Receive Note",
-  taptouch_receiving: "Taptouch Receiving",
+  invoice_upload: "上传的发票",
+  external_receive_note_upload: "上传的收货单",
+  taptouch_receiving: "TapTouch 收货记录",
 };
 
 export function ReconciliationPage() {
@@ -134,7 +135,7 @@ export function ReconciliationPage() {
       });
       setResult(record);
     } catch (problem) {
-      setError(problem instanceof Error ? problem.message : "Comparison failed");
+      setError(problem instanceof Error ? problem.message : "对账失败");
     } finally {
       setBusy(false);
     }
@@ -148,7 +149,7 @@ export function ReconciliationPage() {
         `/api/reconciliations/${encodeURIComponent(result.reconciliation_id)}/export.csv`,
       );
     } catch (problem) {
-      setError(problem instanceof Error ? problem.message : "Export failed");
+      setError(problem instanceof Error ? problem.message : "导出失败");
     }
   }
 
@@ -156,15 +157,15 @@ export function ReconciliationPage() {
     <section className="page">
       <div className="page-heading">
         <div>
-          <span className="eyebrow">RECEIVING CONTROL</span>
-          <h2>Invoice and Receive Note reconciliation</h2>
-          <p>Only trusted immutable versions are available here.</p>
+          <span className="eyebrow">收货对账</span>
+          <h2>发票与收货单核对</h2>
+          <p>仅可选择已确认且不可变更的可信单据版本。</p>
         </div>
       </div>
 
       <div className="reconcile-picker">
         <div>
-          <label htmlFor="invoice-version">Approved Invoice</label>
+          <label htmlFor="invoice-version">已批准的发票</label>
           <select
             id="invoice-version"
             value={invoiceId}
@@ -175,29 +176,28 @@ export function ReconciliationPage() {
               setError("");
             }}
           >
-            <option value="">Select an invoice</option>
+            <option value="">选择发票</option>
             {invoices.map((version) => (
               <option key={version.version_id} value={version.version_id}>
-                {version.document_json.document_number || "Unnamed invoice"} · v
+                {version.document_json.document_number || "未命名发票"} · v
                 {version.version_number}
               </option>
             ))}
           </select>
         </div>
         <fieldset>
-          <legend>Suggested Receive Notes</legend>
+          <legend>候选收货单</legend>
           <p className="candidate-guidance">
-            Suggestions are ranked by PO, supplier, location, currency, date,
-            and item overlap. A reviewer must still confirm the selection.
+            根据订单号、供应商、地点、币种、日期和商品重合度排序，请人工确认所选收货单。
           </p>
           <div className="note-options">
             {!invoiceId && (
               <div className="empty-inline">
-                Select an Invoice to calculate matching candidates.
+                请先选择发票以查找候选收货单。
               </div>
             )}
             {invoiceId && candidates.isLoading && (
-              <div className="empty-inline">Scoring approved Receive Notes…</div>
+              <div className="empty-inline">正在评估候选收货单…</div>
             )}
             {candidates.data?.map((candidate) => (
               <label
@@ -224,22 +224,22 @@ export function ReconciliationPage() {
                       {sourceLabels[candidate.source_kind]}
                     </b>
                     {candidate.recommended && (
-                      <b className="recommended-badge">Recommended</b>
+                      <b className="recommended-badge">推荐</b>
                     )}
                     <b className={`score-badge ${candidate.confidence}`}>
                       {candidate.score}/100
                     </b>
                   </span>
                   <small>
-                    {candidate.purchase_order_number || "No PO"} ·{" "}
-                    {candidate.supplier_name || "Unknown supplier"} ·{" "}
-                    {candidate.document_date || "No date"}
+                    {candidate.purchase_order_number || "无订单号"} ·{" "}
+                    {candidate.supplier_name || "未知供应商"} ·{" "}
+                    {candidate.document_date || "无日期"}
                   </small>
                   {candidate.source_kind === "taptouch_receiving" && (
                     <small className="source-context">
-                      Store {candidate.external_store_id} · Receiving {candidate.external_receiving_id} · Upstream v{candidate.external_version}
+                      门店 {candidate.external_store_id} · 收货记录 {candidate.external_receiving_id} · 上游版本{candidate.external_version}
                       {candidate.upstream_updated_at
-                        ? ` · Updated ${new Date(candidate.upstream_updated_at).toLocaleString()}`
+                        ? ` · 更新时间 ${new Date(candidate.upstream_updated_at).toLocaleString()}`
                         : ""}
                     </small>
                   )}
@@ -247,11 +247,11 @@ export function ReconciliationPage() {
                     className="candidate-signals"
                     onClick={(event) => event.stopPropagation()}
                   >
-                    <summary>Why this score</summary>
+                    <summary>评分依据</summary>
                     <ul>
                       {candidate.signals.map((signal) => (
                         <li className={signal.outcome} key={signal.code}>
-                          <span>{signal.message}</span>
+                          <span>{systemMessage(signal.message)}</span>
                           <b>{signal.weight > 0 ? `+${signal.weight}` : signal.weight}</b>
                         </li>
                       ))}
@@ -264,13 +264,13 @@ export function ReconciliationPage() {
               !candidates.isLoading &&
               !candidates.data?.length &&
               !candidates.isError && (
-              <div className="empty-inline">No approved Receive Notes.</div>
+              <div className="empty-inline">没有可用的已批准收货单。</div>
             )}
             {candidates.isError && (
               <div className="error-banner">
                 {candidates.error instanceof Error
                   ? candidates.error.message
-                  : "Could not calculate candidates"}
+                  : "无法计算候选匹配"}
               </div>
             )}
           </div>
@@ -280,14 +280,14 @@ export function ReconciliationPage() {
           disabled={!invoiceId || !noteIds.length || busy}
           onClick={compare}
         >
-          {busy ? "Comparing…" : "Run reconciliation"}
+          {busy ? "正在核对…" : "开始核对"}
         </button>
       </div>
 
       {error && <div className="error-banner">{error}</div>}
       {!versions.isLoading && (!invoices.length || !receiveNotes.length) && (
         <div className="info-banner">
-          Approve at least one Invoice and one Receive Note before reconciling.
+          请先批准至少一张发票和一张收货单。
         </div>
       )}
 
@@ -295,9 +295,9 @@ export function ReconciliationPage() {
         <div className="reconciliation-result">
           <div className="result-heading">
             <div>
-              <span className="eyebrow">RESULT</span>
+              <span className="eyebrow">核对结果</span>
               <h3>{result.result.invoice_number}</h3>
-              <p>Against {result.result.receive_note_numbers.join(", ")}</p>
+              <p>对应收货单 {result.result.receive_note_numbers.join(", ")}</p>
             </div>
             <span
               className={`result-decision ${
@@ -305,26 +305,26 @@ export function ReconciliationPage() {
               }`}
             >
               {result.result.summary.requires_review
-                ? "Review required"
-                : "Matched"}
+                ? "需要复核"
+                : "已匹配"}
             </span>
-            <button onClick={exportCsv}>Export CSV</button>
+            <button onClick={exportCsv}>导出 CSV</button>
           </div>
           <div className="metric-strip">
-            <div><strong>{result.result.summary.total_lines}</strong><span>Lines</span></div>
-            <div><strong>{result.result.summary.exact_lines}</strong><span>Exact</span></div>
-            <div><strong>{result.result.summary.tolerance_lines}</strong><span>Tolerance</span></div>
-            <div><strong>{result.result.summary.mismatch_lines}</strong><span>Mismatch</span></div>
+            <div><strong>{result.result.summary.total_lines}</strong><span>行数</span></div>
+            <div><strong>{result.result.summary.exact_lines}</strong><span>完全匹配</span></div>
+            <div><strong>{result.result.summary.tolerance_lines}</strong><span>容差内</span></div>
+            <div><strong>{result.result.summary.mismatch_lines}</strong><span>不匹配</span></div>
           </div>
           <div className="table-scroll">
             <table className="result-table">
               <thead>
                 <tr>
-                  <th>Item</th>
-                  <th>Invoice qty</th>
-                  <th>Received qty</th>
-                  <th>Difference</th>
-                  <th>Status</th>
+                  <th>商品</th>
+                  <th>发票数量</th>
+                  <th>收货数量</th>
+                  <th>差异</th>
+                  <th>状态</th>
                 </tr>
               </thead>
               <tbody>
@@ -339,7 +339,7 @@ export function ReconciliationPage() {
                     <td>{line.quantity_difference}</td>
                     <td>
                       <span className={`status ${line.status}`}>
-                        {line.status.replaceAll("_", " ")}
+                        {label(line.status)}
                       </span>
                     </td>
                   </tr>

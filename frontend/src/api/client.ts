@@ -4,6 +4,8 @@
  * 所有请求都携带 HttpOnly 会话 Cookie；业务页面不保存或读取令牌。401 被转换
  * 成全局事件，由应用壳统一退出登录，避免每个页面重复实现认证失效逻辑。
  */
+import { systemMessage } from "../i18n";
+
 export type User = {
   user_id: string;
   username: string;
@@ -55,7 +57,7 @@ export async function api<T>(
       typeof structuredDetail?.code === "string"
         ? structuredDetail.code
         : undefined;
-    throw new ApiError(message, response.status, code);
+    throw new ApiError(systemMessage(message), response.status, code);
   }
   if (response.status === 204) {
     return undefined as T;
@@ -76,7 +78,7 @@ export async function uploadDocument<T>(formData: FormData): Promise<T> {
   }
   if (!response.ok) {
     const body = await response.json().catch(() => ({}));
-    throw new Error(body.detail ?? `Upload failed (${response.status})`);
+    throw new Error(systemMessage(typeof body.detail === "string" ? body.detail : `Upload failed (${response.status})`));
   }
   return response.json() as Promise<T>;
 }
@@ -88,7 +90,7 @@ export async function downloadFile(path: string): Promise<void> {
   }
   if (!response.ok) {
     const body = await response.json().catch(() => ({}));
-    throw new Error(body.detail ?? `Download failed (${response.status})`);
+    throw new Error(systemMessage(typeof body.detail === "string" ? body.detail : `Download failed (${response.status})`));
   }
   const disposition = response.headers.get("Content-Disposition") ?? "";
   const filename = disposition.match(/filename="([^"]+)"/)?.[1] ?? "export.csv";

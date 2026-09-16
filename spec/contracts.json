@@ -1,0 +1,229 @@
+{
+  "spec_version": "IR-SIMPLE-1.0.1",
+  "prefix": "/api/workspace",
+  "model_definitions": "03-contracts.md",
+  "routes": [
+    {
+      "method": "POST",
+      "path": "/documents",
+      "request": "UploadCommand",
+      "response": "IntakeResponse",
+      "success_status": 201,
+      "roles": [
+        "reviewer",
+        "admin"
+      ],
+      "idempotency_key_required": true,
+      "readonly": false
+    },
+    {
+      "method": "GET",
+      "path": "/documents",
+      "request": "DocumentQuery",
+      "response": "DocumentPage",
+      "success_status": 200,
+      "roles": [
+        "reviewer",
+        "admin"
+      ],
+      "idempotency_key_required": false,
+      "readonly": true
+    },
+    {
+      "method": "GET",
+      "path": "/documents/{id}",
+      "request": null,
+      "response": "DocumentDetail",
+      "success_status": 200,
+      "roles": [
+        "reviewer",
+        "admin"
+      ],
+      "idempotency_key_required": false,
+      "readonly": true
+    },
+    {
+      "method": "GET",
+      "path": "/documents/{id}/source",
+      "request": null,
+      "response": "SourceFile",
+      "success_status": 200,
+      "roles": [
+        "reviewer",
+        "admin"
+      ],
+      "idempotency_key_required": false,
+      "readonly": true
+    },
+    {
+      "method": "GET",
+      "path": "/documents/{id}/actions",
+      "request": "PageQuery",
+      "response": "ActionPage",
+      "success_status": 200,
+      "roles": [
+        "reviewer",
+        "admin"
+      ],
+      "idempotency_key_required": false,
+      "readonly": true
+    },
+    {
+      "method": "PATCH",
+      "path": "/documents/{id}",
+      "request": "EditCommand",
+      "response": "DocumentSummary",
+      "success_status": 200,
+      "roles": [
+        "reviewer",
+        "admin"
+      ],
+      "idempotency_key_required": true,
+      "readonly": false
+    },
+    {
+      "method": "PUT",
+      "path": "/documents/{id}/selection",
+      "request": "SelectionCommand",
+      "response": "DocumentSummary",
+      "success_status": 200,
+      "roles": [
+        "reviewer",
+        "admin"
+      ],
+      "idempotency_key_required": true,
+      "readonly": false
+    },
+    {
+      "method": "POST",
+      "path": "/documents/{id}/investigate",
+      "request": "InvestigateCommand",
+      "response": "DocumentSummary",
+      "success_status": 200,
+      "roles": [
+        "reviewer",
+        "admin"
+      ],
+      "idempotency_key_required": true,
+      "readonly": false
+    },
+    {
+      "method": "POST",
+      "path": "/documents/{id}/confirm",
+      "request": "ConfirmCommand",
+      "response": "ConfirmationResponse",
+      "success_status": 201,
+      "roles": [
+        "reviewer",
+        "admin"
+      ],
+      "idempotency_key_required": true,
+      "readonly": false
+    },
+    {
+      "method": "POST",
+      "path": "/documents/{id}/reopen",
+      "request": "ReasonCommand",
+      "response": "DocumentSummary",
+      "success_status": 200,
+      "roles": [
+        "reviewer",
+        "admin"
+      ],
+      "idempotency_key_required": true,
+      "readonly": false
+    },
+    {
+      "method": "POST",
+      "path": "/documents/{id}/void",
+      "request": "ReasonCommand",
+      "response": "DocumentSummary",
+      "success_status": 200,
+      "roles": [
+        "reviewer",
+        "admin"
+      ],
+      "idempotency_key_required": true,
+      "readonly": false
+    },
+    {
+      "method": "POST",
+      "path": "/documents/{id}/retry",
+      "request": "RevisionCommand",
+      "response": "RetryResponse",
+      "success_status": 202,
+      "roles": [
+        "reviewer",
+        "admin"
+      ],
+      "idempotency_key_required": true,
+      "readonly": false
+    },
+    {
+      "method": "GET",
+      "path": "/confirmations/{id}",
+      "request": null,
+      "response": "ConfirmationView",
+      "success_status": 200,
+      "roles": [
+        "reviewer",
+        "admin"
+      ],
+      "idempotency_key_required": false,
+      "readonly": true
+    },
+    {
+      "method": "GET",
+      "path": "/confirmations/{id}/export.csv",
+      "request": null,
+      "response": "CSV",
+      "success_status": 200,
+      "roles": [
+        "reviewer",
+        "admin"
+      ],
+      "idempotency_key_required": false,
+      "readonly": true
+    },
+    {
+      "method": "GET",
+      "path": "/runtime",
+      "request": null,
+      "response": "RuntimeView",
+      "success_status": 200,
+      "roles": [
+        "reviewer",
+        "admin"
+      ],
+      "idempotency_key_required": false,
+      "readonly": true
+    }
+  ],
+  "frozen_modules": [
+    "app/domain/workspace.py",
+    "app/services/workspace_ports.py",
+    "app/services/workspace_matching.py",
+    "app/services/workspace_comparison.py",
+    "app/services/workspace_service.py",
+    "app/infra/postgres_workspace_repository.py",
+    "app/workers/workspace_worker.py",
+    "app/api/workspace_routes.py",
+    "run_workspace_worker.py"
+  ],
+  "tables": [
+    "ws_documents",
+    "ws_revisions",
+    "ws_previews",
+    "ws_confirmations",
+    "ws_claims",
+    "ws_actions",
+    "ws_scopes",
+    "ws_requests"
+  ],
+  "rule_version": "ir-simple-rules-1",
+  "tolerances": {
+    "quantity": "0",
+    "unit_price": "0.01",
+    "amount": "0.02"
+  }
+}

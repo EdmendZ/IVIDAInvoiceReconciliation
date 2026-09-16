@@ -1,7 +1,7 @@
 import type { FeedbackClassification } from "./experimentTypes";
 
 export function formatCost(value: string | null): string {
-  return value === null ? "Not configured" : `AUD ${value}`;
+  return value === null ? "未配置" : `AUD ${value}`;
 }
 
 export function formatPercent(value: string | null | undefined): string {

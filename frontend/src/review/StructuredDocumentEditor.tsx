@@ -1,3 +1,4 @@
+import { systemMessage } from "../i18n";
 import { createContext, useContext, useMemo, useState } from "react";
 
 type Evidence = {
@@ -94,12 +95,12 @@ function EvidenceHint({
 }) {
   const matches = evidence.filter((item) => item.field_path === fieldPath);
   if (!matches.length) {
-    return <small className="field-evidence missing">No source evidence</small>;
+    return <small className="field-evidence missing">无原文证据</small>;
   }
   return (
     <details className="field-evidence">
       <summary>
-        Source: {matches[0].source_text}
+        来源： {matches[0].source_text}
         {matches.length > 1 ? ` (+${matches.length - 1})` : ""}
       </summary>
       {matches.map((item, index) => (
@@ -147,7 +148,7 @@ function Field({
     >
       <span>
         {label}
-        {required && <b aria-label="required">*</b>}
+        {required && <b aria-label="必填">*</b>}
       </span>
       <input
         id={inputId}
@@ -164,7 +165,7 @@ function Field({
           className={`field-validation ${issue.severity}`}
           key={`${issue.rule_code}-${index}`}
         >
-          {issue.message}
+          {systemMessage(issue.message)}
         </small>
       ))}
     </label>
@@ -235,27 +236,26 @@ export function StructuredDocumentEditor({
           onClick={() => setMode("form")}
           type="button"
         >
-          Structured form
+          结构化表单
         </button>
         <button
           className={mode === "json" ? "active" : ""}
           onClick={() => setMode("json")}
           type="button"
         >
-          Advanced JSON
+          高级 JSON 编辑
         </button>
       </div>
 
       {!parsed && (
         <div className="error-banner">
-          JSON is invalid. Correct it in Advanced JSON before returning to the
-          structured form.
+          JSON 无效，请先在高级 JSON 编辑中修正，再返回表单。
         </div>
       )}
 
       {mode === "json" || !parsed ? (
         <textarea
-          aria-label="Structured document JSON"
+          aria-label="结构化单据 JSON"
           className="json-editor"
           value={editor}
           onChange={(event) => onChange(event.target.value)}
@@ -266,13 +266,13 @@ export function StructuredDocumentEditor({
           <section className="form-section">
             <div className="form-section-heading">
               <div>
-                <span className="eyebrow">DOCUMENT</span>
-                <h4>Document identity</h4>
+                <span className="eyebrow">单据信息</span>
+                <h4>单据基本信息</h4>
               </div>
             </div>
             <div className="field-grid three">
               <Field
-                label="Document number"
+                label="单据编号"
                 path={["document_number"]}
                 document={parsed}
                 evidence={evidence}
@@ -280,7 +280,7 @@ export function StructuredDocumentEditor({
                 required
               />
               <Field
-                label="Document date"
+                label="单据日期"
                 path={["document_date"]}
                 document={parsed}
                 evidence={evidence}
@@ -288,14 +288,14 @@ export function StructuredDocumentEditor({
                 type="date"
               />
               <Field
-                label="Purchase order"
+                label="采购订单号"
                 path={["purchase_order_number"]}
                 document={parsed}
                 evidence={evidence}
                 onValue={setValue}
               />
               <Field
-                label="Currency"
+                label="币种"
                 path={["currency"]}
                 document={parsed}
                 evidence={evidence}
@@ -310,26 +310,26 @@ export function StructuredDocumentEditor({
               <div className="form-section-heading">
                 <div>
                   <span className="eyebrow">{party.toUpperCase()}</span>
-                  <h4>{party === "supplier" ? "Supplier" : "Delivery location"}</h4>
+                  <h4>{party === "supplier" ? "供应商" : "收货地点"}</h4>
                 </div>
               </div>
               <div className="field-grid">
                 <Field
-                  label="Name"
+                  label="名称"
                   path={[party, "name"]}
                   document={parsed}
                   evidence={evidence}
                   onValue={setValue}
                 />
                 <Field
-                  label="ABN / business number"
+                  label="ABN / 企业注册号"
                   path={[party, "business_number"]}
                   document={parsed}
                   evidence={evidence}
                   onValue={setValue}
                 />
                 <Field
-                  label="Address"
+                  label="地址"
                   path={[party, "address"]}
                   document={parsed}
                   evidence={evidence}
@@ -342,25 +342,25 @@ export function StructuredDocumentEditor({
           <section className="form-section">
             <div className="form-section-heading">
               <div>
-                <span className="eyebrow">LINE ITEMS</span>
-                <h4>Products and quantities</h4>
+                <span className="eyebrow">商品明细</span>
+                <h4>商品与数量</h4>
               </div>
               <button type="button" onClick={addItem}>
-                Add line
+                添加商品行
               </button>
             </div>
             <div className="line-editor-list">
               {items().map((item, index) => (
                 <article className="line-editor-card" key={index}>
                   <div className="line-editor-heading">
-                    <strong>Line {index + 1}</strong>
+                    <strong>商品行 {index + 1}</strong>
                     <button
                       className="danger"
                       disabled={items().length <= 1}
                       onClick={() => removeItem(index)}
                       type="button"
                     >
-                      Remove
+                      移除
                     </button>
                   </div>
                   <div className="field-grid line-fields">
@@ -372,7 +372,7 @@ export function StructuredDocumentEditor({
                       onValue={setValue}
                     />
                     <Field
-                      label="Description"
+                      label="商品描述"
                       path={["items", index, "description"]}
                       document={parsed}
                       evidence={evidence}
@@ -380,7 +380,7 @@ export function StructuredDocumentEditor({
                       required
                     />
                     <Field
-                      label="Quantity"
+                      label="数量"
                       path={["items", index, "quantity"]}
                       document={parsed}
                       evidence={evidence}
@@ -388,28 +388,28 @@ export function StructuredDocumentEditor({
                       required
                     />
                     <Field
-                      label="Unit"
+                      label="单位"
                       path={["items", index, "unit"]}
                       document={parsed}
                       evidence={evidence}
                       onValue={setValue}
                     />
                     <Field
-                      label="Unit price"
+                      label="单价"
                       path={["items", index, "unit_price"]}
                       document={parsed}
                       evidence={evidence}
                       onValue={setValue}
                     />
                     <Field
-                      label="Tax"
+                      label="税额"
                       path={["items", index, "tax_amount"]}
                       document={parsed}
                       evidence={evidence}
                       onValue={setValue}
                     />
                     <Field
-                      label="Line total"
+                      label="行金额"
                       path={["items", index, "line_total"]}
                       document={parsed}
                       evidence={evidence}
@@ -424,27 +424,27 @@ export function StructuredDocumentEditor({
           <section className="form-section">
             <div className="form-section-heading">
               <div>
-                <span className="eyebrow">TOTALS</span>
-                <h4>Financial totals</h4>
+                <span className="eyebrow">金额汇总</span>
+                <h4>财务金额</h4>
               </div>
             </div>
             <div className="field-grid three">
               <Field
-                label="Subtotal"
+                label="小计"
                 path={["subtotal"]}
                 document={parsed}
                 evidence={evidence}
                 onValue={setValue}
               />
               <Field
-                label="GST / tax total"
+                label="GST / 税额合计"
                 path={["tax_total"]}
                 document={parsed}
                 evidence={evidence}
                 onValue={setValue}
               />
               <Field
-                label="Total"
+                label="总额"
                 path={["total"]}
                 document={parsed}
                 evidence={evidence}

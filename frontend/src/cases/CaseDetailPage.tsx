@@ -1,3 +1,4 @@
+import { label, systemMessage } from "../i18n";
 import { useEffect, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 
@@ -59,9 +60,9 @@ export function CaseDetailPage({
     return (
       <section className="page">
         <button className="back-link" onClick={() => onNavigate("/cases")}>
-          ← Back to Cases
+          ← 返回差异列表
         </button>
-        <div className="empty-state">Loading case…</div>
+        <div className="empty-state">正在加载差异处理单…</div>
       </section>
     );
   }
@@ -70,12 +71,12 @@ export function CaseDetailPage({
     return (
       <section className="page">
         <button className="back-link" onClick={() => onNavigate("/cases")}>
-          ← Back to Cases
+          ← 返回差异列表
         </button>
         <div className="error-banner">
           {detail.error instanceof Error
             ? detail.error.message
-            : "Could not load this reconciliation case"}
+            : "无法加载此差异处理单"}
         </div>
       </section>
     );
@@ -107,7 +108,7 @@ export function CaseDetailPage({
     ) {
       await detail.refetch();
       setMessage(
-        "This Case changed while you were viewing it. The latest version has been loaded.",
+        "此处理单已被更新，现已加载最新版本，请重新确认。",
       );
       return;
     }
@@ -129,7 +130,7 @@ export function CaseDetailPage({
       );
       queryClient.setQueryData(["reconciliation-case", caseId], updated);
     } catch (problem) {
-      await handleMutationError(problem, "Case transition failed");
+      await handleMutationError(problem, "处理单状态变更失败");
     } finally {
       setBusyAction(null);
     }
@@ -155,7 +156,7 @@ export function CaseDetailPage({
       setSelectedAssignee("");
       setReassignReason("");
     } catch (problem) {
-      await handleMutationError(problem, "Reassignment failed");
+      await handleMutationError(problem, "重新分派失败");
     } finally {
       setBusyAction(null);
     }
@@ -180,7 +181,7 @@ export function CaseDetailPage({
       setReturnOpen(false);
       setReturnReason("");
     } catch (problem) {
-      await handleMutationError(problem, "Return failed");
+      await handleMutationError(problem, "退回失败");
     } finally {
       setBusyAction(null);
     }
@@ -190,7 +191,7 @@ export function CaseDetailPage({
     <section className="page case-detail-page">
       <div className="case-detail-toolbar">
         <button className="back-link" onClick={() => onNavigate("/cases")}>
-          ← Back to Cases
+          ← 返回差异列表
         </button>
         <button
           disabled={exporting}
@@ -203,72 +204,72 @@ export function CaseDetailPage({
               );
             } catch (problem) {
               setMessage(
-                problem instanceof Error ? problem.message : "Export failed",
+                problem instanceof Error ? problem.message : "导出失败",
               );
             } finally {
               setExporting(false);
             }
           }}
         >
-          {exporting ? "Exporting…" : "Export CSV"}
+          {exporting ? "正在导出…" : "导出 CSV"}
         </button>
       </div>
 
       <div className="case-detail-heading">
         <div>
-          <span className="eyebrow">RECONCILIATION CASE</span>
+          <span className="eyebrow">对账差异处理</span>
           <h2>{result.invoice_number}</h2>
-          <p>Against {result.receive_note_numbers.join(", ") || "no Receive Notes"}</p>
+          <p>对应收货单 {result.receive_note_numbers.join(", ") || "无收货单"}</p>
         </div>
         <div className="case-detail-state">
           <span className={`status ${data.case.status}`}>
             {caseStatusLabel(data.case.status)}
           </span>
           <small>
-            Assignee:{" "}
+            负责人：{" "}
             {data.assignee_username ||
-              (data.case.assignee_user_id ? "Assigned reviewer" : "Unassigned")} ·{" "}
-            Revision {data.case.revision}
+              (data.case.assignee_user_id ? "已分派审核员" : "待认领")} ·{" "}
+            修订版本 {data.case.revision}
           </small>
           <small>
-            Viewing as {user.username} ({user.role})
+            当前身份 {user.username} ({label(user.role)})
           </small>
         </div>
       </div>
 
       <div className="case-summary-grid">
-        <SummaryMetric label="Total lines" value={summary.total_lines} />
-        <SummaryMetric label="Exact" value={summary.exact_lines} />
-        <SummaryMetric label="Within tolerance" value={summary.tolerance_lines} />
-        <SummaryMetric label="Mismatch" value={summary.mismatch_lines} />
-        <SummaryMetric label="Invoice only" value={summary.invoice_only_lines} />
+        <SummaryMetric label="总行数" value={summary.total_lines} />
+        <SummaryMetric label="完全匹配" value={summary.exact_lines} />
+        <SummaryMetric label="容差内" value={summary.tolerance_lines} />
+        <SummaryMetric label="不匹配" value={summary.mismatch_lines} />
+        <SummaryMetric label="仅发票存在" value={summary.invoice_only_lines} />
         <SummaryMetric
-          label="Receive Note only"
+          label="仅收货单存在"
           value={summary.receive_note_only_lines}
         />
         <SummaryMetric
-          label="Purchase order"
+          label="采购订单号"
           value={
             result.purchase_order_match === null
-              ? "Unknown"
+              ? "未知"
               : result.purchase_order_match
-                ? "Match"
-                : "Conflict"
+                ? "一致"
+                : "冲突"
           }
         />
         <SummaryMetric
-          label="Currency"
-          value={result.currency_match ? "Match" : "Conflict"}
+          label="币种"
+          value={result.currency_match ? "一致" : "冲突"}
         />
       </div>
 
       <section className="case-section">
         <div className="case-section-heading">
           <div>
-            <span className="eyebrow">ACTIONABLE DIFFERENCES</span>
-            <h3>Case items</h3>
+            <span className="eyebrow">待处理差异</span>
+            <h3>差异项</h3>
           </div>
-          <span>{data.items.length} items</span>
+          <span>{data.items.length} 项</span>
         </div>
         <div className="case-item-list">
           {data.items.map((item) => {
@@ -283,45 +284,45 @@ export function CaseDetailPage({
                       {line.sku && <small>{line.description}</small>}
                       <dl className="case-item-line-data">
                         <div>
-                          <dt>Invoice quantity</dt>
+                          <dt>发票数量</dt>
                           <dd>{line.invoice_quantity}</dd>
                         </div>
                         <div>
-                          <dt>Received quantity</dt>
+                          <dt>收货数量</dt>
                           <dd>{line.received_quantity}</dd>
                         </div>
                         <div>
-                          <dt>Quantity difference</dt>
+                          <dt>数量差异</dt>
                           <dd>{line.quantity_difference}</dd>
                         </div>
                         <div>
-                          <dt>Invoice unit price</dt>
+                          <dt>发票单价</dt>
                           <dd>{line.invoice_unit_price ?? "—"}</dd>
                         </div>
                         <div>
-                          <dt>Received unit price</dt>
+                          <dt>收货单价</dt>
                           <dd>{line.received_unit_price ?? "—"}</dd>
                         </div>
                         <div>
-                          <dt>Unit price difference</dt>
+                          <dt>单价差异</dt>
                           <dd>{line.unit_price_difference ?? "—"}</dd>
                         </div>
                         <div>
-                          <dt>Invoice amount</dt>
+                          <dt>发票金额</dt>
                           <dd>{line.invoice_amount ?? "—"}</dd>
                         </div>
                         <div>
-                          <dt>Received amount</dt>
+                          <dt>收货金额</dt>
                           <dd>{line.received_amount ?? "—"}</dd>
                         </div>
                         <div>
-                          <dt>Amount difference</dt>
+                          <dt>金额差异</dt>
                           <dd>{line.amount_difference ?? "—"}</dd>
                         </div>
                       </dl>
                       <small>
-                        {line.status.replaceAll("_", " ")}
-                        {line.reasons.length ? ` · ${line.reasons.join(", ")}` : ""}
+                        {label(line.status)}
+                        {line.reasons.length ? ` · ${line.reasons.map(systemMessage).join("，")}` : ""}
                       </small>
                     </>
                   ) : (
@@ -355,7 +356,7 @@ export function CaseDetailPage({
                     } catch (problem) {
                       await handleMutationError(
                         problem,
-                        "Resolution update failed",
+                        "处置结果更新失败",
                       );
                     } finally {
                       setBusyItemId(null);
@@ -366,7 +367,7 @@ export function CaseDetailPage({
             );
           })}
           {data.items.length === 0 && (
-            <div className="empty-state">This case has no actionable items.</div>
+            <div className="empty-state">此处理单没有待处理差异。</div>
           )}
         </div>
       </section>
@@ -374,16 +375,16 @@ export function CaseDetailPage({
       {editable && (
         <section className="case-section case-decision-panel">
           <div>
-            <span className="eyebrow">REVIEWER DECISION</span>
-            <h3>Submit this Case</h3>
+            <span className="eyebrow">审核员处置</span>
+            <h3>提交处理单</h3>
             {submission === null && (
               <p className="case-submission-guidance">
                 {data.items.some(
                   (item) =>
                     item.resolution_type === "waiting_for_documents",
                 )
-                  ? "Waiting for documents must be resolved before this Case can be submitted."
-                  : "Resolve every Case Item before submitting a decision."}
+                  ? "请先补齐所需单据并完成处置，再提交处理单。"
+                  : "请先完成所有差异项的处置，再提交决定。"}
               </p>
             )}
           </div>
@@ -400,10 +401,10 @@ export function CaseDetailPage({
               }
             >
               {busyAction
-                ? "Submitting…"
+                ? "正在提交…"
                 : submission === "approval"
-                  ? "Submit for approval"
-                  : "Submit for void"}
+                  ? "提交审批"
+                  : "申请作废"}
             </button>
           )}
         </section>
@@ -412,9 +413,9 @@ export function CaseDetailPage({
       {reassignable && (
         <section className="case-section case-admin-panel">
           <div>
-            <span className="eyebrow">ADMIN CONTROL</span>
-            <h3>Reassign Case</h3>
-            <p>Choose an active Reviewer and record why ownership changed.</p>
+            <span className="eyebrow">管理员操作</span>
+            <h3>重新分派</h3>
+            <p>选择有效的审核员，并记录更换负责人的原因。</p>
           </div>
           <form
             className="case-admin-form"
@@ -424,14 +425,14 @@ export function CaseDetailPage({
             }}
           >
             <label htmlFor="case-reassign-reviewer">
-              Reviewer
+              审核员
               <select
                 disabled={assignees.isLoading || busyAction !== null}
                 id="case-reassign-reviewer"
                 onChange={(event) => setSelectedAssignee(event.target.value)}
                 value={selectedAssignee}
               >
-                <option value="">Select an active Reviewer</option>
+                <option value="">选择有效的审核员</option>
                 {assignees.data?.map((assignee) => (
                   <option key={assignee.user_id} value={assignee.user_id}>
                     {assignee.username}
@@ -440,7 +441,7 @@ export function CaseDetailPage({
               </select>
             </label>
             <label htmlFor="case-reassign-reason">
-              Reassignment reason
+              重新分派原因
               <textarea
                 disabled={busyAction !== null}
                 id="case-reassign-reason"
@@ -457,13 +458,13 @@ export function CaseDetailPage({
               }
               type="submit"
             >
-              {busyAction === "reassign" ? "Reassigning…" : "Reassign Case"}
+              {busyAction === "reassign" ? "正在分派…" : "重新分派"}
             </button>
             {assignees.error && (
               <p className="case-inline-error">
                 {assignees.error instanceof Error
                   ? assignees.error.message
-                  : "Could not load Reviewers"}
+                  : "无法加载审核员列表"}
               </p>
             )}
           </form>
@@ -473,11 +474,10 @@ export function CaseDetailPage({
       {decisions.length > 0 && (
         <section className="case-section case-admin-decision">
           <div>
-            <span className="eyebrow">ADMIN DECISION</span>
-            <h3>Review submitted decision</h3>
+            <span className="eyebrow">管理员审批</span>
+            <h3>审批已提交的处置结果</h3>
             <p>
-              The service rechecks item resolutions and state before applying
-              the decision.
+              提交审批决定时，系统会重新核验差异处置结果与当前状态。
             </p>
           </div>
           <div className="case-admin-decision-actions">
@@ -487,7 +487,7 @@ export function CaseDetailPage({
                 disabled={busyAction !== null}
                 onClick={() => void transition("approve")}
               >
-                {busyAction === "approve" ? "Approving…" : "Approve Case"}
+                {busyAction === "approve" ? "正在批准…" : "批准处理单"}
               </button>
             )}
             {decisions.includes("void") && (
@@ -496,7 +496,7 @@ export function CaseDetailPage({
                 disabled={busyAction !== null}
                 onClick={() => void transition("void")}
               >
-                {busyAction === "void" ? "Voiding…" : "Void Case"}
+                {busyAction === "void" ? "正在作废…" : "作废处理单"}
               </button>
             )}
             {decisions.includes("return") && !returnOpen && (
@@ -504,7 +504,7 @@ export function CaseDetailPage({
                 disabled={busyAction !== null}
                 onClick={() => setReturnOpen(true)}
               >
-                Return Case
+                退回处理单
               </button>
             )}
           </div>
@@ -517,7 +517,7 @@ export function CaseDetailPage({
               }}
             >
               <label htmlFor="case-return-reason">
-                Return reason
+                退回原因
                 <textarea
                   disabled={busyAction !== null}
                   id="case-return-reason"
@@ -535,14 +535,14 @@ export function CaseDetailPage({
                   }}
                   type="button"
                 >
-                  Cancel
+                  取消
                 </button>
                 <button
                   className="danger"
                   disabled={busyAction !== null || !returnReason.trim()}
                   type="submit"
                 >
-                  {busyAction === "return" ? "Returning…" : "Confirm return"}
+                  {busyAction === "return" ? "正在退回…" : "确认退回"}
                 </button>
               </div>
             </form>
@@ -555,25 +555,25 @@ export function CaseDetailPage({
       <section className="case-section">
         <div className="case-section-heading">
           <div>
-            <span className="eyebrow">IMMUTABLE RESULT</span>
-            <h3>Exact and tolerance lines</h3>
+            <span className="eyebrow">原始核对结果</span>
+            <h3>完全匹配与容差内明细</h3>
           </div>
         </div>
         <div className="table-scroll">
           <table className="result-table">
             <thead>
               <tr>
-                <th>Item</th>
-                <th>Invoice qty</th>
-                <th>Received qty</th>
-                <th>Qty diff</th>
-                <th>Invoice unit price</th>
-                <th>Received unit price</th>
-                <th>Unit price diff</th>
-                <th>Invoice amount</th>
-                <th>Received amount</th>
-                <th>Amount diff</th>
-                <th>Status</th>
+                <th>商品</th>
+                <th>发票数量</th>
+                <th>收货数量</th>
+                <th>数量差异</th>
+                <th>发票单价</th>
+                <th>收货单价</th>
+                <th>单价差异</th>
+                <th>发票金额</th>
+                <th>收货金额</th>
+                <th>金额差异</th>
+                <th>状态</th>
               </tr>
             </thead>
             <tbody>
@@ -594,7 +594,7 @@ export function CaseDetailPage({
                   <td>{line.amount_difference ?? "—"}</td>
                   <td>
                     <span className={`status ${line.status}`}>
-                      {line.status.replaceAll("_", " ")}
+                      {label(line.status)}
                     </span>
                   </td>
                 </tr>
@@ -603,15 +603,15 @@ export function CaseDetailPage({
           </table>
         </div>
         {readOnlyLines.length === 0 && (
-          <div className="empty-state">No exact or within-tolerance lines.</div>
+          <div className="empty-state">没有完全匹配或容差内的明细。</div>
         )}
       </section>
 
       <section className="case-section">
         <div className="case-section-heading">
           <div>
-            <span className="eyebrow">AUDIT TRAIL</span>
-            <h3>Action history</h3>
+            <span className="eyebrow">审计记录</span>
+            <h3>操作历史</h3>
           </div>
         </div>
         <ol className="case-history">
@@ -623,11 +623,11 @@ export function CaseDetailPage({
                   <strong>{caseActionLabel(action.action)}</strong>
                   <time>{new Date(action.created_at).toLocaleString()}</time>
                 </div>
-                <p>By {actor_username}</p>
+                <p>操作人 {actor_username}</p>
                 {action.reason && <p className="case-history-reason">{action.reason}</p>}
                 {(action.old_value !== null || action.new_value !== null) && (
                   <details>
-                    <summary>Recorded change</summary>
+                    <summary>变更记录</summary>
                     <pre>
                       {formatAuditValue(action.old_value)} →{" "}
                       {formatAuditValue(action.new_value)}
@@ -639,7 +639,7 @@ export function CaseDetailPage({
           ))}
         </ol>
         {data.actions.length === 0 && (
-          <div className="empty-state">No actions have been recorded.</div>
+          <div className="empty-state">暂无操作记录。</div>
         )}
       </section>
     </section>
@@ -682,12 +682,12 @@ function ItemResolution({
         <span className="case-item-resolution">
           {item.resolution_type
             ? resolutionLabel(item.resolution_type)
-            : "Unresolved"}
+            : "未处置"}
         </span>
-        <p>{item.resolution_note || "No resolution note yet."}</p>
+        <p>{item.resolution_note || "暂无处置说明。"}</p>
         {item.resolved_at && (
           <small>
-            Updated by {item.resolved_by || "Unknown user"} ·{" "}
+            更新人 {item.resolved_by || "未知用户"} ·{" "}
             {new Date(item.resolved_at).toLocaleString()}
           </small>
         )}
@@ -705,7 +705,7 @@ function ItemResolution({
       }}
     >
       <label htmlFor={`${prefix}-resolution`}>
-        Resolution
+        处置结论
         <select
           disabled={disabled}
           id={`${prefix}-resolution`}
@@ -714,7 +714,7 @@ function ItemResolution({
           }
           value={resolutionType}
         >
-          <option value="">Select a resolution</option>
+          <option value="">选择处置结论</option>
           {RESOLUTIONS.map((resolution) => (
             <option key={resolution} value={resolution}>
               {resolutionLabel(resolution)}
@@ -723,7 +723,7 @@ function ItemResolution({
         </select>
       </label>
       <label htmlFor={`${prefix}-note`}>
-        Resolution note
+        处置说明
         <textarea
           disabled={disabled}
           id={`${prefix}-note`}
@@ -737,7 +737,7 @@ function ItemResolution({
         disabled={disabled || !resolutionType || !note.trim()}
         type="submit"
       >
-        {saving ? "Saving…" : "Save resolution"}
+        {saving ? "正在保存…" : "保存处置结果"}
       </button>
     </form>
   );
@@ -761,45 +761,45 @@ function SummaryMetric({
 function caseItemLabel(itemType: CaseItemType): string {
   switch (itemType) {
     case "line":
-      return "Line difference";
+      return "商品行差异";
     case "purchase_order_conflict":
-      return "Purchase order conflict";
+      return "采购订单冲突";
     case "currency_conflict":
-      return "Currency conflict";
+      return "币种冲突";
   }
 }
 
 function caseItemDescription(itemType: CaseItemType): string {
   switch (itemType) {
     case "line":
-      return "The linked reconciliation line is unavailable.";
+      return "关联的对账明细不可用。";
     case "purchase_order_conflict":
-      return "Invoice and Receive Note purchase orders do not match.";
+      return "发票与收货单的采购订单号不一致。";
     case "currency_conflict":
-      return "Invoice and Receive Note currencies do not match.";
+      return "发票与收货单的币种不一致。";
   }
 }
 
 function caseActionLabel(action: CaseActionType): string {
   switch (action) {
     case "created":
-      return "Case created";
+      return "已创建处理单";
     case "claimed":
-      return "Case claimed";
+      return "已认领处理单";
     case "reassigned":
-      return "Case reassigned";
+      return "已重新分派";
     case "resolution_changed":
-      return "Resolution changed";
+      return "已更新处置结果";
     case "submitted_for_approval":
-      return "Submitted for approval";
+      return "已提交审批";
     case "submitted_for_void":
-      return "Submitted for void";
+      return "已申请作废";
     case "returned":
-      return "Case returned";
+      return "已退回处理单";
     case "approved":
-      return "Case approved";
+      return "已批准处理单";
     case "voided":
-      return "Case voided";
+      return "已作废处理单";
   }
 }
 

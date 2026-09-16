@@ -1,3 +1,4 @@
+import { label } from "../i18n";
 import { useEffect, useState } from "react";
 import { api, type User } from "../api/client";
 import { LoginPage } from "../auth/LoginPage";
@@ -35,7 +36,7 @@ export function App() {
   }, []);
 
   if (user === undefined) {
-    return <div className="loading">Loading IVIDA Review Console…</div>;
+    return <div className="loading">正在加载 IVIDA 审核工作台…</div>;
   }
   if (!user) {
     if (path !== "/login") {
@@ -51,46 +52,46 @@ export function App() {
     <div className="app-shell">
       <header className="topbar">
         <div>
-          <span className="eyebrow">IVIDA OPERATIONS</span>
-          <h1>Finance Document Control</h1>
+          <span className="eyebrow">IVIDA 运营管理</span>
+          <h1>采购单据核对工作台</h1>
         </div>
-        <nav className="primary-nav" aria-label="Primary navigation">
+        <nav className="primary-nav" aria-label="主导航">
           <button
             className={path === "/upload" ? "active" : ""}
             onClick={() => navigate("/upload")}
           >
-            Upload
+            上传单据
           </button>
           <button
             className={path === "/" || versionMatch ? "active" : ""}
             onClick={() => navigate("/")}
           >
-            Review
+            单据审核
           </button>
           <button
             className={path === "/reconcile" ? "active" : ""}
             onClick={() => navigate("/reconcile")}
           >
-            Reconcile
+            单据对账
           </button>
           <button
             className={path === "/cases" || caseMatch ? "active" : ""}
             onClick={() => navigate("/cases")}
           >
-            Cases
+            差异处理
           </button>
           {user.role === "admin" ? (
             <button
               className={path === "/lab" ? "active" : ""}
               onClick={() => navigate("/lab")}
             >
-              Quality Lab
+              质量评测
             </button>
           ) : null}
         </nav>
         <div className="user-chip">
           <span>{user.username}</span>
-          <small>{user.role}</small>
+          <small>{label(user.role)}</small>
           <button
             className="link-button"
             onClick={async () => {
@@ -98,7 +99,7 @@ export function App() {
               setUser(null);
             }}
           >
-            Sign out
+            退出登录
           </button>
         </div>
       </header>
@@ -109,7 +110,7 @@ export function App() {
           user.role === "admin" ? (
             <ExperimentLabPage />
           ) : (
-            <div className="page"><p className="error-banner">Admin access required.</p></div>
+            <div className="page"><p className="error-banner">需要管理员权限。</p></div>
           )
         ) : path === "/reconcile" ? (
           <ReconciliationPage />

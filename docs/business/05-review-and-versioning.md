@@ -138,3 +138,6 @@ Evidence 描述的是机器抽取时的原文来源。人工编辑后应结合�
 - Reclassification 解决同号 Invoice/Receive Note 的严重误分类风险；
 - Approved Version 是核对服务唯一可信输入。
 - Reviewer 修改只是反馈候选；Admin 分类确认后，只有模型错误才有 Gold 资格。
+# 中文审核界面
+
+审核队列、结构化编辑表单、类型确认和批准/驳回操作现使用中文标签。原始英文单据内容、证据、供应商和商品名称保持原样；高级 JSON 保留原字段。中文显示不改变 draft/approved/rejected 等接口状态值，也不改变审核门禁。

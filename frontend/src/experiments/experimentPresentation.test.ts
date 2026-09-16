@@ -4,7 +4,7 @@ import { canEnterGold, formatCost } from "./experimentPresentation";
 
 describe("experiment presentation", () => {
   it("does not render unknown cost as zero", () => {
-    expect(formatCost(null)).toBe("Not configured");
+    expect(formatCost(null)).toBe("未配置");
   });
 
   it("enables Gold only for model errors", () => {

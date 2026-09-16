@@ -195,12 +195,12 @@ describe("case presentation", () => {
 
   it("labels every case status explicitly", () => {
     const expected: Array<[CaseStatus, string]> = [
-      ["unassigned", "Unassigned"],
-      ["in_progress", "In progress"],
-      ["pending_approval", "Pending approval"],
-      ["pending_void", "Pending void"],
-      ["approved", "Approved"],
-      ["voided", "Voided"],
+      ["unassigned", "待认领"],
+      ["in_progress", "处理中"],
+      ["pending_approval", "待审批"],
+      ["pending_void", "待作废审批"],
+      ["approved", "已批准"],
+      ["voided", "已作废"],
     ];
 
     expect(expected.map(([status]) => caseStatusLabel(status))).toEqual(
@@ -210,10 +210,10 @@ describe("case presentation", () => {
 
   it("labels every resolution explicitly", () => {
     const expected: Array<[ResolutionType, string]> = [
-      ["business_exception", "Business exception"],
-      ["document_data_error", "Document data error"],
-      ["matching_error", "Matching error"],
-      ["waiting_for_documents", "Waiting for documents"],
+      ["business_exception", "业务例外"],
+      ["document_data_error", "单据数据错误"],
+      ["matching_error", "匹配错误"],
+      ["waiting_for_documents", "等待补充单据"],
     ];
 
     expect(expected.map(([resolution]) => resolutionLabel(resolution))).toEqual(
@@ -273,7 +273,7 @@ describe("API errors", () => {
     );
 
     await expect(api("/api/failure")).rejects.toEqual(
-      new ApiError("Request failed (500)", 500),
+      new ApiError("请求失败（500）", 500),
     );
   });
 });

@@ -186,14 +186,14 @@ describe("CaseDetailPage reviewer workflow", () => {
 
     expect(await screen.findByText("INV-100")).toBeTruthy();
     const actionableSection = screen
-      .getByRole("heading", { name: "Case items" })
+      .getByRole("heading", { name: "差异项" })
       .closest("section");
     expect(actionableSection).not.toBeNull();
     expect(
-      within(actionableSection!).getByText("Invoice unit price"),
+      within(actionableSection!).getByText("发票单价"),
     ).toBeTruthy();
     const readOnlySection = screen
-      .getByRole("heading", { name: "Exact and tolerance lines" })
+      .getByRole("heading", { name: "完全匹配与容差内明细" })
       .closest("section");
     expect(readOnlySection).not.toBeNull();
     expect(within(readOnlySection!).getByText("SKU-002")).toBeTruthy();
@@ -209,15 +209,15 @@ describe("CaseDetailPage reviewer workflow", () => {
 
     renderPage();
 
-    fireEvent.change(await screen.findByLabelText("Resolution"), {
+    fireEvent.change(await screen.findByLabelText("处置结论"), {
       target: { value: "business_exception" },
     });
-    fireEvent.change(screen.getByLabelText("Resolution note"), {
+    fireEvent.change(screen.getByLabelText("处置说明"), {
       target: { value: "  Supplier accepted short delivery  " },
     });
-    fireEvent.click(screen.getByRole("button", { name: "Save resolution" }));
+    fireEvent.click(screen.getByRole("button", { name: "保存处置结果" }));
 
-    await screen.findByText(/Revision 3/);
+    await screen.findByText(/修订版本 3/);
     expect(fetchMock).toHaveBeenCalledTimes(2);
     expect(fetchMock.mock.calls[1]).toEqual([
       "/api/reconciliation-cases/case-a/items/item-a/resolution",
@@ -245,12 +245,12 @@ describe("CaseDetailPage reviewer workflow", () => {
     renderPage();
 
     fireEvent.click(
-      await screen.findByRole("button", { name: "Submit for approval" }),
+      await screen.findByRole("button", { name: "提交审批" }),
     );
 
-    await screen.findByText("Pending approval");
+    await screen.findByText("待审批");
     expect(
-      screen.queryByRole("button", { name: "Submit for void" }),
+      screen.queryByRole("button", { name: "申请作废" }),
     ).toBeNull();
     expect(fetchMock.mock.calls[1]).toEqual([
       "/api/reconciliation-cases/case-a/submit-approval",
@@ -267,11 +267,11 @@ describe("CaseDetailPage reviewer workflow", () => {
 
     expect(
       await screen.findByText(
-        "Resolve every Case Item before submitting a decision.",
+        "请先完成所有差异项的处置，再提交决定。",
       ),
     ).toBeTruthy();
     expect(
-      screen.queryByRole("button", { name: /Submit for/ }),
+      screen.queryByRole("button", { name: /提交审批|申请作废/ }),
     ).toBeNull();
 
     cleanup();
@@ -282,7 +282,7 @@ describe("CaseDetailPage reviewer workflow", () => {
     renderPage();
     expect(
       await screen.findByText(
-        "Waiting for documents must be resolved before this Case can be submitted.",
+        "请先补齐所需单据并完成处置，再提交处理单。",
       ),
     ).toBeTruthy();
   });
@@ -299,12 +299,12 @@ describe("CaseDetailPage reviewer workflow", () => {
     renderPage();
 
     fireEvent.click(
-      await screen.findByRole("button", { name: "Submit for void" }),
+      await screen.findByRole("button", { name: "申请作废" }),
     );
 
-    await screen.findByText("Pending void");
+    await screen.findByText("待作废审批");
     expect(
-      screen.queryByRole("button", { name: "Submit for approval" }),
+      screen.queryByRole("button", { name: "提交审批" }),
     ).toBeNull();
     expect(fetchMock.mock.calls[1][0]).toBe(
       "/api/reconciliation-cases/case-a/submit-void",
@@ -330,19 +330,19 @@ describe("CaseDetailPage reviewer workflow", () => {
       .mockResolvedValueOnce(jsonResponse(latest));
     renderPage();
 
-    fireEvent.change(await screen.findByLabelText("Resolution"), {
+    fireEvent.change(await screen.findByLabelText("处置结论"), {
       target: { value: "business_exception" },
     });
-    const note = screen.getByLabelText("Resolution note") as HTMLTextAreaElement;
+    const note = screen.getByLabelText("处置说明") as HTMLTextAreaElement;
     fireEvent.change(note, { target: { value: "My unsaved explanation" } });
-    fireEvent.click(screen.getByRole("button", { name: "Save resolution" }));
+    fireEvent.click(screen.getByRole("button", { name: "保存处置结果" }));
 
     expect(
       await screen.findByText(
-        "This Case changed while you were viewing it. The latest version has been loaded.",
+        "此处理单已被更新，现已加载最新版本，请重新确认。",
       ),
     ).toBeTruthy();
-    await screen.findByText(/Revision 3/);
+    await screen.findByText(/修订版本 3/);
     expect(note.value).toBe("My unsaved explanation");
     expect(fetchMock).toHaveBeenCalledTimes(3);
   });
@@ -368,15 +368,15 @@ describe("CaseDetailPage reviewer workflow", () => {
     renderPage();
 
     fireEvent.click(
-      await screen.findByRole("button", { name: "Submit for approval" }),
+      await screen.findByRole("button", { name: "提交审批" }),
     );
 
     expect(
       await screen.findByText(
-        "This Case changed while you were viewing it. The latest version has been loaded.",
+        "此处理单已被更新，现已加载最新版本，请重新确认。",
       ),
     ).toBeTruthy();
-    await screen.findByText(/Revision 3/);
+    await screen.findByText(/修订版本 3/);
     expect(fetchMock).toHaveBeenCalledTimes(3);
   });
 });
@@ -400,12 +400,12 @@ describe("CaseDetailPage admin workflow", () => {
     renderPage(ADMIN);
 
     await screen.findByRole("option", { name: "bob" });
-    fireEvent.change(screen.getByLabelText("Reviewer"), {
+    fireEvent.change(screen.getByLabelText("审核员"), {
       target: { value: "reviewer-b" },
     });
-    const reassign = screen.getByRole("button", { name: "Reassign Case" });
+    const reassign = screen.getByRole("button", { name: "重新分派" });
     expect((reassign as HTMLButtonElement).disabled).toBe(true);
-    fireEvent.change(screen.getByLabelText("Reassignment reason"), {
+    fireEvent.change(screen.getByLabelText("重新分派原因"), {
       target: { value: "  Balance the review queue  " },
     });
     await waitFor(() =>
@@ -413,7 +413,7 @@ describe("CaseDetailPage admin workflow", () => {
     );
     fireEvent.click(reassign);
 
-    await screen.findByText(/Revision 3/);
+    await screen.findByText(/修订版本 3/);
     expect(fetchMock).toHaveBeenCalledWith(
       "/api/reconciliation-cases/case-a/reassign",
       expect.objectContaining({
@@ -444,12 +444,12 @@ describe("CaseDetailPage admin workflow", () => {
     );
     renderPage(ADMIN);
 
-    const approve = await screen.findByRole("button", { name: "Approve Case" });
-    expect(screen.queryByRole("button", { name: "Void Case" })).toBeNull();
-    expect(screen.getByRole("button", { name: "Return Case" })).toBeTruthy();
+    const approve = await screen.findByRole("button", { name: "批准处理单" });
+    expect(screen.queryByRole("button", { name: "作废处理单" })).toBeNull();
+    expect(screen.getByRole("button", { name: "退回处理单" })).toBeTruthy();
     fireEvent.click(approve);
 
-    await screen.findByText("Approved");
+    await screen.findByText("已批准");
     expect(fetchMock).toHaveBeenCalledWith(
       "/api/reconciliation-cases/case-a/approve",
       expect.objectContaining({
@@ -476,11 +476,11 @@ describe("CaseDetailPage admin workflow", () => {
     );
     renderPage(ADMIN);
 
-    const voidCase = await screen.findByRole("button", { name: "Void Case" });
-    expect(screen.queryByRole("button", { name: "Approve Case" })).toBeNull();
+    const voidCase = await screen.findByRole("button", { name: "作废处理单" });
+    expect(screen.queryByRole("button", { name: "批准处理单" })).toBeNull();
     fireEvent.click(voidCase);
 
-    await screen.findByText("Voided");
+    await screen.findByText("已作废");
     expect(fetchMock.mock.calls.some(([path]) =>
       path === "/api/reconciliation-cases/case-a/void",
     )).toBe(true);
@@ -503,10 +503,10 @@ describe("CaseDetailPage admin workflow", () => {
     );
     renderPage(ADMIN);
 
-    fireEvent.click(await screen.findByRole("button", { name: "Return Case" }));
-    const confirm = screen.getByRole("button", { name: "Confirm return" });
+    fireEvent.click(await screen.findByRole("button", { name: "退回处理单" }));
+    const confirm = screen.getByRole("button", { name: "确认退回" });
     expect((confirm as HTMLButtonElement).disabled).toBe(true);
-    fireEvent.change(screen.getByLabelText("Return reason"), {
+    fireEvent.change(screen.getByLabelText("退回原因"), {
       target: { value: "  Need supplier evidence  " },
     });
     await waitFor(() =>
@@ -514,7 +514,7 @@ describe("CaseDetailPage admin workflow", () => {
     );
     fireEvent.click(confirm);
 
-    await screen.findByText("In progress");
+    await screen.findByText("处理中");
     expect(fetchMock).toHaveBeenCalledWith(
       "/api/reconciliation-cases/case-a/return",
       expect.objectContaining({
@@ -557,16 +557,16 @@ describe("CaseDetailPage immutable detail", () => {
       .mockImplementation(() => undefined);
     renderPage();
 
-    expect(await screen.findByText("Approved")).toBeTruthy();
-    expect(screen.queryByLabelText("Resolution")).toBeNull();
-    expect(screen.queryByRole("button", { name: "Reassign Case" })).toBeNull();
-    expect(screen.getByText("Purchase order").parentElement?.textContent).toContain(
-      "Conflict",
+    expect(await screen.findByText("已批准")).toBeTruthy();
+    expect(screen.queryByLabelText("处置结论")).toBeNull();
+    expect(screen.queryByRole("button", { name: "重新分派" })).toBeNull();
+    expect(screen.getByText("采购订单号").parentElement?.textContent).toContain(
+      "冲突",
     );
-    expect(screen.getByText("Currency").parentElement?.textContent).toContain(
-      "Match",
+    expect(screen.getByText("币种").parentElement?.textContent).toContain(
+      "一致",
     );
-    fireEvent.click(screen.getByRole("button", { name: "Export CSV" }));
+    fireEvent.click(screen.getByRole("button", { name: "导出 CSV" }));
 
     await waitFor(() => expect(click).toHaveBeenCalledTimes(1));
     expect(fetchMock).toHaveBeenCalledWith(

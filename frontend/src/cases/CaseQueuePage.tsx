@@ -11,10 +11,10 @@ import {
 import type { CaseDetail, CasePage, CaseSummary } from "./caseTypes";
 
 const TABS: Array<{ id: CaseQueueTab; label: string }> = [
-  { id: "unassigned", label: "Unassigned" },
-  { id: "mine", label: "My work" },
-  { id: "admin-decisions", label: "Admin decisions" },
-  { id: "completed", label: "Completed" },
+  { id: "unassigned", label: "待认领" },
+  { id: "mine", label: "我的待办" },
+  { id: "admin-decisions", label: "管理员待审批" },
+  { id: "completed", label: "已完成" },
 ];
 
 export function CaseQueuePage({
@@ -105,7 +105,7 @@ export function CaseQueuePage({
           activeClaimRef.current,
         )
       ) {
-        setError(problem instanceof Error ? problem.message : "Claim failed");
+        setError(problem instanceof Error ? problem.message : "认领失败");
       }
     } finally {
       if (activeClaimRef.current === requestedCaseId) {
@@ -119,17 +119,17 @@ export function CaseQueuePage({
     <section className="page">
       <div className="page-heading">
         <div>
-          <span className="eyebrow">EXCEPTION CONTROL</span>
-          <h2>Reconciliation cases</h2>
-          <p>Claim abnormal reconciliations and follow their audit history.</p>
+          <span className="eyebrow">差异管理</span>
+          <h2>对账差异处理单</h2>
+          <p>认领对账异常，处理差异并查看审计历史。</p>
         </div>
-        <button onClick={() => cases.refetch()}>Refresh</button>
+        <button onClick={() => cases.refetch()}>刷新</button>
       </div>
 
       <div className="case-toolbar">
         <div
           className="case-tabs"
-          aria-label="Case queue filters"
+          aria-label="处理单筛选"
           role="group"
         >
           {TABS.map((item) => (
@@ -151,15 +151,15 @@ export function CaseQueuePage({
             setPage(1);
           }}
         >
-          <label htmlFor="case-invoice-filter">Invoice Number</label>
+          <label htmlFor="case-invoice-filter">发票编号</label>
           <div>
             <input
               id="case-invoice-filter"
               onChange={(event) => setInvoiceDraft(event.target.value)}
-              placeholder="Exact number or prefix"
+              placeholder="完整编号或编号前缀"
               value={invoiceDraft}
             />
-            <button type="submit">Filter</button>
+            <button type="submit">筛选</button>
             {invoiceNumber && (
               <button
                 className="case-filter-clear"
@@ -170,7 +170,7 @@ export function CaseQueuePage({
                 }}
                 type="button"
               >
-                Clear
+                清除
               </button>
             )}
           </div>
@@ -178,12 +178,12 @@ export function CaseQueuePage({
       </div>
 
       {error && <div className="error-banner">{error}</div>}
-      {cases.isLoading && <div className="empty-state">Loading cases…</div>}
+      {cases.isLoading && <div className="empty-state">正在加载处理单…</div>}
       {cases.error && (
         <div className="error-banner">
           {cases.error instanceof Error
             ? cases.error.message
-            : "Could not load reconciliation cases"}
+            : "无法加载差异处理单"}
         </div>
       )}
 
@@ -201,17 +201,17 @@ export function CaseQueuePage({
             <div>
               <h3>{item.invoice_number}</h3>
               <p>
-                Receive Notes: {item.receive_note_numbers.join(", ") || "None"}
+                收货单： {item.receive_note_numbers.join(", ") || "无"}
               </p>
             </div>
             <dl className="case-card-metrics">
               <div>
-                <dt>Actionable items</dt>
+                <dt>待处理差异项</dt>
                 <dd>{item.actionable_count}</dd>
               </div>
               <div>
-                <dt>Assignee</dt>
-                <dd>{item.assignee_username || "Unassigned"}</dd>
+                <dt>负责人</dt>
+                <dd>{item.assignee_username || "待认领"}</dd>
               </div>
             </dl>
             <div className="case-card-actions">
@@ -220,7 +220,7 @@ export function CaseQueuePage({
                   onNavigate(`/cases/${encodeURIComponent(item.case.case_id)}`)
                 }
               >
-                View details
+                查看详情
               </button>
               {tab === "unassigned" && user.role === "reviewer" && (
                 <button
@@ -228,7 +228,7 @@ export function CaseQueuePage({
                   disabled={claimingCaseId !== null}
                   onClick={() => claim(item)}
                 >
-                  {claimingCaseId === item.case.case_id ? "Claiming…" : "Claim"}
+                  {claimingCaseId === item.case.case_id ? "正在认领…" : "认领"}
                 </button>
               )}
             </div>
@@ -237,25 +237,25 @@ export function CaseQueuePage({
       </div>
 
       {!cases.isLoading && !cases.error && cases.data?.items.length === 0 && (
-        <div className="empty-state">No cases match this queue and filter.</div>
+        <div className="empty-state">当前列表与筛选条件下没有处理单。</div>
       )}
 
       {cases.data && cases.data.total > 0 && (
-        <div className="case-pagination" aria-label="Case queue pagination">
+        <div className="case-pagination" aria-label="处理单分页">
           <button
             disabled={page === 1}
             onClick={() => setPage((current) => Math.max(1, current - 1))}
           >
-            Previous
+            上一页
           </button>
           <span>
-            Page {cases.data.page} of {totalPages} · {cases.data.total} cases
+            页码 {cases.data.page} / {totalPages} · {cases.data.total} 个处理单
           </span>
           <button
             disabled={page >= totalPages}
             onClick={() => setPage((current) => current + 1)}
           >
-            Next
+            下一页
           </button>
         </div>
       )}

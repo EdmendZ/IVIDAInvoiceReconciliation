@@ -142,17 +142,17 @@ export function canReassignCase(
 export function caseStatusLabel(status: CaseStatus): string {
   switch (status) {
     case "unassigned":
-      return "Unassigned";
+      return "待认领";
     case "in_progress":
-      return "In progress";
+      return "处理中";
     case "pending_approval":
-      return "Pending approval";
+      return "待审批";
     case "pending_void":
-      return "Pending void";
+      return "待作废审批";
     case "approved":
-      return "Approved";
+      return "已批准";
     case "voided":
-      return "Voided";
+      return "已作废";
     default:
       return assertNever(status);
   }
@@ -161,13 +161,13 @@ export function caseStatusLabel(status: CaseStatus): string {
 export function resolutionLabel(resolution: ResolutionType): string {
   switch (resolution) {
     case "business_exception":
-      return "Business exception";
+      return "业务例外";
     case "document_data_error":
-      return "Document data error";
+      return "单据数据错误";
     case "matching_error":
-      return "Matching error";
+      return "匹配错误";
     case "waiting_for_documents":
-      return "Waiting for documents";
+      return "等待补充单据";
     default:
       return assertNever(resolution);
   }
