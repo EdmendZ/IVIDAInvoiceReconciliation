@@ -1,0 +1,101 @@
+{
+  "task_id": "T06",
+  "spec_version": "IR-SIMPLE-1.0.3",
+  "spec_sha256": "ba317333be98598676430d8262dd84ecadb143a6030458d3de7587b32c604c9b",
+  "base_commit": "a0a604f050d9c8dbd6407824294d9851da105ccc",
+  "candidate_commit": null,
+  "changed_files": [
+    ".harness/runs/T06/result.json",
+    "app/api/dependencies.py",
+    "app/api/extraction_routes.py",
+    "app/api/reconciliation_case_routes.py",
+    "app/api/review_routes.py",
+    "app/api/routes.py",
+    "app/api/upload_routes.py",
+    "app/api/workspace_routes.py",
+    "app/main.py",
+    "tests/test_workspace_api.py",
+    "tests/test_workspace_legacy_gate.py"
+  ],
+  "commands": [
+    {
+      "argv": [
+        ".venv/Scripts/python.exe",
+        "-m",
+        "pytest",
+        "tests/test_workspace_api.py",
+        "tests/test_workspace_legacy_gate.py",
+        "tests/test_auth_api.py",
+        "-q"
+      ],
+      "exit_code": 0,
+      "log_sha256": "3f6159457cee9660e730f1c9ea4cb733efe6b86e200bd5ddc9ccfa991bc6fa89"
+    },
+    {
+      "argv": [
+        ".venv/Scripts/python.exe",
+        "-m",
+        "pytest",
+        "tests/test_api.py",
+        "tests/test_upload_api.py",
+        "tests/test_extraction_api.py",
+        "tests/test_extraction_cancellation.py",
+        "tests/test_reconciliation_case_api.py",
+        "tests/test_reconciliation_gate.py",
+        "tests/test_runtime_api.py",
+        "tests/test_auth_api.py",
+        "-q"
+      ],
+      "exit_code": 0,
+      "log_sha256": "e2fa321a00c8feb08a0a04aaa686af83b54fdd9d1a0ed2f6c6f7e0e6fe72f4d7"
+    },
+    {
+      "argv": [
+        ".venv/Scripts/python.exe",
+        "tools/check_spec_contract.py",
+        "--spec-root",
+        "spec"
+      ],
+      "exit_code": 0,
+      "log_sha256": "cc7a933120f37ac5a8ef91a7cc5ba7d2f3c53cb459f7f59f08d6c0a24760a2a3"
+    },
+    {
+      "argv": [
+        ".venv/Scripts/python.exe",
+        "tools/check_task_scope.py",
+        "--task",
+        "T06",
+        "--base",
+        "a0a604f050d9c8dbd6407824294d9851da105ccc",
+        "--spec-root",
+        "spec",
+        "--evidence",
+        ".git/ir-harness/freeze.json"
+      ],
+      "exit_code": 0,
+      "log_sha256": "ff746c442ce71c3e80343c9ab1a464fd06dea0d1ef5971389aa77fa3d5f9fc33"
+    },
+    {
+      "argv": [
+        "git",
+        "diff",
+        "--check",
+        "a0a604f050d9c8dbd6407824294d9851da105ccc"
+      ],
+      "exit_code": 0,
+      "log_sha256": "413a073212fc280585d76ed610212f7524e2fd326d38668acc3268728f9b8d7b"
+    }
+  ],
+  "acceptance_ids": [
+    "A15",
+    "A16",
+    "A20",
+    "A26",
+    "A29"
+  ],
+  "known_limits": [
+    "T06 tests use a fake WorkspaceService to verify HTTP contracts and gates; full PostgreSQL API plus worker integration remains assigned to T09 and is not claimed here.",
+    "No frozen contract gap requiring redesign was found."
+  ],
+  "status": "passed"
+}

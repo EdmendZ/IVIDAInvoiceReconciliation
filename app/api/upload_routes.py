@@ -17,6 +17,7 @@ from app.api.auth_dependencies import require_reviewer
 from app.api.dependencies import (
     get_document_upload_service,
     get_run_repository,
+    require_legacy_mutation_available,
 )
 from app.domain.admin_users import AuthenticatedUser
 from app.services.ports import ExtractionRunRepository
@@ -58,6 +59,7 @@ def list_extraction_tasks(
     "/documents/upload",
     response_model=ExtractionTask,
     status_code=status.HTTP_201_CREATED,
+    dependencies=[Depends(require_legacy_mutation_available)],
 )
 async def upload_document(
     document_type: Annotated[DocumentType, Form()],

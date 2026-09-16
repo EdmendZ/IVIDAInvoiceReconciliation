@@ -4,7 +4,7 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from pydantic import BaseModel
 
 from app.api.auth_dependencies import require_reviewer
-from app.api.dependencies import get_review_service
+from app.api.dependencies import get_review_service, require_legacy_mutation_available
 from app.domain.admin_users import AuthenticatedUser
 from app.domain.documents import DocumentType
 from app.infra.postgres_review_repository import (
@@ -72,7 +72,10 @@ def list_approved_versions(
     ]
 
 
-@router.post("/tasks/{task_id}/start")
+@router.post(
+    "/tasks/{task_id}/start",
+    dependencies=[Depends(require_legacy_mutation_available)],
+)
 def start_review(
     task_id: str,
     service: ReviewService = Depends(get_review_service),
@@ -117,7 +120,10 @@ def preview_validation(
         raise HTTPException(status_code=404, detail="Version not found") from exc
 
 
-@router.patch("/versions/{version_id}")
+@router.patch(
+    "/versions/{version_id}",
+    dependencies=[Depends(require_legacy_mutation_available)],
+)
 def save_edit(
     version_id: str,
     request: EditRequest,
@@ -137,7 +143,10 @@ def save_edit(
         raise HTTPException(status_code=409, detail=str(exc)) from exc
 
 
-@router.post("/versions/{version_id}/reclassify")
+@router.post(
+    "/versions/{version_id}/reclassify",
+    dependencies=[Depends(require_legacy_mutation_available)],
+)
 def reclassify(
     version_id: str,
     request: ReclassifyRequest,
@@ -157,7 +166,10 @@ def reclassify(
         raise HTTPException(status_code=409, detail=str(exc)) from exc
 
 
-@router.post("/versions/{version_id}/approve")
+@router.post(
+    "/versions/{version_id}/approve",
+    dependencies=[Depends(require_legacy_mutation_available)],
+)
 def approve(
     version_id: str,
     request: ApprovalRequest,
@@ -182,7 +194,10 @@ def approve(
         raise HTTPException(status_code=409, detail=str(exc)) from exc
 
 
-@router.post("/versions/{version_id}/reject")
+@router.post(
+    "/versions/{version_id}/reject",
+    dependencies=[Depends(require_legacy_mutation_available)],
+)
 def reject(
     version_id: str,
     request: DecisionRequest,

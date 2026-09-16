@@ -7,7 +7,12 @@
 
 from functools import lru_cache
 
+from fastapi import Depends, HTTPException, status
+
+from app.api.auth_dependencies import require_reviewer
 from app.core.config import get_settings
+from app.domain.admin_users import AuthenticatedUser
+from app.domain.workspace import WorkspaceError, WorkspaceErrorCode, WorkspaceScopeKey
 from app.infra.database import get_session_factory
 from app.infra.minio_storage import MinioObjectStorage
 from app.infra.postgres_extraction_run_repository import (
@@ -42,9 +47,11 @@ from app.infra.postgres_experiment_repository import PostgresExperimentRepositor
 from app.infra.postgres_taptouch_receiving_repository import (
     PostgresTaptouchReceivingRepository,
 )
+from app.infra.postgres_workspace_repository import PostgresWorkspaceRepository
 from app.services.taptouch_receiving_import_service import (
     TaptouchReceivingImportService,
 )
+from app.services.workspace_service import WorkspaceService
 
 
 @lru_cache
@@ -204,3 +211,64 @@ def get_feedback_service() -> FeedbackService:
         run_repository=get_run_repository(),
         experiment_repository=get_experiment_repository(),
     )
+
+
+@lru_cache
+def get_workspace_service() -> WorkspaceService:
+    """装配单店工作台；部署范围只从服务端配置读取。"""
+
+    settings = get_settings()
+    if not settings.workspace_tenant_id or not settings.workspace_store_id:
+        raise WorkspaceError(
+            WorkspaceErrorCode.WORKSPACE_UNAVAILABLE,
+            "工作台门店范围尚未配置",
+        )
+    return WorkspaceService(
+        repository=PostgresWorkspaceRepository(get_session_factory()),
+        upload_service=get_document_upload_service(),
+        storage=get_object_storage(),
+        scope=WorkspaceScopeKey(
+            tenant_id=settings.workspace_tenant_id,
+            store_id=settings.workspace_store_id,
+        ),
+    )
+
+
+def get_workspace_runtime_service() -> WorkspaceService | None:
+    """禁用状态无需配置门店范围，也不访问工作台数据库。"""
+
+    if not get_settings().workspace_enabled:
+        return None
+    return get_workspace_service()
+
+
+def require_workspace_writer(
+    user: AuthenticatedUser = Depends(require_reviewer),
+) -> AuthenticatedUser:
+    """工作台关闭时保留查询，但拒绝所有工作台写操作。"""
+
+    if not get_settings().workspace_enabled:
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail={
+                "code": "INVALID_TRANSITION",
+                "message": "工作台当前未启用，无法执行写操作",
+            },
+        )
+    return user
+
+
+def require_legacy_mutation_available(
+    user: AuthenticatedUser = Depends(require_reviewer),
+) -> AuthenticatedUser:
+    """工作台启用后冻结旧流程写入口，同时保留旧查询。"""
+
+    if get_settings().workspace_enabled:
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail={
+                "code": "LEGACY_READ_ONLY",
+                "message": "工作台已启用，旧流程仅供查询",
+            },
+        )
+    return user
