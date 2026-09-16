@@ -17,9 +17,46 @@ export class ApiError extends Error {
     message: string,
     readonly status: number,
     readonly code?: string,
+    readonly document_id?: string,
+    readonly current_revision?: number,
   ) {
     super(message);
   }
+}
+
+type ErrorDetail = {
+  code?: unknown;
+  message?: unknown;
+  document_id?: unknown;
+  current_revision?: unknown;
+};
+
+function errorFromBody(body: unknown, status: number, fallback: string): ApiError {
+  const detail =
+    typeof body === "object" && body !== null && "detail" in body
+      ? (body as { detail?: unknown }).detail
+      : undefined;
+  const structuredDetail =
+    typeof detail === "object" && detail !== null
+      ? (detail as ErrorDetail)
+      : undefined;
+  const message =
+    typeof detail === "string"
+      ? detail
+      : typeof structuredDetail?.message === "string"
+        ? structuredDetail.message
+        : fallback;
+  return new ApiError(
+    systemMessage(message),
+    status,
+    typeof structuredDetail?.code === "string" ? structuredDetail.code : undefined,
+    typeof structuredDetail?.document_id === "string"
+      ? structuredDetail.document_id
+      : undefined,
+    typeof structuredDetail?.current_revision === "number"
+      ? structuredDetail.current_revision
+      : undefined,
+  );
 }
 
 export async function api<T>(
@@ -39,25 +76,7 @@ export async function api<T>(
   }
   if (!response.ok) {
     const body: unknown = await response.json().catch(() => ({}));
-    const detail =
-      typeof body === "object" && body !== null && "detail" in body
-        ? (body as { detail?: unknown }).detail
-        : undefined;
-    const structuredDetail =
-      typeof detail === "object" && detail !== null
-        ? (detail as { code?: unknown; message?: unknown })
-        : undefined;
-    const message =
-      typeof detail === "string"
-        ? detail
-        : typeof structuredDetail?.message === "string"
-          ? structuredDetail.message
-          : `Request failed (${response.status})`;
-    const code =
-      typeof structuredDetail?.code === "string"
-        ? structuredDetail.code
-        : undefined;
-    throw new ApiError(systemMessage(message), response.status, code);
+    throw errorFromBody(body, response.status, `Request failed (${response.status})`);
   }
   if (response.status === 204) {
     return undefined as T;
@@ -65,20 +84,25 @@ export async function api<T>(
   return response.json() as Promise<T>;
 }
 
-export async function uploadDocument<T>(formData: FormData): Promise<T> {
+export async function uploadDocument<T>(
+  formData: FormData,
+  path = "/api/documents/upload",
+  headers: HeadersInit = {},
+): Promise<T> {
   // 上传时不能手动设置 application/json；浏览器需要为 FormData 自动生成
   // 含 boundary 的 multipart Content-Type，否则后端无法拆出文件流和元数据。
-  const response = await fetch("/api/documents/upload", {
+  const response = await fetch(path, {
     method: "POST",
     credentials: "include",
     body: formData,
+    headers,
   });
   if (response.status === 401) {
     window.dispatchEvent(new CustomEvent("ivida:unauthorized"));
   }
   if (!response.ok) {
-    const body = await response.json().catch(() => ({}));
-    throw new Error(systemMessage(typeof body.detail === "string" ? body.detail : `Upload failed (${response.status})`));
+    const body: unknown = await response.json().catch(() => ({}));
+    throw errorFromBody(body, response.status, `Upload failed (${response.status})`);
   }
   return response.json() as Promise<T>;
 }
@@ -89,8 +113,8 @@ export async function downloadFile(path: string): Promise<void> {
     window.dispatchEvent(new CustomEvent("ivida:unauthorized"));
   }
   if (!response.ok) {
-    const body = await response.json().catch(() => ({}));
-    throw new Error(systemMessage(typeof body.detail === "string" ? body.detail : `Download failed (${response.status})`));
+    const body: unknown = await response.json().catch(() => ({}));
+    throw errorFromBody(body, response.status, `Download failed (${response.status})`);
   }
   const disposition = response.headers.get("Content-Disposition") ?? "";
   const filename = disposition.match(/filename="([^"]+)"/)?.[1] ?? "export.csv";
