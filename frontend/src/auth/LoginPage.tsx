@@ -35,9 +35,9 @@ export function LoginPage({
     <main className="login-page">
       <section className="login-card">
         <span className="eyebrow">IVIDA 财务管理</span>
-        <h1>审核提取的单据</h1>
+        <h1>核对发票与收货记录</h1>
         <p>
-          核实发票与收货单的提取内容，批准后即可进行对账。
+          上传后系统会自动提取、关联并生成逐行结果，你只需核对后确认一次。
         </p>
         <form onSubmit={submit}>
           <label>

@@ -36,6 +36,9 @@ WORKSPACE_POLL_SECONDS=3
 停止运行：`stop_local_demo.ps1`。API 文档：<http://127.0.0.1:8200/docs>。
 Extraction Quality Lab：<http://127.0.0.1:5274/lab>。
 
+工作台的正常路径只显示自动关联摘要和一次确认入口；候选选择仅在无法唯一关联或用户点击
+“修改关联”时展开。结构化表单对 Reviewer 开放，高级 JSON 编辑仅对 Admin 开放。
+
 ## 测试
 
 ```powershell

@@ -102,7 +102,11 @@ export function App() {
           user.role === "admin" ? <ExperimentLabPage /> : <div className="page"><p className="error-banner">需要管理员权限。</p></div>
         ) : workspaceEnabled ? (
           documentMatch ? (
-            <DocumentPage documentId={decodeURIComponent(documentMatch[1])} onNavigate={navigate} />
+            <DocumentPage
+              allowAdvancedJson={user.role === "admin"}
+              documentId={decodeURIComponent(documentMatch[1])}
+              onNavigate={navigate}
+            />
           ) : caseMatch ? (
             <CaseDetailPage caseId={decodeURIComponent(caseMatch[1])} user={user} onNavigate={navigate} readOnly />
           ) : path === "/history" || path === "/cases" ? (

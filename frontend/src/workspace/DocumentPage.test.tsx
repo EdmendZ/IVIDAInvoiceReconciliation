@@ -101,6 +101,10 @@ describe("DocumentPage", () => {
     expect(document.querySelector("script")).toBeNull();
     expect(screen.getByText("未核验维度")).toBeTruthy();
     expect(screen.getByText("单据总额")).toBeTruthy();
+    expect(screen.getByRole("heading", { name: "发现 1 行差异" })).toBeTruthy();
+    expect(screen.queryByRole("button", { name: "高级 JSON 编辑" })).toBeNull();
+    expect(screen.getByText("已自动关联 1 张收货单")).toBeTruthy();
+    expect(screen.queryByLabelText("选择收货记录 RN-1")).toBeNull();
     const confirmButton = screen.getByRole("button", { name: "确认核对结果" }) as HTMLButtonElement;
     expect(confirmButton.disabled).toBe(true);
 
@@ -131,7 +135,7 @@ describe("DocumentPage", () => {
       }
       throw new Error(`Unexpected request: ${path}`);
     });
-    render(<DocumentPage documentId="invoice-1" onNavigate={vi.fn()} />);
+    render(<DocumentPage allowAdvancedJson documentId="invoice-1" onNavigate={vi.fn()} />);
     await screen.findByRole("heading", { name: "INV-100" });
 
     fireEvent.click(screen.getByRole("button", { name: "高级 JSON 编辑" }));
@@ -139,16 +143,17 @@ describe("DocumentPage", () => {
     const changed = json.value.replace('"quantity": "10"', '"quantity": "12"');
     fireEvent.change(json, { target: { value: changed } });
     fireEvent.change(screen.getByLabelText("修改原因"), { target: { value: "Corrected from original PDF" } });
+    fireEvent.click(screen.getByRole("button", { name: "修改关联" }));
     fireEvent.change(screen.getByLabelText("人工选择原因"), { target: { value: "Checked delivery evidence" } });
     fireEvent.change(screen.getByLabelText("待核实备注"), { target: { value: "Call supplier tomorrow" } });
-    fireEvent.click(screen.getAllByRole("checkbox")[0]);
+    fireEvent.click(screen.getByLabelText("选择收货记录 RN-1"));
     fireEvent.click(screen.getByRole("button", { name: "显式保存字段" }));
 
     expect(await screen.findByText(/未保存的字段、选择和备注仍保留/)).toBeTruthy();
     expect((screen.getByLabelText("结构化单据 JSON") as HTMLTextAreaElement).value).toContain('"quantity": "12"');
     expect((screen.getByLabelText("人工选择原因") as HTMLInputElement).value).toBe("Checked delivery evidence");
     expect((screen.getByLabelText("待核实备注") as HTMLInputElement).value).toBe("Call supplier tomorrow");
-    expect((screen.getAllByRole("checkbox")[0] as HTMLInputElement).checked).toBe(false);
+    expect((screen.getByLabelText("选择收货记录 RN-1") as HTMLInputElement).checked).toBe(false);
     expect(fetchMock.mock.calls.filter(([, init]) => init?.method === "PATCH")).toHaveLength(1);
   });
 
@@ -175,7 +180,8 @@ describe("DocumentPage", () => {
     expect(await screen.findByText("尚未提取编号")).toBeTruthy();
     fireEvent(document, new Event("visibilitychange"));
     await waitFor(() => expect((screen.getByLabelText("单据编号") as HTMLInputElement).value).toBe("INV-100"));
-    expect((screen.getAllByRole("checkbox")[0] as HTMLInputElement).checked).toBe(true);
+    expect(screen.getByText("已自动关联 1 张收货单")).toBeTruthy();
+    expect(screen.queryByLabelText("选择收货记录 RN-1")).toBeNull();
     expect(reads).toBe(2);
   });
 
@@ -199,7 +205,9 @@ describe("DocumentPage", () => {
     });
     render(<DocumentPage documentId="invoice-1" onNavigate={vi.fn()} />);
 
-    expect(await screen.findByText("等待另一方单据")).toBeTruthy();
+    expect(
+      await screen.findByRole("heading", { name: "等待另一方单据" }),
+    ).toBeTruthy();
     await waitFor(() => expect(screen.getByText("核对预览")).toBeTruthy(), { timeout: 4_500 });
     expect(reads).toBe(2);
   }, 8_000);
@@ -240,7 +248,8 @@ describe("DocumentPage", () => {
     const acknowledgement = screen.getByLabelText("我已核对发票、所选收货记录与未核验项目") as HTMLInputElement;
     fireEvent.click(acknowledgement);
     expect(acknowledgement.checked).toBe(true);
-    fireEvent.click(screen.getAllByRole("checkbox")[0]);
+    fireEvent.click(screen.getByRole("button", { name: "修改关联" }));
+    fireEvent.click(screen.getByLabelText("选择收货记录 RN-1"));
     await waitFor(() => expect(acknowledgement.checked).toBe(false));
   });
 

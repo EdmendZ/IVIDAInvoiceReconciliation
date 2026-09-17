@@ -182,12 +182,14 @@ export function StructuredDocumentEditor({
   issues,
   onChange,
   readOnly = false,
+  allowAdvancedJson = true,
 }: {
   editor: string;
   evidence: Evidence[];
   issues: FieldIssue[];
   onChange: (value: string) => void;
   readOnly?: boolean;
+  allowAdvancedJson?: boolean;
 }) {
   const [mode, setMode] = useState<"form" | "json">("form");
   const parsed = useMemo(() => {
@@ -235,7 +237,7 @@ export function StructuredDocumentEditor({
   return (
     <IssueContext.Provider value={issues}>
       <div className="structured-editor">
-      <div className="editor-mode-tabs">
+      {allowAdvancedJson && <div className="editor-mode-tabs">
         <button
           className={mode === "form" ? "active" : ""}
           disabled={!parsed}
@@ -251,15 +253,17 @@ export function StructuredDocumentEditor({
         >
           高级 JSON 编辑
         </button>
-      </div>
+      </div>}
 
       {!parsed && (
         <div className="error-banner">
-          JSON 无效，请先在高级 JSON 编辑中修正，再返回表单。
+          {allowAdvancedJson
+            ? "JSON 无效，请先在高级 JSON 编辑中修正，再返回表单。"
+            : "结构化数据异常，请刷新页面或联系管理员处理。"}
         </div>
       )}
 
-      {mode === "json" || !parsed ? (
+      {!parsed && !allowAdvancedJson ? null : mode === "json" || !parsed ? (
         <textarea
           aria-label="结构化单据 JSON"
           className="json-editor"

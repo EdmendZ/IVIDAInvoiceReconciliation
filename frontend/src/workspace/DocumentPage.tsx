@@ -63,7 +63,15 @@ function payloadSummary(payload: DocumentPayload) {
   ] as const;
 }
 
-export function DocumentPage({ documentId, onNavigate }: { documentId: string; onNavigate: (path: string) => void }) {
+export function DocumentPage({
+  allowAdvancedJson = false,
+  documentId,
+  onNavigate,
+}: {
+  allowAdvancedJson?: boolean;
+  documentId: string;
+  onNavigate: (path: string) => void;
+}) {
   const [detail, setDetail] = useState<DocumentDetail | null>(null);
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState("");
@@ -83,6 +91,7 @@ export function DocumentPage({ documentId, onNavigate }: { documentId: string; o
   const [manualQuery, setManualQuery] = useState("");
   const [manualResults, setManualResults] = useState<ManualResult[]>([]);
   const [manualSearching, setManualSearching] = useState(false);
+  const [showSelectionTools, setShowSelectionTools] = useState(false);
   const [olderActions, setOlderActions] = useState<ActionView[]>([]);
   const [actionsPage, setActionsPage] = useState(2);
   const [actionsTotal, setActionsTotal] = useState<number | null>(null);
@@ -151,6 +160,7 @@ export function DocumentPage({ documentId, onNavigate }: { documentId: string; o
     setVoidReason("");
     setManualQuery("");
     setManualResults([]);
+    setShowSelectionTools(false);
     setOlderActions([]);
     setActionsPage(2);
     setActionsTotal(null);
@@ -293,6 +303,26 @@ export function DocumentPage({ documentId, onNavigate }: { documentId: string; o
   const canVoid = detail.document.source_kind === "upload" && !completed && detail.document.processing_status !== "voided";
   const canRetry = detail.document.source_kind === "upload" && ["failed", "cancelled"].includes(detail.document.processing_status) && detail.current_revision === null;
   const reopenable = canReopen(detail);
+  const selectionRequired = detail.match_status === "needs_selection";
+  const selectionExpanded = showSelectionTools || selectionRequired;
+  const automaticSelection = detail.selection_origin === "automatic" && selectedRevisions.length > 0;
+  const hasSelection = selectedRevisions.length > 0;
+  const selectedReceivingLabel = selectedRevisions
+    .map((revision) => revision.payload.document_number || "编号未知")
+    .join("、");
+  const resultSummary = completed
+    ? { title: "核对已完成", message: "正式结果和当时使用的单据快照已经保存。" }
+    : detail.document.processing_status === "processing" || detail.preview_stale
+      ? { title: "系统正在自动处理", message: "处理完成后会自动更新本页，无需手动开始提取或匹配。" }
+      : detail.document.display_status === "waiting_counterpart"
+        ? { title: "等待另一方单据", message: "单据会保留在这里；另一方到达后系统会自动关联并生成结果。" }
+        : outcome === "consistent"
+          ? { title: "未发现差异，等待确认", message: "请快速检查关联单据和逐行结果，然后确认一次。" }
+          : outcome === "difference"
+            ? { title: `发现 ${preview?.summary.different_lines ?? 0} 行差异`, message: "请查看差异；可以先标记待核实，或填写处理说明后完成。" }
+            : outcome === "blocked"
+              ? { title: "存在需要修正的问题", message: "请先修正阻断字段或关联关系，再确认结果。" }
+              : { title: displayStatusLabel(detail.document.display_status), message: "系统会根据当前单据状态继续处理。" };
 
   return (
     <section className="page workspace-detail-page">
@@ -324,6 +354,20 @@ export function DocumentPage({ documentId, onNavigate }: { documentId: string; o
         </div>
       )}
 
+      {isInvoice && (
+        <section className={`workspace-panel result-summary-panel ${outcome ?? detail.document.display_status}`}>
+          <div>
+            <span className="eyebrow">当前结果</span>
+            <h3>{resultSummary.title}</h3>
+            <p>{resultSummary.message}</p>
+            {automaticSelection && <small>已自动关联：{selectedReceivingLabel}</small>}
+          </div>
+          {detail.preview && mutableInvoice && !detail.preview_stale && outcome !== "blocked" && (
+            <a className="primary result-summary-action" href="#confirmation-section">查看并确认</a>
+          )}
+        </section>
+      )}
+
       <div className="workspace-detail-grid">
         <section className="workspace-panel source-document-panel">
           <div className="workspace-panel-heading"><div><span className="eyebrow">原件</span><h3>源单据</h3></div></div>
@@ -349,11 +393,13 @@ export function DocumentPage({ documentId, onNavigate }: { documentId: string; o
               issues={detail.current_revision.validation_issues}
               onChange={(value) => { setEditor(value); setEditorDirty(true); editorDirtyRef.current = true; }}
               readOnly={!editable}
+              allowAdvancedJson={allowAdvancedJson}
             />
           ) : <div className="empty-state">结构化数据尚未就绪。</div>}
           {editable && (
             <div className="workspace-save-row">
-              <label>修改原因<input maxLength={2000} onChange={(event) => setEditReason(event.target.value)} placeholder="说明为何修改字段" value={editReason} /></label>
+              <label>修改原因<input list="edit-reason-options" maxLength={2000} onChange={(event) => setEditReason(event.target.value)} placeholder="选择常用原因或直接输入" value={editReason} /></label>
+              <datalist id="edit-reason-options"><option value="提取内容与原件不一致" /><option value="补充原件中的缺失字段" /><option value="修正商品或数量信息" /></datalist>
               <button
                 disabled={!editorDirty || !editReason.trim() || Boolean(busy)}
                 onClick={() => {
@@ -375,66 +421,84 @@ export function DocumentPage({ documentId, onNavigate }: { documentId: string; o
 
       {mutableInvoice && (
         <section className="workspace-panel receiving-selection-panel">
-          <div className="workspace-panel-heading"><div><span className="eyebrow">关联</span><h3>选择收货记录</h3><p>规则分用于排序，不是匹配概率。人工选择不会随新记录到达而自动扩充。</p></div></div>
-          <div className="candidate-grid">
-            {detail.candidates.map((candidate) => {
-              const disabled = candidateDisabled(candidate);
-              return (
-                <label className={`workspace-candidate ${disabled ? "disabled" : ""}`} key={candidate.document_id}>
-                  <input
-                    checked={selectedIds.includes(candidate.document_id)}
-                    disabled={disabled}
-                    onChange={(event) => {
-                      setSelectedIds((current) => event.target.checked ? [...new Set([...current, candidate.document_id])] : current.filter((id) => id !== candidate.document_id));
-                      setSelectionDirty(true);
-                      selectionDirtyRef.current = true;
-                    }}
-                    type="checkbox"
-                  />
-                  <span><strong>{candidate.document_number}</strong><small>{candidate.supplier_name || "供应商未知"} · {candidate.document_date || "日期未知"}</small><small>{candidate.reason_codes.map(label).join("、")}</small></span>
-                  <b>{candidate.score} 分</b>
-                </label>
-              );
-            })}
-            {!detail.candidates.length && <div className="empty-state">当前没有自动候选。可在下方搜索同店已就绪收货记录。</div>}
+          <div className="workspace-panel-heading">
+            <div>
+              <span className="eyebrow">关联</span>
+              <h3>{automaticSelection ? `已自动关联 ${selectedRevisions.length} 张收货单` : hasSelection ? `已选择 ${selectedRevisions.length} 张收货单` : selectionRequired ? "需要选择收货记录" : "关联收货记录"}</h3>
+              <p>{hasSelection ? `${selectedReceivingLabel}。${automaticSelection ? "系统已生成核对预览；只有关联不正确时才需要修改。" : "这是人工保存的关联，可按需修改。"}` : "系统没有找到唯一关系，请选择实际对应的收货记录。"}</p>
+            </div>
+            {!selectionRequired && <button type="button" onClick={() => setShowSelectionTools((value) => !value)}>
+              {selectionExpanded ? "收起选择" : hasSelection ? "修改关联" : "选择收货记录"}
+            </button>}
           </div>
-          <form className="manual-receiving-search" onSubmit={(event) => { event.preventDefault(); void searchManualReceivings(); }}>
-            <label>搜索更多已就绪收货记录<input maxLength={100} onChange={(event) => setManualQuery(event.target.value)} placeholder="收货单编号或供应商" value={manualQuery} /></label>
-            <button disabled={manualSearching} type="submit">{manualSearching ? "正在搜索…" : "搜索"}</button>
-          </form>
-          {manualResults.length > 0 && (
-            <div className="candidate-grid manual-results">
-              {manualResults.map((result) => (
-                <label className={`workspace-candidate ${result.eligible ? "" : "disabled"}`} key={result.summary.document_id}>
-                  <input
-                    checked={selectedIds.includes(result.summary.document_id)}
-                    disabled={!result.eligible}
-                    onChange={(event) => {
-                      setSelectedIds((current) => event.target.checked ? [...new Set([...current, result.summary.document_id])] : current.filter((id) => id !== result.summary.document_id));
-                      setSelectionDirty(true);
-                      selectionDirtyRef.current = true;
-                    }}
-                    type="checkbox"
-                  />
-                  <span><strong>{result.summary.document_number || "编号未知"}</strong><small>{result.summary.supplier_name || "供应商未知"} · {result.summary.document_date || "日期未知"}</small><small>{result.reason}</small></span>
-                </label>
-              ))}
+          {selectionExpanded && (
+            <div className="selection-tools">
+              <p className="selection-guidance">规则分只用于候选排序，不是匹配概率。人工选择不会随新记录到达而自动扩充。</p>
+              <div className="candidate-grid">
+                {detail.candidates.map((candidate) => {
+                  const disabled = candidateDisabled(candidate);
+                  return (
+                    <label className={`workspace-candidate ${disabled ? "disabled" : ""}`} key={candidate.document_id}>
+                      <input
+                        aria-label={`选择收货记录 ${candidate.document_number}`}
+                        checked={selectedIds.includes(candidate.document_id)}
+                        disabled={disabled}
+                        onChange={(event) => {
+                          setSelectedIds((current) => event.target.checked ? [...new Set([...current, candidate.document_id])] : current.filter((id) => id !== candidate.document_id));
+                          setSelectionDirty(true);
+                          selectionDirtyRef.current = true;
+                        }}
+                        type="checkbox"
+                      />
+                      <span><strong>{candidate.document_number}</strong><small>{candidate.supplier_name || "供应商未知"} · {candidate.document_date || "日期未知"}</small><small>{candidate.reason_codes.map(label).join("、")}</small></span>
+                      <b>规则 {candidate.score}</b>
+                    </label>
+                  );
+                })}
+                {!detail.candidates.length && <div className="empty-state">当前没有自动候选。可在下方搜索同店已就绪收货记录。</div>}
+              </div>
+              <form className="manual-receiving-search" onSubmit={(event) => { event.preventDefault(); void searchManualReceivings(); }}>
+                <label>搜索更多已就绪收货记录<input maxLength={100} onChange={(event) => setManualQuery(event.target.value)} placeholder="收货单编号或供应商" value={manualQuery} /></label>
+                <button disabled={manualSearching} type="submit">{manualSearching ? "正在搜索…" : "搜索"}</button>
+              </form>
+              {manualResults.length > 0 && (
+                <div className="candidate-grid manual-results">
+                  {manualResults.map((result) => (
+                    <label className={`workspace-candidate ${result.eligible ? "" : "disabled"}`} key={result.summary.document_id}>
+                      <input
+                        aria-label={`选择收货记录 ${result.summary.document_number || "编号未知"}`}
+                        checked={selectedIds.includes(result.summary.document_id)}
+                        disabled={!result.eligible}
+                        onChange={(event) => {
+                          setSelectedIds((current) => event.target.checked ? [...new Set([...current, result.summary.document_id])] : current.filter((id) => id !== result.summary.document_id));
+                          setSelectionDirty(true);
+                          selectionDirtyRef.current = true;
+                        }}
+                        type="checkbox"
+                      />
+                      <span><strong>{result.summary.document_number || "编号未知"}</strong><small>{result.summary.supplier_name || "供应商未知"} · {result.summary.document_date || "日期未知"}</small><small>{result.reason}</small></span>
+                    </label>
+                  ))}
+                </div>
+              )}
+              <div className="workspace-save-row">
+                <label>人工选择原因<input list="selection-reason-options" maxLength={2000} onChange={(event) => setSelectionReason(event.target.value)} placeholder="选择常用原因或直接输入" value={selectionReason} /></label>
+                <datalist id="selection-reason-options"><option value="系统关联的收货记录不正确" /><option value="根据原件确认对应收货记录" /><option value="补充较早或较晚到达的收货记录" /></datalist>
+                <button
+                  disabled={!selectionDirty || !selectionReason.trim() || Boolean(busy)}
+                  onClick={() => {
+                    const body = { expected_revision: detail.document.revision, receive_document_ids: [...selectedIds], reason: selectionReason.trim() };
+                    startOperation("保存关联", async (key) => {
+                      await selectReceivings(documentId, body, { idempotencyKey: key });
+                      await refresh(true);
+                      setShowSelectionTools(false);
+                      setMessage(selectedIds.length ? "人工关联已保存，系统正在重新核对。" : "已恢复自动选择模式。");
+                    });
+                  }}
+                >{selectedIds.length ? "保存所选收货记录" : "清除人工选择并恢复自动"}</button>
+              </div>
             </div>
           )}
-          <div className="workspace-save-row">
-            <label>人工选择原因<input maxLength={2000} onChange={(event) => setSelectionReason(event.target.value)} placeholder="选择或恢复自动模式的原因" value={selectionReason} /></label>
-            <button
-              disabled={!selectionDirty || !selectionReason.trim() || Boolean(busy)}
-              onClick={() => {
-                const body = { expected_revision: detail.document.revision, receive_document_ids: [...selectedIds], reason: selectionReason.trim() };
-                startOperation("保存关联", async (key) => {
-                  await selectReceivings(documentId, body, { idempotencyKey: key });
-                  await refresh(true);
-                  setMessage(selectedIds.length ? "人工关联已保存，系统正在重新核对。" : "已恢复自动选择模式。");
-                });
-              }}
-            >{selectedIds.length ? "保存所选收货记录" : "清除人工选择并恢复自动"}</button>
-          </div>
         </section>
       )}
 
@@ -448,7 +512,7 @@ export function DocumentPage({ documentId, onNavigate }: { documentId: string; o
       )}
 
       {mutableInvoice && (
-        <section className="workspace-panel decision-panel">
+        <section className="workspace-panel decision-panel" id="confirmation-section">
           <div className="workspace-panel-heading"><div><span className="eyebrow">一次人工确认</span><h3>确认核对结果</h3><p>确认前请核对上传字段、所选收货记录、证据和全部未核验项目。</p></div></div>
           <div className="confirmation-sources">
             {detail.current_revision && <article><h4>发票字段</h4><dl>{payloadSummary(detail.current_revision.payload).map(([name, value]) => <div key={name}><dt>{name}</dt><dd>{value}</dd></div>)}</dl><p>{detail.current_revision.payload.items.length} 个商品行</p></article>}
