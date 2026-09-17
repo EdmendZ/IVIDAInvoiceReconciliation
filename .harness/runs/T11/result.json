@@ -1,0 +1,182 @@
+{
+  "task_id": "T11",
+  "status": "passed",
+  "base_commit": "0ba745dabcad715d283325a362f113d3ec5c8360",
+  "release_base": "8f902b4c92901dab30e9f124d4ead2fcc8ff2508",
+  "candidate_commit": null,
+  "spec_version": "IR-SIMPLE-1.0.3",
+  "spec_sha256": "ba317333be98598676430d8262dd84ecadb143a6030458d3de7587b32c604c9b",
+  "changed_files": [
+    ".harness/runs/T11/result.json"
+  ],
+  "commands": [
+    {
+      "argv": [
+        ".venv/Scripts/python.exe",
+        ".git/ir-harness/run_test_db.py",
+        "-q",
+        "--junitxml=.git/ir-harness/t11-backend.xml"
+      ],
+      "exit_code": 0,
+      "captured_log_sha256": "84D5340D05421A8EC04E17725B0D4DFB1E243688C31614582B4B9C5D8EA20F32",
+      "results": {
+        "tests": 488,
+        "passed": 487,
+        "skipped": 1,
+        "failures": 0,
+        "errors": 0
+      },
+      "junit_sha256": "84D5340D05421A8EC04E17725B0D4DFB1E243688C31614582B4B9C5D8EA20F32"
+    },
+    {
+      "argv": [
+        "npm",
+        "--prefix",
+        "frontend",
+        "test",
+        "--",
+        "--run"
+      ],
+      "exit_code": 0,
+      "captured_log_sha256": "95d6c87cadf9559cc582b17313f17d9dffedae8dbdf0157abd50f8a05f83c1a1",
+      "results": {
+        "test_files": 11,
+        "tests": 54,
+        "passed": 54
+      },
+      "evidence_path": ".git/ir-harness/t11-coordinator-1.log"
+    },
+    {
+      "argv": [
+        "npm",
+        "--prefix",
+        "frontend",
+        "run",
+        "build"
+      ],
+      "exit_code": 0,
+      "captured_log_sha256": "afb2c14c2735b9df1d24fa63d1b76ef2cdaf777373f419307250e4650f3cf0e5",
+      "evidence_path": ".git/ir-harness/t11-coordinator-2.log"
+    },
+    {
+      "argv": [
+        ".venv/Scripts/python.exe",
+        "tools/check_spec_contract.py",
+        "--spec-root",
+        "spec"
+      ],
+      "exit_code": 0,
+      "captured_log_sha256": "cc7a933120f37ac5a8ef91a7cc5ba7d2f3c53cb459f7f59f08d6c0a24760a2a3",
+      "output": "Spec contract check passed (static references only).",
+      "evidence_path": ".git/ir-harness/t11-coordinator-3.log"
+    },
+    {
+      "argv": [
+        ".venv/Scripts/python.exe",
+        "tools/check_task_scope.py",
+        "--task",
+        "T11",
+        "--base",
+        "0ba745dabcad715d283325a362f113d3ec5c8360",
+        "--spec-root",
+        "spec",
+        "--evidence",
+        ".git/ir-harness/freeze.json"
+      ],
+      "exit_code": 0,
+      "captured_log_sha256": "b7067797d356dcc3676f75652c22c43482710542f8e496de148cfb7461b95c51",
+      "output": "{\"enforcement\": \"diff-gate-only\", \"changed_files\": [\".harness/runs/T11/result.json\"]}",
+      "evidence_path": ".git/ir-harness/t11-coordinator-4.log"
+    },
+    {
+      "argv": [
+        ".venv/Scripts/python.exe",
+        "tools/check_documentation_sync.py",
+        "--base-ref",
+        "8f902b4c92901dab30e9f124d4ead2fcc8ff2508"
+      ],
+      "exit_code": 0,
+      "captured_log_sha256": "7ae650ea9e974497bea80eb403f32832205b50953e897105d2da85189d83f9ad",
+      "output": "Documentation sync check passed.",
+      "evidence_path": ".git/ir-harness/t11-coordinator-5.log"
+    },
+    {
+      "argv": [
+        "git",
+        "diff",
+        "--check",
+        "0ba745dabcad715d283325a362f113d3ec5c8360"
+      ],
+      "exit_code": 0,
+      "captured_log_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "evidence_path": ".git/ir-harness/t11-coordinator-6.log"
+    }
+  ],
+  "acceptance_ids": [
+    "A01",
+    "A02",
+    "A03",
+    "A04",
+    "A05",
+    "A06",
+    "A07",
+    "A08",
+    "A09",
+    "A10",
+    "A11",
+    "A12",
+    "A13",
+    "A14",
+    "A15",
+    "A16",
+    "A17",
+    "A18",
+    "A19",
+    "A20",
+    "A21",
+    "A22",
+    "A23",
+    "A24",
+    "A25",
+    "A26",
+    "A27",
+    "A28",
+    "A29",
+    "A30",
+    "H01",
+    "H02",
+    "H03",
+    "H04",
+    "H05",
+    "H06"
+  ],
+  "visual_evidence": {
+    "record": ".git/ir-harness/visual-evidence.json",
+    "screenshots": [
+      {
+        "file": ".git/ir-harness/workspace-desktop.png",
+        "sha256": "56abf468e7c0243b9baab2c27cf907454d3b718ebc68ab8352dc3f39de6814fd"
+      },
+      {
+        "file": ".git/ir-harness/workspace-mobile.png",
+        "sha256": "fed0f44db3a6588d6615dab4b23118c800d13e48b5e58f787ee0f96a2b2daa12"
+      },
+      {
+        "file": ".git/ir-harness/detail-mobile.png",
+        "sha256": "b9e96f2fb94f40b8b6b465d2cfb0e38bbc96d03c726edc8b3f403f45e1bc0455"
+      },
+      {
+        "file": ".git/ir-harness/detail-mobile-top.png",
+        "sha256": "339648efb62b3b9865a971412e021f9775d14b46b9bdaab97b9094da153c9ec1"
+      }
+    ],
+    "basis": "fixture-based visual evidence; English data with Chinese labels; desktop 1440x900 and mobile 390x844"
+  },
+  "known_limits": [
+    "One existing native Windows symlink privilege case skipped; no PostgreSQL acceptance skip.",
+    "Visual evidence uses deterministic fixture responses and does not establish live backend, external-model accuracy, or independent original-PDF rendering.",
+    "External model and storage are test doubles in integration tests; unexpected pure preview computation errors are logged/counted but cannot persist document.error_code.",
+    "No deployment, push, or feature-flag enabling performed."
+  ],
+  "coordinator_review": "Verified final JUnit counts/hash and exact skipped test, screenshot hashes; independently recaptured frontend/build/static/scope/docs/diff logs with SHA-256."
+}
