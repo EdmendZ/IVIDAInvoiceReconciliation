@@ -8,7 +8,7 @@
 | `.env.example` | T04 M |
 | `.github/workflows/ci.yml` | T00 M, T09 M |
 | `AGENTS.md` | T00 N |
-| `README.md` | T09 M, T12 M |
+| `README.md` | T09 M, T12 M, T13 M |
 | `app/api/dependencies.py` | T06 M |
 | `app/api/extraction_routes.py` | T06 M |
 | `app/api/reconciliation_case_routes.py` | T06 M |
@@ -32,16 +32,10 @@
 | `compose.release.yaml` | T04 M |
 | `compose.yaml` | T04 M |
 | `docs/README.md` | T09 M |
-| `docs/architecture/02-architecture-and-code-map.md` | T09 M |
-| `docs/business/00-product-positioning.md` | T09 M, T12 M |
-| `docs/business/03-document-lifecycle.md` | T09 M |
-| `docs/business/05-review-and-versioning.md` | T09 M |
-| `docs/business/06-reconciliation-rules.md` | T09 M |
-| `docs/code-document-map.json` | T00 M, T12 M |
-| `docs/operations/08-api-ui-and-local-run.md` | T09 M, T12 M |
-| `docs/operations/20-ci-cd-and-release.md` | T09 M |
-| `docs/reference/11-api-contracts.md` | T09 M |
-| `docs/reference/12-database-dictionary.md` | T03 M, T09 M |
+| `docs/architecture.md` | T03 M, T09 M |
+| `docs/product.md` | T09 M, T12 M |
+| `docs/code-document-map.json` | T00 M, T12 M, T13 M |
+| `docs/development.md` | T09 M, T12 M, T13 M |
 | `frontend/src/api/client.ts` | T07 M |
 | `frontend/src/app/App.tsx` | T08 M |
 | `frontend/src/cases/CaseDetailPage.test.tsx` | T08 M |
@@ -88,3 +82,5 @@
 | `setup_dev_admin.py` | T12 N |
 | `run_local_demo.py` | T12 N |
 | `tests/test_dev_entrypoints.py` | T12 N |
+| `setup_demo_data.py` | T13 N |
+| `tests/test_demo_data_entrypoint.py` | T13 N |

@@ -84,6 +84,14 @@ v1.0.3：允许修改现有 CI，将新 PostgreSQL 测试接入专用以 `_works
 
 产品文档固定外部 invoice-processor 仅用于列表/详情信息布局和 Controller/Application/Infrastructure 分层表达参考；不得引入 PO 业务、手动 Start Match、模拟进度、三字段百分比置信度、缺失值补零、localStorage JWT 或同步 OCR 上传。
 
+## T13：确定性开发演示数据
+
+新增根目录 `setup_demo_data.py`，只允许在非 production 环境运行。它必须通过现有上传用例、PostgreSQL Repository 和 Workspace Worker 创建固定英文演示数据，不新增表、路由、状态、匹配规则或依赖。为了不依赖外部 MinerU/模型，脚本可以为自己创建的固定 Task 写入明确标记为 demo fixture 的有效 Draft；不得修改已有非 demo Task。
+
+固定数据为六份有效本地 PDF：Invoice 等待 Receive Note、Receive Note 等待 Invoice、自动关联且数量一致的一对、自动关联但数量有差异的一对。每个场景使用不同 supplier/PO/SKU，避免跨场景候选；币种 AUD。重复执行必须复用同一上传和 Draft，不新增文档、Run、Revision 或 Preview。脚本读取服务端 workspace tenant/store，不接受命令行范围；要求既有 `adminuser` 作为审计 actor，缺失时提示先运行 `setup_dev_admin.py`。
+
+脚本输出各场景的 document ID 和最终显示状态，不输出密码、Token、DSN 或其他 Secret。真实模型和 TapTouch 都不在本任务调用范围；文档必须明确该入口只演示工作台业务流程，不能用于宣称抽取准确率。
+
 ## 任务报告（每任务唯一输出）
 
 `.harness/runs/Txx/result.json`：task_id、spec_version、spec_sha256、base_commit、candidate_commit/null、changed_files、commands（argv/exit_code/log_sha256）、acceptance_ids、known_limits、status=passed/failed/blocked。该文件是审计产物，不改变批准状态；可信调度器复制到外部证据库并签署 accepted/rejected。stdout 日志存外部证据库，不任意写 repo。禁止凭“tests passed”字符串替代命令退出码。

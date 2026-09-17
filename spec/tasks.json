@@ -1,5 +1,5 @@
 {
-  "spec_version": "IR-SIMPLE-1.0.4",
+  "spec_version": "IR-SIMPLE-1.0.5",
   "execution": "strictly_sequential_fresh_sessions",
   "path_base": "repository_root",
   "deletes_allowed": false,
@@ -198,7 +198,7 @@
         "app/infra/postgres_taptouch_receiving_repository.py",
         "app/domain/workspace.py",
         "tests/test_workspace_contracts.py",
-        "docs/reference/12-database-dictionary.md"
+        "docs/architecture.md"
       ],
       "create": [
         "app/infra/postgres_workspace_repository.py",
@@ -580,15 +580,9 @@
       "modify": [
         "docs/README.md",
         "README.md",
-        "docs/business/00-product-positioning.md",
-        "docs/business/03-document-lifecycle.md",
-        "docs/business/05-review-and-versioning.md",
-        "docs/business/06-reconciliation-rules.md",
-        "docs/architecture/02-architecture-and-code-map.md",
-        "docs/reference/11-api-contracts.md",
-        "docs/reference/12-database-dictionary.md",
-        "docs/operations/08-api-ui-and-local-run.md",
-        "docs/operations/20-ci-cd-and-release.md",
+        "docs/product.md",
+        "docs/architecture.md",
+        "docs/development.md",
         ".github/workflows/ci.yml"
       ],
       "create": [
@@ -834,8 +828,8 @@
       ],
       "modify": [
         "README.md",
-        "docs/operations/08-api-ui-and-local-run.md",
-        "docs/business/00-product-positioning.md",
+        "docs/development.md",
+        "docs/product.md",
         "docs/code-document-map.json"
       ],
       "create": [
@@ -890,6 +884,88 @@
         "app/infra/database.py",
         "app/infra/database_models.py",
         "start_local_demo.ps1"
+      ],
+      "code_changes_allowed": true
+    },
+    {
+      "id": "T13",
+      "name": "Deterministic development demo data",
+      "depends_on": [
+        "T12"
+      ],
+      "modify": [
+        "README.md",
+        "docs/development.md",
+        "docs/code-document-map.json"
+      ],
+      "create": [
+        "setup_demo_data.py",
+        "tests/test_demo_data_entrypoint.py",
+        ".harness/runs/T13/result.json"
+      ],
+      "provides": [
+        "development-only idempotent English demo dataset",
+        "four visible workspace outcomes without external OCR or model calls",
+        "valid local PDF originals for each demo document"
+      ],
+      "consumes": [
+        "T12 accepted baseline",
+        "existing WorkspaceService and WorkspaceWorker",
+        "existing development administrator and configured workspace scope"
+      ],
+      "acceptance_ids": [
+        "D04",
+        "D05",
+        "D06",
+        "D07"
+      ],
+      "commands": [
+        [
+          "python",
+          "-m",
+          "pytest",
+          "-q",
+          "tests/test_demo_data_entrypoint.py"
+        ],
+        [
+          "python",
+          "tools/check_spec_contract.py",
+          "--spec-root",
+          "spec"
+        ],
+        [
+          "python",
+          "tools/check_documentation_sync.py",
+          "--base-ref",
+          "${TASK_BASE}"
+        ],
+        [
+          "git",
+          "diff",
+          "--check",
+          "${TASK_BASE}"
+        ]
+      ],
+      "status": "not_started",
+      "read_inputs": [
+        "spec/README.md",
+        "spec/01-product.md",
+        "spec/02-architecture.md",
+        "spec/03-contracts.md",
+        "spec/04-rules.md",
+        "spec/05-tasks.md",
+        "spec/06-harness.md",
+        "spec/07-acceptance.md",
+        "spec/tasks.json",
+        "app/core/config.py",
+        "app/domain/workspace.py",
+        "app/infra/database.py",
+        "app/infra/database_models.py",
+        "app/infra/postgres_workspace_repository.py",
+        "app/services/document_upload_service.py",
+        "app/services/workspace_service.py",
+        "app/workers/workspace_worker.py",
+        "setup_dev_admin.py"
       ],
       "code_changes_allowed": true
     }
