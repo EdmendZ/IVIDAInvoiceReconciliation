@@ -1,5 +1,5 @@
 {
-  "spec_version": "IR-SIMPLE-1.0.9",
+  "spec_version": "IR-SIMPLE-1.0.10",
   "prefix": "/api/workspace",
   "model_definitions": "03-contracts.md",
   "routes": [
@@ -158,6 +158,19 @@
       ],
       "idempotency_key_required": true,
       "readonly": false
+    },
+    {
+      "method": "GET",
+      "path": "/confirmations",
+      "request": "ConfirmationQuery",
+      "response": "ConfirmationPage",
+      "success_status": 200,
+      "roles": [
+        "reviewer",
+        "admin"
+      ],
+      "idempotency_key_required": false,
+      "readonly": true
     },
     {
       "method": "GET",

@@ -1,5 +1,5 @@
 {
-  "spec_version": "IR-SIMPLE-1.0.9",
+  "spec_version": "IR-SIMPLE-1.0.10",
   "execution": "strictly_sequential_fresh_sessions",
   "path_base": "repository_root",
   "deletes_allowed": false,
@@ -1236,6 +1236,120 @@
         "frontend/src/workspace/DocumentPage.tsx",
         "frontend/src/workspace/WorkspacePage.tsx",
         "frontend/src/workspace/workspaceTypes.ts"
+      ],
+      "code_changes_allowed": true
+    },
+    {
+      "id": "T17",
+      "name": "Workspace confirmation history",
+      "depends_on": [
+        "T16"
+      ],
+      "modify": [
+        "app/api/workspace_routes.py",
+        "app/domain/workspace.py",
+        "app/infra/postgres_workspace_repository.py",
+        "app/services/workspace_ports.py",
+        "app/services/workspace_service.py",
+        "docs/architecture.md",
+        "docs/product.md",
+        "frontend/src/app/App.tsx",
+        "frontend/src/styles.css",
+        "frontend/src/workspace/workspaceClient.ts",
+        "frontend/src/workspace/workspaceTypes.ts",
+        "tests/test_postgres_workspace_repository.py",
+        "tests/test_workspace_api.py",
+        "tests/test_workspace_contracts.py",
+        "tests/test_workspace_service.py"
+      ],
+      "create": [
+        ".harness/runs/T17/result.json",
+        "frontend/src/history/HistoryPage.test.tsx",
+        "frontend/src/history/HistoryPage.tsx"
+      ],
+      "provides": [
+        "scope-filtered immutable confirmation history",
+        "searchable confirmation history HTTP contract",
+        "new workspace history list and snapshot detail UI"
+      ],
+      "consumes": [
+        "T16 accepted baseline",
+        "existing ws_confirmations and immutable revision storage",
+        "existing confirmation detail and CSV export endpoints",
+        "legacy read-only Case pages"
+      ],
+      "acceptance_ids": [
+        "D19",
+        "D20",
+        "D21",
+        "D22"
+      ],
+      "commands": [
+        [
+          "python",
+          "-m",
+          "pytest",
+          "-q",
+          "tests/test_workspace_contracts.py",
+          "tests/test_workspace_service.py",
+          "tests/test_workspace_api.py",
+          "tests/test_postgres_workspace_repository.py"
+        ],
+        [
+          "npm",
+          "--prefix",
+          "frontend",
+          "test",
+          "--",
+          "--run",
+          "src/history/HistoryPage.test.tsx"
+        ],
+        [
+          "npm",
+          "--prefix",
+          "frontend",
+          "run",
+          "build"
+        ],
+        [
+          "python",
+          "tools/check_spec_contract.py",
+          "--spec-root",
+          "spec"
+        ],
+        [
+          "python",
+          "tools/check_documentation_sync.py",
+          "--base-ref",
+          "${TASK_BASE}"
+        ],
+        [
+          "git",
+          "diff",
+          "--check",
+          "${TASK_BASE}"
+        ]
+      ],
+      "status": "not_started",
+      "read_inputs": [
+        "spec/README.md",
+        "spec/01-product.md",
+        "spec/02-architecture.md",
+        "spec/03-contracts.md",
+        "spec/04-rules.md",
+        "spec/05-tasks.md",
+        "spec/06-harness.md",
+        "spec/07-acceptance.md",
+        "spec/tasks.json",
+        "app/api/workspace_routes.py",
+        "app/domain/workspace.py",
+        "app/infra/postgres_workspace_repository.py",
+        "app/services/workspace_ports.py",
+        "app/services/workspace_service.py",
+        "frontend/src/app/App.tsx",
+        "frontend/src/workspace/workspaceClient.ts",
+        "frontend/src/workspace/workspaceTypes.ts",
+        "frontend/src/cases/CaseQueuePage.tsx"
       ],
       "code_changes_allowed": true
     }

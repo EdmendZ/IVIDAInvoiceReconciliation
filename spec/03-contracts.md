@@ -68,6 +68,10 @@ coverage 指商品行维度覆盖，不代表税费或总应付款完全验证�
 
 `ConfirmationView`：confirmation_id、preview_id、invoice_number str、receive_note_numbers str[]、resolution、note nullable、acknowledged_unverified_dimensions、result_snapshot PreviewResult、rule_version、tolerances、input_revision_ids、actor_id、created_at。
 
+`ConfirmationSummary`：confirmation_id、invoice_document_id、invoice_number、supplier_name nullable、receive_note_numbers、resolution、outcome、coverage、acknowledged_unverified_dimensions、note nullable、actor_id、created_at；所有业务字段来自该 Confirmation 固定的 revision/result_snapshot，不读取 Document 当前 revision。
+
+`ConfirmationQuery`：q nullable且≤100字符、outcome 可重复且无重复值、page≥1默认1、page_size 1..100默认20。q 对历史 invoice_number、supplier_name、receive_note_numbers 做大小写不敏感字面子串匹配；结果按 created_at DESC、confirmation_id DESC 稳定分页。`ConfirmationPage`：items、page、page_size、total。
+
 `ActionView`：action_id、action、actor_id nullable、reason nullable、old_revision nullable、new_revision、confirmation_id nullable、created_at。
 
 ## 3. HTTP 路由清单（完整）
@@ -86,6 +90,7 @@ coverage 指商品行维度覆盖，不代表税费或总应付款完全验证�
 | POST /documents/{id}/reopen | `{expected_revision,reason:string}` | 200 DocumentSummary |
 | POST /documents/{id}/void | `{expected_revision,reason:string}` | 200 DocumentSummary |
 | POST /documents/{id}/retry | `{expected_revision}` | 202 `{document:DocumentSummary,run_id}` |
+| GET /confirmations | q、outcome、page、page_size 见 ConfirmationQuery | 200 ConfirmationPage |
 | GET /confirmations/{id} | 无 | 200 ConfirmationView，历史也可读 |
 | GET /confirmations/{id}/export.csv | 无 | 200 text/csv UTF-8 BOM；按存储 snapshot 导出 |
 | GET /runtime | 无 | 200 `{enabled:bool,worker_online:bool,last_sync_at:UTC|null,preview_lag_seconds:int|null}` |
@@ -146,6 +151,7 @@ class WorkspaceService:
     def reopen(self, document_id: str, command: ReasonCommand, actor: AuthenticatedUser, key: str) -> DocumentSummary: ...
     def void(self, document_id: str, command: ReasonCommand, actor: AuthenticatedUser, key: str) -> DocumentSummary: ...
     def retry(self, document_id: str, command: RevisionCommand, actor: AuthenticatedUser, key: str) -> RetryResponse: ...
+    def list_confirmations(self, query: ConfirmationQuery) -> ConfirmationPage: ...
     def get_confirmation(self, confirmation_id: str) -> ConfirmationView: ...
     def source(self, document_id: str) -> SourceFile: ...
     def export(self, confirmation_id: str) -> str: ...
@@ -164,6 +170,7 @@ class WorkspaceRepository(Protocol):
     def get_actions(self, scope, document_id, page, page_size) -> ActionPage: ...
     def mutate(self, scope, document_id, operation: WorkspaceOperation, command: WorkspaceCommand,
                actor_id, key, request_hash) -> WorkspaceMutationResponse: ...
+    def list_confirmations(self, scope, query: ConfirmationQuery) -> ConfirmationPage: ...
     def get_confirmation(self, scope, confirmation_id) -> ConfirmationView: ...
     def source_metadata(self, scope, document_id) -> SourceMetadata: ...
     def sync_sources(self, scope) -> SyncSummary: ...
@@ -187,9 +194,9 @@ Repository 的确认事务内允许调用无副作用 matching/comparison 函数
 
 ## 5. 前端接口与组件边界
 
-workspaceTypes.ts 逐项镜像本章 DTO（金额 string），不得 `any`；workspaceClient.ts 使用已有 api/upload/download 基础方法并提供：listDocuments/getDocument/getActions/uploadDocument/editDocument/selectReceivings/investigate/confirm/reopen/voidDocument/retry/getConfirmation/exportConfirmation/getRuntime。参数与 HTTP 一致。Idempotency-Key 在一次用户操作开始时生成、网络不确定重试复用，收到明确失败后新操作用新 key。
+workspaceTypes.ts 逐项镜像本章 DTO（金额 string），不得 `any`；workspaceClient.ts 使用已有 api/upload/download 基础方法并提供：listDocuments/getDocument/getActions/uploadDocument/editDocument/selectReceivings/investigate/confirm/reopen/voidDocument/retry/listConfirmations/getConfirmation/exportConfirmation/getRuntime。参数与 HTTP 一致。Idempotency-Key 在一次用户操作开始时生成、网络不确定重试复用，收到明确失败后新操作用新 key。
 
-workspacePresentation.ts 仅含 `displayStatusLabel`、`metricStatusLabel`、`canConfirm(detail)`、`canEdit(detail)`、`canReopen(detail)`、`unverifiedSummary(result)`，不包含业务决策或网络调用。WorkspacePage(props:{onNavigate:(path:string)=>void})；DocumentPage(props:{documentId:string,onNavigate:(path:string)=>void})。DocumentPage 内的局部函数/组件可写在同文件，不能自行新建组件目录。
+workspacePresentation.ts 仅含 `displayStatusLabel`、`metricStatusLabel`、`canConfirm(detail)`、`canEdit(detail)`、`canReopen(detail)`、`unverifiedSummary(result)`，不包含业务决策或网络调用。WorkspacePage(props:{onNavigate:(path:string)=>void})；DocumentPage(props:{documentId:string,onNavigate:(path:string)=>void})；HistoryPage(props:{confirmationId?:string,onNavigate:(path:string)=>void})。HistoryPage 自含列表和只读详情，不创建第二套结果解释规则。
 
 所有按钮允许性由后端重新判断；403/409 必须显示中文信息。409 刷新详情但保留尚未提交的本地输入并提示用户，不自动覆盖、不自动再提交。单页确认前显示关联收货、提取字段和未核验维度；源字段仍英文。原件显示 PDF iframe 或 img，来源字段/证据只当文本渲染，禁止 dangerouslySetInnerHTML。
 

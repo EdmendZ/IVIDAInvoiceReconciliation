@@ -137,7 +137,7 @@ sync_sources对用户作废的upload文档不再恢复为ready，对completed发
 
 锁外匹配无可选组合时 result=null；save_preview只更新match_status/candidates派生依据并清preview_stale，不创建假PreviewResult。候选列表在GET使用同一纯函数根据当前scope快照计算，GET不持久化；正式confirm仍校验generation防陈旧选择。
 
-`/history`固定复用CaseQueuePage(readOnly=true)，展示旧差异历史；旧清洁核对的既有ID/CSV读取继续保留，不在本版本新增全量历史搜索模块。回滚false仍保留新confirmation只读API，但导航回到旧系统；不许自动删除新数据。
+`/history`读取 `ws_confirmations` 与其固定 revision，展示新工作台全部正式快照；Repository 按 scope 过滤后稳定分页，搜索只针对历史 revision 中的 Invoice 编号、供应商名称和 Receive Note 编号，不读取当前 revision 替代历史值。`/history/{confirmation_id}` 复用既有只读 Confirmation API，不增加第二份快照。`/history/legacy` 复用 CaseQueuePage(readOnly=true) 展示旧差异历史；旧既有ID/CSV读取继续保留。回滚false仍保留新confirmation只读API；不许自动删除新数据，也不把新结果复制进旧 Case。
 
 
 ## 8. Hash与代次规则
