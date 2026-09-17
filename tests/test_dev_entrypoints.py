@@ -1,6 +1,9 @@
 from datetime import UTC, datetime
+from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
+import shutil
 import subprocess
+from threading import Thread
 
 import pytest
 from sqlalchemy import create_engine, func, select
@@ -105,3 +108,43 @@ Write-Output 'ivida-owned-marker'
     )
     assert completed.returncode == 0, completed.stderr
     assert "ivida-owned-marker" in completed.stdout
+
+
+def test_windows_powershell_health_probe_uses_basic_parsing() -> None:
+    root = Path(__file__).resolve().parents[1]
+    common = root / "scripts" / "local_demo_common.ps1"
+    assert "Invoke-WebRequest -UseBasicParsing" in common.read_text(encoding="utf-8")
+    executable = shutil.which("powershell.exe")
+    if executable is None:
+        pytest.skip("Windows PowerShell is unavailable")
+
+    class Handler(BaseHTTPRequestHandler):
+        def do_GET(self):  # noqa: N802
+            self.send_response(200)
+            self.end_headers()
+            self.wfile.write(b"ok")
+
+        def log_message(self, format, *args):
+            del format, args
+
+    server = ThreadingHTTPServer(("127.0.0.1", 0), Handler)
+    thread = Thread(target=server.serve_forever, daemon=True)
+    thread.start()
+    try:
+        uri = f"http://127.0.0.1:{server.server_port}/health"
+        script = f". '{common}'; Wait-IvidaHttp -Uri '{uri}' -TimeoutSeconds 5; Write-Output 'healthy'"
+        completed = subprocess.run(
+            [executable, "-NoProfile", "-Command", script],
+            cwd=root,
+            check=False,
+            capture_output=True,
+            text=True,
+            timeout=10,
+        )
+    finally:
+        server.shutdown()
+        server.server_close()
+        thread.join(timeout=5)
+
+    assert completed.returncode == 0, completed.stderr
+    assert "healthy" in completed.stdout

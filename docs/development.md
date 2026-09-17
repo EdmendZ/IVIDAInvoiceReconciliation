@@ -51,6 +51,10 @@ Invoice、自动关联且数量一致、自动关联但数量有差异。重复�
 本项目进程，启动 API、Extraction Worker、Workspace Worker 和前端，写日志到
 `logs/local-demo/`，健康检查后打开 <http://127.0.0.1:5274>。
 
+健康检查显式使用 `Invoke-WebRequest -UseBasicParsing`，以兼容 `run_local_demo.py` 调用的
+Windows PowerShell 5.1。不要删除该开关；否则 API 即使已经返回 HTTP 200，也可能因旧 IE
+HTML 解析组件不可用而被误报为启动超时，随后启动器会按安全回滚停止本次创建的进程。
+
 停止运行：`stop_local_demo.ps1`。API 文档：<http://127.0.0.1:8200/docs>。
 Extraction Quality Lab：<http://127.0.0.1:5274/lab>。
 

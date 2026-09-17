@@ -98,7 +98,7 @@ function Wait-IvidaHttp {
     $deadline = (Get-Date).AddSeconds($TimeoutSeconds)
     while ((Get-Date) -lt $deadline) {
         try {
-            $response = Invoke-WebRequest -Uri $Uri -TimeoutSec 2
+            $response = Invoke-WebRequest -UseBasicParsing -Uri $Uri -TimeoutSec 2
             if ($response.StatusCode -ge 200 -and $response.StatusCode -lt 500) {
                 return
             }
