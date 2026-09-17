@@ -18,7 +18,7 @@ def _supplier_status(left: Party | None, right: Party | None) -> str:
     a = normalize_identity(left.business_number or "")
     b = normalize_identity(right.business_number or "")
     if not (a and b):
-        a, b = normalize_identity(left.name), normalize_identity(right.name)
+        a, b = normalize_identity(left.name or ""), normalize_identity(right.name or "")
     if not (a and b):
         return "unverified"
     return "equal" if a == b else "conflict"

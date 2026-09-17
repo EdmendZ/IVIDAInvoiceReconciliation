@@ -18,6 +18,10 @@ provider、model、prompt version、token、耗时和估算成本，但不暴露
 的 quantity、unit price、tax 或 total 保持未知；系统只允许用户明确确认实际看过的
 未核验维度。
 
+供应商名称缺失时仍可保留有证据的 ABN 和地址，名称保持 null。`TAX INVOICE`、
+`INVOICE`、`GOODS RECEIVED NOTE` 等单据标题不会作为供应商名称；若外部模型仍返回
+这类标题，确定性校验会提示用户按原件修正。
+
 ## 评测
 
 本地合成集覆盖英文澳洲门店单据、表格、GST、分批收货、缺失价格和版式变化。

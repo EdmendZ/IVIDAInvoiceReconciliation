@@ -100,6 +100,28 @@ def test_abn_missing_on_one_side_uses_exact_name():
     assert select_candidates(revision(), [rn], set()).status == "selected"
 
 
+def test_missing_names_still_use_matching_abn():
+    inv = revision(supplier={"name": None, "business_number": "12-34"})
+    rn = revision(
+        2,
+        "receive_note",
+        supplier={"name": None, "business_number": "1234"},
+    )
+    assert select_candidates(inv, [rn], set()).status == "selected"
+
+
+def test_missing_names_and_abn_remain_unverified():
+    inv = revision(supplier={"name": None, "business_number": None})
+    rn = revision(
+        2,
+        "receive_note",
+        supplier={"name": None, "business_number": None},
+    )
+    result = select_candidates(inv, [rn], set())
+    assert result.status == "needs_selection"
+    assert "SUPPLIER_UNVERIFIED" in result.candidates[0].reason_codes
+
+
 def test_non_receiving_ignored_and_no_input_mutation():
     inv = revision()
     original = inv.model_dump()

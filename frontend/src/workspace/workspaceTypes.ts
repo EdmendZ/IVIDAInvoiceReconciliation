@@ -44,7 +44,7 @@ export type WorkspaceErrorCode =
   | "INTERNAL_ERROR";
 
 export type Party = {
-  name: string;
+  name: string | null;
   business_number: string | null;
   address: string | null;
 };

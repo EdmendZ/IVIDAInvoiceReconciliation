@@ -10,6 +10,18 @@ from app.domain.validation import (
 )
 
 
+_GENERIC_SUPPLIER_NAMES = {
+    "invoice",
+    "taxinvoice",
+    "goodsreceivednote",
+    "receivenote",
+}
+
+
+def _identity_text(value: str) -> str:
+    return "".join(character for character in value.casefold() if character.isalnum())
+
+
 class ValidationService:
     """生成 Warning/Blocking Issue，不修改文档也不决定最终核对结果。"""
 
@@ -26,6 +38,22 @@ class ValidationService:
         """验证行金额、税额、小计和总额，并保留可解释差值。"""
 
         issues: list[ValidationIssue] = []
+        if (
+            document.supplier is not None
+            and document.supplier.name is not None
+            and _identity_text(document.supplier.name) in _GENERIC_SUPPLIER_NAMES
+        ):
+            issues.append(
+                ValidationIssue(
+                    rule_code="SUPPLIER_NAME_GENERIC",
+                    severity=IssueSeverity.WARNING,
+                    field_path="supplier.name",
+                    message=(
+                        "Supplier name is a document title; verify it against "
+                        "the source"
+                    ),
+                )
+            )
         if not document.purchase_order_number:
             issues.append(
                 ValidationIssue(

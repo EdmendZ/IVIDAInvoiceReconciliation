@@ -125,3 +125,32 @@ def test_missing_identifier_must_be_null_not_empty_string() -> None:
             document_type=DocumentType.INVOICE,
             parse_result=_parse_result(),
         )
+
+
+def test_prompt_keeps_partial_supplier_without_using_document_title() -> None:
+    payload = _payload()
+    payload["document"]["supplier"] = {
+        "name": None,
+        "business_number": "45 678 901 234",
+        "address": "91 Supply Crescent",
+    }
+    client = _client(payload)
+    provider = OpenAINormalizationProvider(
+        client=client,
+        model_name="normalizer-test",
+    )
+
+    result = provider.normalize(
+        document_type=DocumentType.INVOICE,
+        parse_result=_parse_result(),
+    )
+
+    system_prompt = client.completions_fixture.last_request["messages"][0][
+        "content"
+    ]
+    assert "Generic document titles" in system_prompt
+    assert "TAX" in system_prompt and "INVOICE" in system_prompt
+    assert "set supplier.name to null" in system_prompt
+    assert result.document.supplier is not None
+    assert result.document.supplier.name is None
+    assert result.document.supplier.business_number == "45 678 901 234"

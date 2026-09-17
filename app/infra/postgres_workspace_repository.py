@@ -286,7 +286,7 @@ class PostgresWorkspaceRepository:
             return False
         aa, bb = normalize_identity(a.business_number or ""), normalize_identity(b.business_number or "")
         if not (aa and bb):
-            aa, bb = normalize_identity(a.name), normalize_identity(b.name)
+            aa, bb = normalize_identity(a.name or ""), normalize_identity(b.name or "")
         return bool(aa and bb and aa == bb)
 
     def pending_previews(self, scope, limit=100):

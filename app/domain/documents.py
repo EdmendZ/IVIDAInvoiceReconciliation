@@ -23,7 +23,7 @@ class DocumentType(StrEnum):
 class Party(BaseModel):
     """供应商或门店等商业主体的最小身份信息。"""
 
-    name: str
+    name: str | None = None
     business_number: str | None = None
     address: str | None = None
 

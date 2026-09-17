@@ -54,6 +54,41 @@ def test_missing_po_is_warning() -> None:
     assert report.has_warning("PO_MISSING")
 
 
+def test_generic_document_title_is_not_a_supplier_name() -> None:
+    report = ValidationService().validate(
+        _invoice(
+            supplier={
+                "name": "TAX INVOICE",
+                "business_number": "45 678 901 234",
+            }
+        )
+    )
+    assert report.has_warning("SUPPLIER_NAME_GENERIC")
+    issue = next(
+        item for item in report.issues
+        if item.rule_code == "SUPPLIER_NAME_GENERIC"
+    )
+    assert issue.field_path == "supplier.name"
+
+
+def test_partial_supplier_identity_does_not_invent_a_name() -> None:
+    invoice = _invoice(
+        supplier={
+            "name": None,
+            "business_number": "45 678 901 234",
+            "address": "91 Supply Crescent",
+        }
+    )
+    assert invoice.model_dump(mode="json")["supplier"] == {
+        "name": None,
+        "business_number": "45 678 901 234",
+        "address": "91 Supply Crescent",
+    }
+    assert not ValidationService().validate(invoice).has_warning(
+        "SUPPLIER_NAME_GENERIC"
+    )
+
+
 def test_partial_tax_amounts_do_not_treat_missing_as_zero() -> None:
     invoice = _invoice()
     invoice.items[1].tax_amount = None
