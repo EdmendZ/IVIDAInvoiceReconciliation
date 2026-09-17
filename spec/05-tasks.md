@@ -1,6 +1,6 @@
 # 05 任务、模块责任与文件权限
 
-机器权威清单是 [tasks.json](tasks.json)。下表定义工作内容和验收含义；两者不一致时停止。任务严格串行 T00→T17，每个任务单独新执行上下文；协调者负责验收和推进。
+机器权威清单是 [tasks.json](tasks.json)。下表定义工作内容和验收含义；两者不一致时停止。任务严格串行 T00→T18，每个任务单独新执行上下文；协调者负责验收和推进。
 
 任何任务只能读冻结 Spec＋本任务列出的输入实现＋直接依赖的已验收代码/报告；可只读检查现有源码寻找证据，但不得把旧聊天、旧计划作为新需求。整个 spec/ 对执行 Agent 只读。不自动读取 .env、个人配置、数据库备份或 evaluation_data 私有样本。
 
@@ -115,6 +115,12 @@ v1.0.3：允许修改现有 CI，将新 PostgreSQL 测试接入专用以 `_works
 新增只读 Confirmation 列表契约和 Repository/Service/HTTP 查询；不新增表、迁移或写操作。列表必须从每条 Confirmation 固定 revision 和 result_snapshot 生成摘要，scope 隔离、搜索、结果筛选、稳定分页，重开前旧快照仍可找到。
 
 新增 `frontend/src/history/HistoryPage.tsx`：`/history` 默认显示新正式历史，点击进入 `/history/{confirmation_id}` 查看完整不可变逐行快照并导出 CSV；`/history/legacy` 才显示旧 CaseQueuePage(readOnly=true)。不得恢复认领、审批或修改按钮，不把新 Confirmation 写入旧 Case。
+
+## T18：Windows 启动器健康检查兼容
+
+修复 Windows PowerShell 5.1 下 `Invoke-WebRequest` 在 HTTP 已返回 200 后仍因旧 IE HTML 解析组件不可用而抛异常、最终误报健康检查超时的问题。`Wait-IvidaHttp` 必须使用 `-UseBasicParsing`，继续只接受 2xx–4xx 为进程已响应；不改变端口、进程归属、启动组件或停止安全边界。
+
+协调者必须执行真实 start/stop/start：四个组件由启动器记录并能安全停止，第二次启动后 `/api/health`、前端和新 `/api/workspace/confirmations` 路由均来自当前提交。测试固定 Windows PowerShell 兼容开关，防止后续回归。
 
 ## 任务报告（每任务唯一输出）
 

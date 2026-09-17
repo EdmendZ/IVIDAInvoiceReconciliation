@@ -44,3 +44,7 @@
 ## IR-SIMPLE-1.0.10 新工作台历史入口修正
 
 用户确认继续开发后，核查发现导航“历史记录”仍指向旧 Case，只能在当前发票详情看到最新 Confirmation，重开前旧快照虽保存在数据库和单条 API 中却没有可发现列表。新增只读 Confirmation 列表与详情页面，旧 Case 降为 `/history/legacy` 次级入口；复用现有表和单条详情/CSV，不恢复旧认领审批，不新增迁移或第二套快照。
+
+## IR-SIMPLE-1.0.11 Windows 启动健康检查修正
+
+用户要求关闭并重新加载最新版时，真实启动发现 API 已持续返回 200，但 Windows PowerShell 5.1 的 `Invoke-WebRequest` 因未使用 Basic Parsing 在响应后抛出旧 IE 解析异常，启动器误报超时并回收全部新进程。T18 仅修复健康探测兼容开关并重复真实启停，不改变进程管理架构。

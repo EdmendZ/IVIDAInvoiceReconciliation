@@ -69,6 +69,8 @@ T16 追加验收：D15 Invoice 先到或 Receive Note 先到均形成同一核�
 
 T17 追加验收：D19 `/history` 默认列出当前 scope 全部 Confirmation，包括重开前旧快照，按创建时间与ID倒序稳定分页；摘要编号、供应商、收货编号和结果来自固定历史 revision/snapshot。D20 q 可字面搜索历史发票号、供应商、收货单号，outcome 可重复筛选且拒绝重复值；其他 scope 不泄露。D21 `/history/{id}` 只读展示完整快照、未核验维度、说明、操作人与时间并可导出原 CSV。D22 `/history/legacy` 保留旧 Case 只读查询，日常历史不出现认领、审批或修改入口，T17 不新增表、迁移或写操作。
 
+T18 追加验收：D23 Windows PowerShell 5.1 的健康请求使用 `-UseBasicParsing`，HTTP 200 不再被 IE 解析异常误报为超时。D24 真实 start/stop/start 后 API、Extraction Worker、Workspace Worker、Frontend 均由状态记录安全管理，8200/5274 恢复响应，OpenAPI 包含当前 `/api/workspace/confirmations` 路由。
+
 ## 4. 迁移与兼容验证
 
 1. 使用生产相同 PostgreSQL 主版本的独立测试库，从20260807_14迁移至15；保留旧表和记录。

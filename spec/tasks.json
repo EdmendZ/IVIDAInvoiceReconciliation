@@ -1,5 +1,5 @@
 {
-  "spec_version": "IR-SIMPLE-1.0.10",
+  "spec_version": "IR-SIMPLE-1.0.11",
   "execution": "strictly_sequential_fresh_sessions",
   "path_base": "repository_root",
   "deletes_allowed": false,
@@ -1350,6 +1350,74 @@
         "frontend/src/workspace/workspaceClient.ts",
         "frontend/src/workspace/workspaceTypes.ts",
         "frontend/src/cases/CaseQueuePage.tsx"
+      ],
+      "code_changes_allowed": true
+    },
+    {
+      "id": "T18",
+      "name": "Windows launcher health-check compatibility",
+      "depends_on": [
+        "T17"
+      ],
+      "modify": [
+        "scripts/local_demo_common.ps1",
+        "tests/test_dev_entrypoints.py"
+      ],
+      "create": [
+        ".harness/runs/T18/result.json"
+      ],
+      "provides": [
+        "Windows PowerShell 5.1 basic HTTP health probing",
+        "reliable current-code local demo restart"
+      ],
+      "consumes": [
+        "T17 accepted baseline",
+        "existing safe launcher process ownership",
+        "existing local demo health endpoints"
+      ],
+      "acceptance_ids": [
+        "D23",
+        "D24"
+      ],
+      "commands": [
+        [
+          "python",
+          "-m",
+          "pytest",
+          "-q",
+          "tests/test_dev_entrypoints.py"
+        ],
+        [
+          "python",
+          "tools/check_spec_contract.py",
+          "--spec-root",
+          "spec"
+        ],
+        [
+          "python",
+          "tools/check_documentation_sync.py",
+          "--base-ref",
+          "${TASK_BASE}"
+        ],
+        [
+          "git",
+          "diff",
+          "--check",
+          "${TASK_BASE}"
+        ]
+      ],
+      "status": "not_started",
+      "read_inputs": [
+        "spec/README.md",
+        "spec/05-tasks.md",
+        "spec/06-harness.md",
+        "spec/07-acceptance.md",
+        "spec/tasks.json",
+        "run_local_demo.py",
+        "start_local_demo.ps1",
+        "stop_local_demo.ps1",
+        "scripts/local_demo_common.ps1",
+        "tests/test_dev_entrypoints.py"
       ],
       "code_changes_allowed": true
     }
