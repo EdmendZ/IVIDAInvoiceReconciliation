@@ -5,6 +5,7 @@ import { LoginPage } from "../auth/LoginPage";
 import { CaseDetailPage } from "../cases/CaseDetailPage";
 import { CaseQueuePage } from "../cases/CaseQueuePage";
 import { ExperimentLabPage } from "../experiments/ExperimentLabPage";
+import { HistoryPage } from "../history/HistoryPage";
 import { label } from "../i18n";
 import { ReconciliationPage } from "../reconcile/ReconciliationPage";
 import { ReviewDocumentPage } from "../review/ReviewDocumentPage";
@@ -70,8 +71,9 @@ export function App() {
   const versionMatch = path.match(/^\/review\/([^/]+)$/);
   const caseMatch = path.match(/^\/cases\/([^/]+)$/);
   const documentMatch = path.match(/^\/documents\/([^/]+)$/);
+  const historyMatch = path.match(/^\/history\/(?!legacy$)([^/]+)$/);
   const workspaceEnabled = runtime.enabled;
-  const historyActive = path === "/history" || path === "/cases" || Boolean(caseMatch) || path === "/reconcile" || Boolean(versionMatch);
+  const historyActive = path.startsWith("/history") || path === "/cases" || Boolean(caseMatch) || path === "/reconcile" || Boolean(versionMatch);
 
   return (
     <div className="app-shell">
@@ -108,9 +110,13 @@ export function App() {
               documentId={decodeURIComponent(documentMatch[1])}
               onNavigate={navigate}
             />
+          ) : historyMatch ? (
+            <HistoryPage confirmationId={decodeURIComponent(historyMatch[1])} onNavigate={navigate} />
+          ) : path === "/history" ? (
+            <HistoryPage onNavigate={navigate} />
           ) : caseMatch ? (
             <CaseDetailPage caseId={decodeURIComponent(caseMatch[1])} user={user} onNavigate={navigate} readOnly />
-          ) : path === "/history" || path === "/cases" ? (
+          ) : path === "/history/legacy" || path === "/cases" ? (
             <CaseQueuePage user={user} onNavigate={navigate} readOnly />
           ) : path === "/reconcile" ? (
             <ReconciliationPage readOnly />

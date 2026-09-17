@@ -11,6 +11,9 @@ from app.domain.admin_users import AdminRole, AuthenticatedUser
 from app.domain.documents import DocumentType
 from app.domain.workspace import (
     CachedResponse,
+    ConfirmationPage,
+    ConfirmationQuery,
+    ConfirmationSummary,
     ConfirmationView,
     Coverage,
     DisplayStatus,
@@ -155,6 +158,28 @@ class RecordingRepository:
     def get_confirmation(self, *args):
         self.calls.append(("get_confirmation", args))
         return self.confirmation
+
+    def list_confirmations(self, *args):
+        self.calls.append(("list_confirmations", args))
+        return ConfirmationPage(
+            items=[ConfirmationSummary(
+                confirmation_id=self.confirmation.confirmation_id,
+                invoice_document_id=uid(10),
+                invoice_number=self.confirmation.invoice_number,
+                supplier_name="Fresh Foods Pty Ltd",
+                receive_note_numbers=self.confirmation.receive_note_numbers,
+                resolution=self.confirmation.resolution,
+                outcome=self.confirmation.result_snapshot.outcome,
+                coverage=self.confirmation.result_snapshot.coverage,
+                acknowledged_unverified_dimensions=self.confirmation.acknowledged_unverified_dimensions,
+                note=self.confirmation.note,
+                actor_id=self.confirmation.actor_id,
+                created_at=self.confirmation.created_at,
+            )],
+            page=1,
+            page_size=20,
+            total=1,
+        )
 
     def list_documents(self, *args):
         self.calls.append(("list_documents", args))
@@ -303,6 +328,17 @@ def test_source_reads_only_repository_authorized_metadata() -> None:
     assert source.filename == "invoice.pdf"
     assert source.content_type == "application/pdf"
     assert source.data == b"%PDF-1.7 invoice"
+
+
+def test_confirmation_history_query_delegates_with_scope() -> None:
+    service, repository, _ = make_service()
+    query = ConfirmationQuery(q="RN-1", outcome=["difference"], page=1, page_size=20)
+
+    page = service.list_confirmations(query)
+
+    assert page.total == 1
+    assert repository.calls[-1][0] == "list_confirmations"
+    assert repository.calls[-1][1][1] == query
 
 
 def test_source_scope_failure_happens_before_storage_access() -> None:

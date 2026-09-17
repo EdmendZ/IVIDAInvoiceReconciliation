@@ -252,6 +252,20 @@ def test_confirm_replay_reopen_history_and_source_change(ctx):
     assert second.confirmation.confirmation_id != first.confirmation.confirmation_id
     assert second.confirmation.receive_note_numbers == ["RN-new"]
     assert repo.get_confirmation(scope, first.confirmation.confirmation_id).receive_note_numbers == ["RN-1"]
+    history = repo.list_confirmations(scope, w.ConfirmationQuery(page_size=1))
+    repeated = repo.list_confirmations(scope, w.ConfirmationQuery(page_size=1))
+    assert history.total == 2
+    assert [item.confirmation_id for item in history.items] == [item.confirmation_id for item in repeated.items]
+    old = repo.list_confirmations(scope, w.ConfirmationQuery(q="rn-1"))
+    assert [item.confirmation_id for item in old.items] == [first.confirmation.confirmation_id]
+    assert old.items[0].invoice_number == "INV-1"
+    assert old.items[0].supplier_name == "Fresh Foods"
+    assert old.items[0].receive_note_numbers == ["RN-1"]
+    assert repo.list_confirmations(scope, w.ConfirmationQuery(q="fresh foods")).total == 2
+    assert repo.list_confirmations(scope, w.ConfirmationQuery(outcome=["difference"])).total == 0
+    assert repo.list_confirmations(
+        w.WorkspaceScopeKey(tenant_id=uid(), store_id="store"), w.ConfirmationQuery()
+    ).total == 0
 
 
 @pytest.mark.parametrize("status", ["active", "voided"])

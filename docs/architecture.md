@@ -38,6 +38,11 @@ MinIO 保存原件与解析产物。Worker 可独立重启，通过租约、fenc
 工作台使用独立 `ws_` 表，不改写旧批准版本和旧核对快照。确认、重开、作废和来源
 变化都留下追加式 Action。预览可以失效和重算，Confirmation 不可覆盖。
 
+历史列表不建立汇总表。Repository 在 tenant/store 范围内读取 `ws_confirmations`，使用每条
+记录固定的 invoice_revision_id、receive_revision_ids 和 result_snapshot 生成摘要，再进行
+字面搜索、结果筛选和稳定分页。单条详情与 CSV 继续复用既有 Confirmation 读取路径；旧 Case
+历史保持独立只读入口，新结果不复制进旧审批状态机。
+
 双原件审查不新增关系表或文件接口。Invoice 仍是核对聚合根；详情读取所选收货修订与
 可用上传原件 ID，Receive Note 详情从同 scope 当前选择反向投影关联发票。前端继续逐个
 调用受授权的 `/documents/{id}/source`，多张收货只加载当前标签，避免复制文件或暴露

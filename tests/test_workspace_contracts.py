@@ -115,6 +115,28 @@ def test_query_defaults_do_not_share_mutable_lists():
     assert second.model_dump(mode="json") == dict(page=1, page_size=20, type="invoice", status=[], q=None)
 
 
+def test_confirmation_history_query_and_summary_are_strict():
+    query = w.ConfirmationQuery(q="Fresh Foods", outcome=["consistent"], page=2, page_size=10)
+    assert query.outcome == [w.PreviewOutcome.CONSISTENT]
+    with pytest.raises(ValidationError):
+        w.ConfirmationQuery(outcome=["consistent", "consistent"])
+    summary = w.ConfirmationSummary(
+        confirmation_id=ID,
+        invoice_document_id=OTHER,
+        invoice_number="INV-HIST-1",
+        supplier_name="Fresh Foods Pty Ltd",
+        receive_note_numbers=["RN-HIST-1"],
+        resolution="matched",
+        outcome="consistent",
+        coverage="quantity_only",
+        acknowledged_unverified_dimensions=["document_total", "tax"],
+        actor_id=ID,
+        created_at=NOW,
+    )
+    page = w.ConfirmationPage(items=[summary], page=1, page_size=20, total=1)
+    assert w.ConfirmationPage.model_validate_json(page.model_dump_json()) == page
+
+
 def test_document_detail_relation_projections_are_explicit_and_round_trip():
     summary = w.DocumentSummary(
         document_id=ID,
@@ -145,7 +167,7 @@ def test_all_new_dtos_forbid_extra_and_protocol_is_complete():
     assert all(cls.model_config["extra"] == "forbid" for cls in dtos)
     assert {name for name, method in vars(WorkspaceRepository).items() if not name.startswith("_") and callable(method)} == {
         "cached_request", "intake", "list_documents", "get_document", "get_actions", "mutate",
-        "get_confirmation", "source_metadata", "sync_sources", "pending_previews", "save_preview", "runtime"}
+        "list_confirmations", "get_confirmation", "source_metadata", "sync_sources", "pending_previews", "save_preview", "runtime"}
     assert inspect.signature(WorkspaceRepository.pending_previews).parameters["limit"].default == 100
 
 

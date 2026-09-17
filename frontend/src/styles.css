@@ -943,6 +943,54 @@ button:disabled { cursor: not-allowed; opacity: .5; }
   .decision-actions { grid-template-columns: 1fr 1fr; }
   .decision-actions label { grid-column: 1 / -1; }
 }
+
+.history-heading-actions,
+.history-toolbar,
+.history-card-heading,
+.history-card-meta {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.history-heading-actions { flex-wrap: wrap; justify-content: flex-end; }
+.history-toolbar {
+  align-items: end;
+  flex-wrap: wrap;
+  margin-bottom: 20px;
+  padding: 18px;
+  border: 1px solid #dce4e0;
+  border-radius: 18px;
+  background: white;
+}
+.history-toolbar label { min-width: min(320px, 100%); flex: 1; }
+.history-toolbar label:nth-child(2) { min-width: 190px; flex: 0 1 240px; }
+.history-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(330px, 100%), 1fr)); gap: 16px; }
+.history-card {
+  display: grid;
+  gap: 14px;
+  padding: 20px;
+  border: 1px solid #d7e0dc;
+  border-radius: 18px;
+  background: white;
+  box-shadow: 0 8px 24px #173d3212;
+}
+.history-card h3, .history-card p { margin: 0; }
+.history-card-heading { justify-content: space-between; }
+.history-card-heading time { color: #63716b; font-size: 0.84rem; }
+.history-card-meta { flex-wrap: wrap; color: #63716b; font-size: 0.88rem; }
+.history-card-meta span { padding: 5px 9px; border-radius: 999px; background: #f2f6f4; }
+.history-card-note { padding: 10px 12px; border-left: 3px solid #16806a; background: #f4f7f5; }
+.history-snapshot-summary { display: grid; grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)); gap: 12px; }
+.history-snapshot-summary div { display: grid; gap: 4px; }
+.history-snapshot-summary span { color: #63716b; font-size: 0.82rem; }
+.history-snapshot-summary strong { overflow-wrap: anywhere; }
+
+@media (max-width: 700px) {
+  .history-heading-actions { justify-content: flex-start; }
+  .history-toolbar { align-items: stretch; }
+  .history-toolbar label, .history-toolbar label:nth-child(2) { min-width: 100%; }
+}
 @media (max-width: 640px) {
   .page { padding: 28px 16px 90px; }
   .topbar { padding: 16px; }

@@ -383,6 +383,21 @@ class ConfirmationView(WorkspaceDTO):
     created_at: UTCTimestamp
 
 
+class ConfirmationSummary(WorkspaceDTO):
+    confirmation_id: UUIDString
+    invoice_document_id: UUIDString
+    invoice_number: str
+    supplier_name: str | None = None
+    receive_note_numbers: list[str]
+    resolution: Resolution
+    outcome: PreviewOutcome
+    coverage: Coverage
+    acknowledged_unverified_dimensions: UniqueDimensions
+    note: Reason | None = None
+    actor_id: UUIDString
+    created_at: UTCTimestamp
+
+
 class ActionView(WorkspaceDTO):
     action_id: UUIDString
     action: ActionType
@@ -439,8 +454,18 @@ class DocumentQuery(PageQuery):
     q: Annotated[str, Field(max_length=100)] | None = None
 
 
+class ConfirmationQuery(PageQuery):
+    q: Annotated[str, Field(max_length=100)] | None = None
+    outcome: Annotated[list[PreviewOutcome], AfterValidator(_unique)] = Field(default_factory=list)
+
+
 class DocumentPage(PageQuery):
     items: list[DocumentSummary] = Field(default_factory=list)
+    total: NonnegativeInt
+
+
+class ConfirmationPage(PageQuery):
+    items: list[ConfirmationSummary] = Field(default_factory=list)
     total: NonnegativeInt
 
 

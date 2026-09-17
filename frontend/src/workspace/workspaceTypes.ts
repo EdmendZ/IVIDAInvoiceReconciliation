@@ -187,6 +187,20 @@ export type ConfirmationView = {
   actor_id: string;
   created_at: string;
 };
+export type ConfirmationSummary = {
+  confirmation_id: string;
+  invoice_document_id: string;
+  invoice_number: string;
+  supplier_name: string | null;
+  receive_note_numbers: string[];
+  resolution: Resolution;
+  outcome: PreviewOutcome;
+  coverage: Coverage;
+  acknowledged_unverified_dimensions: string[];
+  note: string | null;
+  actor_id: string;
+  created_at: string;
+};
 export type ActionView = {
   action_id: string;
   action: ActionType;
@@ -236,7 +250,12 @@ export type DocumentQuery = PageQuery & {
   status?: DisplayStatus[];
   q?: string | null;
 };
+export type ConfirmationQuery = PageQuery & {
+  q?: string | null;
+  outcome?: PreviewOutcome[];
+};
 export type DocumentPage = { items: DocumentSummary[]; page: number; page_size: number; total: number };
+export type ConfirmationPage = { items: ConfirmationSummary[]; page: number; page_size: number; total: number };
 export type ActionPage = { items: ActionView[]; page: number; page_size: number; total: number };
 
 export type UploadCommand = { document_type: DocumentType; filename: string; data: Blob };

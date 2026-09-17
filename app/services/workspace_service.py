@@ -13,6 +13,8 @@ from uuid import UUID
 from app.domain.admin_users import AdminRole, AuthenticatedUser
 from app.domain.workspace import (
     ActionPage,
+    ConfirmationPage,
+    ConfirmationQuery,
     ConfirmationResponse,
     ConfirmationView,
     DocumentDetail,
@@ -237,6 +239,9 @@ class WorkspaceService:
         return self._repository.get_actions(
             self._scope, document_id, page, page_size
         )
+
+    def list_confirmations(self, query: ConfirmationQuery) -> ConfirmationPage:
+        return self._repository.list_confirmations(self._scope, query)
 
     def edit(
         self,

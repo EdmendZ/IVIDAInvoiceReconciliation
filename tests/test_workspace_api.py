@@ -13,7 +13,9 @@ from app.api.dependencies import get_workspace_runtime_service, get_workspace_se
 from app.domain.documents import DocumentType
 from app.domain.workspace import (
     ActionPage,
+    ConfirmationPage,
     ConfirmationResponse,
+    ConfirmationSummary,
     ConfirmationView,
     Coverage,
     DisplayStatus,
@@ -181,6 +183,32 @@ class RecordingWorkspaceService:
     def get_confirmation(self, *args):
         return self._return("get_confirmation", args, confirmation())
 
+    def list_confirmations(self, *args):
+        current = confirmation()
+        return self._return(
+            "list_confirmations",
+            args,
+            ConfirmationPage(
+                items=[ConfirmationSummary(
+                    confirmation_id=current.confirmation_id,
+                    invoice_document_id=DOCUMENT_ID,
+                    invoice_number=current.invoice_number,
+                    supplier_name="Fresh Foods Pty Ltd",
+                    receive_note_numbers=current.receive_note_numbers,
+                    resolution=current.resolution,
+                    outcome=current.result_snapshot.outcome,
+                    coverage=current.result_snapshot.coverage,
+                    acknowledged_unverified_dimensions=current.acknowledged_unverified_dimensions,
+                    note=current.note,
+                    actor_id=current.actor_id,
+                    created_at=current.created_at,
+                )],
+                page=1,
+                page_size=20,
+                total=1,
+            ),
+        )
+
     def export(self, *args):
         return self._return("export", args, "\ufeffconfirmation_id\r\nvalue\r\n")
 
@@ -289,6 +317,7 @@ def test_all_routes_delegate_with_frozen_statuses_and_safe_download_headers(
         ("POST", f"/api/workspace/documents/{DOCUMENT_ID}/reopen", {"json": {**common, "reason": "New receiving"}, "headers": headers}, 200, "reopen"),
         ("POST", f"/api/workspace/documents/{DOCUMENT_ID}/void", {"json": {**common, "reason": "Duplicate upload"}, "headers": headers}, 200, "void"),
         ("POST", f"/api/workspace/documents/{DOCUMENT_ID}/retry", {"json": common, "headers": headers}, 202, "retry"),
+        ("GET", "/api/workspace/confirmations?q=Fresh&outcome=consistent", {}, 200, "list_confirmations"),
         ("GET", f"/api/workspace/confirmations/{CONFIRMATION_ID}", {}, 200, "get_confirmation"),
         ("GET", f"/api/workspace/confirmations/{CONFIRMATION_ID}/export.csv", {}, 200, "export"),
         ("GET", "/api/workspace/runtime", {}, 200, "runtime"),
@@ -321,6 +350,17 @@ def test_mutations_require_uuid_idempotency_header(workspace_client) -> None:
     assert response.json() == {
         "detail": {"code": "INVALID_REQUEST", "message": "请求参数格式不正确"}
     }
+    assert service.calls == []
+
+
+def test_confirmation_history_rejects_duplicate_outcome_filter(workspace_client) -> None:
+    client, service = workspace_client
+    response = client.get(
+        "/api/workspace/confirmations?outcome=consistent&outcome=consistent"
+    )
+
+    assert response.status_code == 400
+    assert response.json()["detail"]["code"] == "INVALID_REQUEST"
     assert service.calls == []
 
 
@@ -455,6 +495,7 @@ class NoAuthentication:
         ("POST", f"/api/workspace/documents/{DOCUMENT_ID}/reopen"),
         ("POST", f"/api/workspace/documents/{DOCUMENT_ID}/void"),
         ("POST", f"/api/workspace/documents/{DOCUMENT_ID}/retry"),
+        ("GET", "/api/workspace/confirmations"),
         ("GET", f"/api/workspace/confirmations/{CONFIRMATION_ID}"),
         ("GET", f"/api/workspace/confirmations/{CONFIRMATION_ID}/export.csv"),
         ("GET", "/api/workspace/runtime"),

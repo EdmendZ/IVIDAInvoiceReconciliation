@@ -25,6 +25,7 @@ from fastapi.exception_handlers import (
 )
 from fastapi.responses import JSONResponse, Response, StreamingResponse
 from fastapi.exceptions import RequestValidationError
+from pydantic import AfterValidator
 
 from app.api.auth_dependencies import require_reviewer
 from app.api.dependencies import (
@@ -37,6 +38,8 @@ from app.domain.admin_users import AuthenticatedUser
 from app.domain.documents import DocumentType
 from app.domain.workspace import (
     ActionPage,
+    ConfirmationPage,
+    ConfirmationQuery,
     ConfirmationResponse,
     ConfirmationView,
     DisplayStatus,
@@ -48,6 +51,7 @@ from app.domain.workspace import (
     InvestigateCommand,
     ConfirmCommand,
     IntakeResponse,
+    PreviewOutcome,
     ReasonCommand,
     RetryResponse,
     RevisionCommand,
@@ -207,6 +211,19 @@ async def workspace_validation_exception_handler(
 IdempotencyKey = Annotated[UUID, Header(alias="Idempotency-Key")]
 DocumentID = Annotated[UUID, Path(alias="id")]
 ConfirmationID = Annotated[UUID, Path(alias="id")]
+
+
+def _unique_outcomes(value: list[PreviewOutcome] | None):
+    if value is not None and len(value) != len(set(value)):
+        raise ValueError("duplicate outcomes are not allowed")
+    return value
+
+
+ConfirmationOutcomes = Annotated[
+    list[PreviewOutcome] | None,
+    Query(alias="outcome"),
+    AfterValidator(_unique_outcomes),
+]
 
 
 @router.post(
@@ -398,6 +415,26 @@ def retry_document(
     service: WorkspaceService = Depends(get_workspace_service),
 ) -> RetryResponse:
     return service.retry(str(document_id), command, actor, str(idempotency_key))
+
+
+@router.get("/confirmations", response_model=ConfirmationPage)
+def list_confirmations(
+    outcomes: ConfirmationOutcomes = None,
+    q: Annotated[str | None, Query(max_length=100)] = None,
+    page: Annotated[int, Query(ge=1)] = 1,
+    page_size: Annotated[int, Query(ge=1, le=100)] = 20,
+    actor: AuthenticatedUser = Depends(require_reviewer),
+    service: WorkspaceService = Depends(get_workspace_service),
+) -> ConfirmationPage:
+    del actor
+    return service.list_confirmations(
+        ConfirmationQuery(
+            q=q,
+            outcome=outcomes or [],
+            page=page,
+            page_size=page_size,
+        )
+    )
 
 
 @router.get("/confirmations/{id}", response_model=ConfirmationView)

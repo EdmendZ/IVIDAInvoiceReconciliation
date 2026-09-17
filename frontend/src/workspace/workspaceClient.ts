@@ -3,6 +3,8 @@ import type {
   ActionPage,
   ConfirmCommand,
   ConfirmationResponse,
+  ConfirmationPage,
+  ConfirmationQuery,
   ConfirmationView,
   DocumentDetail,
   DocumentPage,
@@ -180,6 +182,16 @@ export function getConfirmation(confirmationId: string): Promise<ConfirmationVie
   return api<ConfirmationView>(`/api/workspace/confirmations/${encodeURIComponent(confirmationId)}`);
 }
 
+export function listConfirmations(query: ConfirmationQuery = {}): Promise<ConfirmationPage> {
+  const params = new URLSearchParams();
+  if (query.q != null) params.set("q", query.q);
+  for (const outcome of query.outcome ?? []) params.append("outcome", outcome);
+  if (query.page != null) params.set("page", String(query.page));
+  if (query.page_size != null) params.set("page_size", String(query.page_size));
+  const suffix = params.toString();
+  return api<ConfirmationPage>(`/api/workspace/confirmations${suffix ? `?${suffix}` : ""}`);
+}
+
 export function exportConfirmation(confirmationId: string): Promise<void> {
   return downloadFile(
     `/api/workspace/confirmations/${encodeURIComponent(confirmationId)}/export.csv`,
@@ -202,6 +214,7 @@ export const workspaceClient = {
   reopen,
   voidDocument,
   retry,
+  listConfirmations,
   getConfirmation,
   exportConfirmation,
   getRuntime,

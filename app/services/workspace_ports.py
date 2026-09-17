@@ -2,9 +2,10 @@
 from typing import Protocol
 
 from app.domain.workspace import (
-    ActionPage, CachedResponse, ConfirmationView, DocumentDetail, DocumentPage,
-    DocumentQuery, IntakeResponse, MatchProposal, PreparedUpload, PreviewInput,
-    PreviewResult, RuntimeView, SourceMetadata, SyncSummary, WorkspaceCommand,
+    ActionPage, CachedResponse, ConfirmationPage, ConfirmationQuery,
+    ConfirmationView, DocumentDetail, DocumentPage, DocumentQuery,
+    IntakeResponse, MatchProposal, PreparedUpload, PreviewInput, PreviewResult,
+    RuntimeView, SourceMetadata, SyncSummary, WorkspaceCommand,
     WorkspaceMutationResponse, WorkspaceOperation, WorkspaceScopeKey,
 )
 
@@ -22,6 +23,9 @@ class WorkspaceRepository(Protocol):
 
     def get_actions(self, scope: WorkspaceScopeKey, document_id: str,
                     page: int, page_size: int) -> ActionPage: ...
+
+    def list_confirmations(self, scope: WorkspaceScopeKey,
+                           query: ConfirmationQuery) -> ConfirmationPage: ...
 
     def mutate(self, scope: WorkspaceScopeKey, document_id: str,
                operation: WorkspaceOperation, command: WorkspaceCommand,

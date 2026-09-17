@@ -398,6 +398,55 @@ class PostgresWorkspaceRepository:
             receive_note_numbers=[r.payload.document_number for r in receives],
             input_revision_ids=[row.invoice_revision_id, *row.receive_revision_ids])
 
+    def _confirmation_summary(self, session, row):
+        invoice = self._revision(session, row.invoice_revision_id)
+        receives = [self._revision(session, rid) for rid in row.receive_revision_ids]
+        result = w.PreviewResult.model_validate(row.result_snapshot)
+        return w.ConfirmationSummary(
+            confirmation_id=row.confirmation_id,
+            invoice_document_id=row.invoice_document_id,
+            invoice_number=invoice.payload.document_number,
+            supplier_name=invoice.payload.supplier.name if invoice.payload.supplier else None,
+            receive_note_numbers=[revision.payload.document_number for revision in receives],
+            resolution=row.resolution,
+            outcome=result.outcome,
+            coverage=result.coverage,
+            acknowledged_unverified_dimensions=row.acknowledged_unverified_dimensions,
+            note=row.note,
+            actor_id=row.actor_id,
+            created_at=row.created_at,
+        )
+
+    def list_confirmations(self, scope, query):
+        with self._session_factory() as session:
+            rows = list(session.scalars(
+                select(Confirmation)
+                .join(Document, Confirmation.invoice_document_id == Document.document_id)
+                .where(
+                    Document.tenant_id == scope.tenant_id,
+                    Document.store_id == scope.store_id,
+                )
+                .order_by(Confirmation.created_at.desc(), Confirmation.confirmation_id.desc())
+            ))
+            items = [self._confirmation_summary(session, row) for row in rows]
+            if query.outcome:
+                items = [item for item in items if item.outcome in query.outcome]
+            if query.q:
+                needle = query.q.casefold()
+                items = [
+                    item for item in items
+                    if needle in item.invoice_number.casefold()
+                    or needle in (item.supplier_name or "").casefold()
+                    or any(needle in number.casefold() for number in item.receive_note_numbers)
+                ]
+            offset = (query.page - 1) * query.page_size
+            return w.ConfirmationPage(
+                items=items[offset:offset + query.page_size],
+                total=len(items),
+                page=query.page,
+                page_size=query.page_size,
+            )
+
     def get_confirmation(self, scope, confirmation_id):
         with self._session_factory() as session:
             return self._confirmation(session, scope, confirmation_id)
