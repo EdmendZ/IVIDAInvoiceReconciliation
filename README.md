@@ -8,7 +8,7 @@ IVIDA 发票（Invoice）与收货单（Receive Note）比对原型。该项目�
 
 ## 当前阶段
 
-阶段 1 已建立：
+当前本地 Pilot 已建立：
 
 - 独立 FastAPI 服务，默认端口 `8200`
 - Invoice / Receive Note 标准 JSON 数据模型
@@ -17,17 +17,19 @@ IVIDA 发票（Invoice）与收货单（Receive Note）比对原型。该项目�
 - 数量、单价、金额容差与差异分类
 - PDF、PNG、JPEG 原件上传与安全格式校验
 - MinIO 原件存储与 PostgreSQL 抽取任务持久化
-- 异步抽取运行记录和 `ready_for_review` 状态流
+- 异步抽取运行记录和后台自动处理
 - 模型 Provider 统一接口、耗时、Token 和成本字段
-- 异常 Reconciliation 与差异 Case 的同事务创建，清洁结果不制造人工待办
-- Reviewer 认领、逐项处置和提交，Admin 退回、重新分派、批准或作废
-- `expected_revision` 乐观并发保护与追加式 Case Action 审计历史
+- Invoice 与 Receive Note 任意顺序到达，系统自动关联并生成逐行预览
+- 正常结果和差异结果都只需一次人工确认，不使用认领、分派或多级审批
+- 自动关联默认折叠；只有关联不明确或用户主动修改时显示候选选择
+- 不可变确认快照、`expected_revision` 乐观并发保护和追加式操作审计
 - PostgreSQL、MinIO 和模型供应商的独立配置命名
 - 健康检查、示例接口和自动化测试
 
 当前已接通 MinerU 文档解析和 OpenAI-compatible 结构化模型，并保留
 `MODEL_PROVIDER=disabled` 作为未配置环境的安全默认值。模型只生成审核草稿；
-最终比对只接受人工批准的上传版本，或当前有效的 Taptouch 上游权威版本。
+最终差异由确定性规则计算，并由用户在工作台确认一次。TapTouch Receiving 已有受保护
+的适配接口，但尚未接入真实生产 API。
 
 ## 启动
 
@@ -43,7 +45,7 @@ cd E:\ZephyrLLM\Projects\IVIDAInvoiceReconciliation
 .\start_local_demo.ps1
 ```
 
-脚本会启动 API、Extraction Worker 和前端，验证 `8200`、`5274`
+脚本会启动 API、Extraction Worker、Workspace Worker 和前端，验证 `8200`、`5274`
 端口及健康检查，然后打开 <http://127.0.0.1:5274>。日志保存在
 `logs/local-demo/`。
 
@@ -159,21 +161,17 @@ Admin 可在 <http://127.0.0.1:5274/lab> 使用 Extraction Quality Lab 查看不
 当前单文档结果只是链路冒烟测试，不作为生产模型结论。具体依据见
 [docs/ai.md](docs/ai.md)。
 
-## 人工审核与对账
+## 简化工作台
 
-- 审核前端：<http://127.0.0.1:5274>
-- `Upload`：上传 Invoice/Receive Note、启动处理并查看 Worker 阶段。
-- `Review`：查看证据与校验问题、保存新版本、批准或驳回。
-- `Reconcile`：选择已批准 Invoice 和一个或多个 Receive Note，展示逐行差异。
-- `Cases`：查看公共待办和本人 Case；负责人逐项填写结论，Admin 处理审批或作废决定。
+- 工作台：<http://127.0.0.1:5274>
+- 上传 Invoice 或 Receive Note 后，两个 Worker 在后台自动处理，无需点击开始提取或匹配。
+- 另一方尚未到达时保留为“等待另一方单据”；到齐后自动关联并生成逐行结果。
+- 用户在同一详情页核对原件、英文业务字段、关联单据和差异，然后确认一次。
+- 有差异时可以先标记待核实，或填写处理说明后确认；不创建认领和二次审批流程。
+- 确认保存不可变快照；后续更正必须重开，历史结果不会被覆盖。
 - 账号创建：`python -m app.cli.create_admin --username reviewer --role reviewer`
-- 只有人工批准的上传版本或当前有效的 Taptouch 权威版本可以调用生产对账接口。
-- 编辑会创建新版本；批准版本与审核记录由 PostgreSQL 触发器保护。
 
-Reconciliation 是不可覆盖的规则计算快照；Case 只保存可变的人工处理状态和审计
-轨迹。`approved`、`voided` Case 不能恢复或继续编辑，需要纠正单据时应基于新的批准
-版本创建新的 Reconciliation。本仓库当前仍是本机 Pilot，不包含 Case 补充材料附件
-上传、通知、SLA/分析报表或生产部署能力。
+本仓库仍是本机 Pilot，不包含真实 TapTouch 生产接入、通知、SLA、付款、总账或生产部署。
 
 完整启动顺序、恢复和备份说明见
 [开发与运行](docs/development.md)。
@@ -204,9 +202,3 @@ Invoice 与两张分批 Receive Notes 的候选匹配和一对多核对。该脚
 - [五分钟演示与源码导读](docs/demo.md)
 - [架构与责任边界](docs/architecture.md)
 - [模型选择与评测边界](docs/ai.md)
-
-## 简化工作台
-
-工作台以 Invoice 为主单据，收货单可以先到，后台 `run_workspace_worker.py` 每 3 秒同步
-ready 来源并生成确定性预览。预览必须由 Reviewer 一次确认；差异确认需要说明，确认和
-重开都保留不可变快照。工作台默认关闭，启用前请先完成迁移和专用测试库验收。
