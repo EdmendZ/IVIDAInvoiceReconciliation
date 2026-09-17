@@ -120,6 +120,8 @@ v1.0.3：允许修改现有 CI，将新 PostgreSQL 测试接入专用以 `_works
 
 修复 Windows PowerShell 5.1 下 `Invoke-WebRequest` 在 HTTP 已返回 200 后仍因旧 IE HTML 解析组件不可用而抛异常、最终误报健康检查超时的问题。`Wait-IvidaHttp` 必须使用 `-UseBasicParsing`，继续只接受 2xx–4xx 为进程已响应；不改变端口、进程归属、启动组件或停止安全边界。
 
+同步 `docs/development.md` 说明启动器兼容 Windows PowerShell 5.1 的 Basic Parsing 健康探测，避免维护者删除该开关后再次误报超时。
+
 协调者必须执行真实 start/stop/start：四个组件由启动器记录并能安全停止，第二次启动后 `/api/health`、前端和新 `/api/workspace/confirmations` 路由均来自当前提交。测试固定 Windows PowerShell 兼容开关，防止后续回归。
 
 ## 任务报告（每任务唯一输出）

@@ -1,5 +1,5 @@
 {
-  "spec_version": "IR-SIMPLE-1.0.11",
+  "spec_version": "IR-SIMPLE-1.0.12",
   "execution": "strictly_sequential_fresh_sessions",
   "path_base": "repository_root",
   "deletes_allowed": false,
@@ -1360,6 +1360,7 @@
         "T17"
       ],
       "modify": [
+        "docs/development.md",
         "scripts/local_demo_common.ps1",
         "tests/test_dev_entrypoints.py"
       ],

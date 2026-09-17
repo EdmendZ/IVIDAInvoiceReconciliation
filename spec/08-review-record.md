@@ -48,3 +48,7 @@
 ## IR-SIMPLE-1.0.11 Windows 启动健康检查修正
 
 用户要求关闭并重新加载最新版时，真实启动发现 API 已持续返回 200，但 Windows PowerShell 5.1 的 `Invoke-WebRequest` 因未使用 Basic Parsing 在响应后抛出旧 IE 解析异常，启动器误报超时并回收全部新进程。T18 仅修复健康探测兼容开关并重复真实启停，不改变进程管理架构。
+
+## IR-SIMPLE-1.0.12 T18 文档映射补全
+
+文档同步门禁指出 `scripts/local_demo_common.ps1` 属于运维入口，T18 原文件白名单遗漏其映射文档。补充 `docs/development.md` 修改权限并要求记录 Basic Parsing 兼容原因；不改变 T18 行为、接口或验收结论。
