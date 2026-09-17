@@ -33,7 +33,7 @@
 | `compose.release.yaml` | T04 M |
 | `compose.yaml` | T04 M |
 | `docs/ai.md` | T14 M |
-| `docs/architecture.md` | T03 M, T09 M |
+| `docs/architecture.md` | T03 M, T09 M, T14 M |
 | `docs/code-document-map.json` | T00 M, T12 M, T13 M |
 | `docs/development.md` | T09 M, T12 M, T13 M |
 | `docs/product.md` | T09 M, T12 M |

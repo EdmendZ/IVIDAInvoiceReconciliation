@@ -1,5 +1,5 @@
 {
-  "spec_version": "IR-SIMPLE-1.0.6",
+  "spec_version": "IR-SIMPLE-1.0.7",
   "execution": "strictly_sequential_fresh_sessions",
   "path_base": "repository_root",
   "deletes_allowed": false,
@@ -982,6 +982,7 @@
         "app/services/validation_service.py",
         "app/services/workspace_matching.py",
         "docs/ai.md",
+        "docs/architecture.md",
         "frontend/src/workspace/workspaceTypes.ts",
         "tests/test_normalization_provider.py",
         "tests/test_validation_service.py",
