@@ -17,10 +17,10 @@
 | `app/api/workspace_routes.py` | T06 N |
 | `app/core/config.py` | T04 M |
 | `app/domain/documents.py` | T14 M |
-| `app/domain/workspace.py` | T01 N, T03 M |
+| `app/domain/workspace.py` | T01 N, T03 M, T16 M |
 | `app/infra/database_models.py` | T03 M |
 | `app/infra/postgres_taptouch_receiving_repository.py` | T03 M |
-| `app/infra/postgres_workspace_repository.py` | T03 N, T14 M |
+| `app/infra/postgres_workspace_repository.py` | T03 N, T14 M, T16 M |
 | `app/main.py` | T06 M |
 | `app/resources/prompts/normalize_document_system.txt` | T14 M |
 | `app/services/document_upload_service.py` | T05 M |
@@ -33,13 +33,13 @@
 | `compose.release.yaml` | T04 M |
 | `compose.yaml` | T04 M |
 | `docs/ai.md` | T14 M |
-| `docs/architecture.md` | T03 M, T09 M, T14 M |
+| `docs/architecture.md` | T03 M, T09 M, T14 M, T16 M |
 | `docs/code-document-map.json` | T00 M, T12 M, T13 M |
 | `docs/development.md` | T09 M, T12 M, T13 M, T15 M |
-| `docs/product.md` | T09 M, T12 M |
+| `docs/product.md` | T09 M, T12 M, T16 M |
 | `docs/README.md` | T09 M |
 | `frontend/src/api/client.ts` | T07 M |
-| `frontend/src/app/App.tsx` | T08 M |
+| `frontend/src/app/App.tsx` | T08 M, T16 M |
 | `frontend/src/cases/CaseDetailPage.test.tsx` | T08 M |
 | `frontend/src/cases/CaseDetailPage.tsx` | T08 M |
 | `frontend/src/cases/CaseQueuePage.tsx` | T08 M |
@@ -49,16 +49,16 @@
 | `frontend/src/review/ReviewDocumentPage.tsx` | T08 M |
 | `frontend/src/review/ReviewQueuePage.tsx` | T08 M |
 | `frontend/src/review/StructuredDocumentEditor.tsx` | T08 M |
-| `frontend/src/styles.css` | T08 M |
-| `frontend/src/workspace/DocumentPage.test.tsx` | T08 N |
-| `frontend/src/workspace/DocumentPage.tsx` | T08 N |
+| `frontend/src/styles.css` | T08 M, T16 M |
+| `frontend/src/workspace/DocumentPage.test.tsx` | T08 N, T16 M |
+| `frontend/src/workspace/DocumentPage.tsx` | T08 N, T16 M |
 | `frontend/src/workspace/workspaceClient.test.ts` | T07 N |
 | `frontend/src/workspace/workspaceClient.ts` | T07 N |
-| `frontend/src/workspace/WorkspacePage.test.tsx` | T08 N |
-| `frontend/src/workspace/WorkspacePage.tsx` | T08 N |
+| `frontend/src/workspace/WorkspacePage.test.tsx` | T08 N, T16 M |
+| `frontend/src/workspace/WorkspacePage.tsx` | T08 N, T16 M |
 | `frontend/src/workspace/workspacePresentation.test.ts` | T07 N |
 | `frontend/src/workspace/workspacePresentation.ts` | T07 N |
-| `frontend/src/workspace/workspaceTypes.ts` | T07 N, T14 M |
+| `frontend/src/workspace/workspaceTypes.ts` | T07 N, T14 M, T16 M |
 | `migrations/versions/20260916_15_workspace.py` | T03 N |
 | `README.md` | T09 M, T12 M, T13 M |
 | `run_local_demo.py` | T12 N |
@@ -75,12 +75,12 @@
 | `tests/test_document_upload_service.py` | T05 M |
 | `tests/test_harness_guards.py` | T00 N |
 | `tests/test_normalization_provider.py` | T14 M |
-| `tests/test_postgres_workspace_repository.py` | T03 N |
+| `tests/test_postgres_workspace_repository.py` | T03 N, T16 M |
 | `tests/test_validation_service.py` | T02 M, T14 M |
 | `tests/test_workspace_acceptance.py` | T09 N |
 | `tests/test_workspace_api.py` | T06 N |
 | `tests/test_workspace_comparison.py` | T02 N |
-| `tests/test_workspace_contracts.py` | T01 N, T03 M |
+| `tests/test_workspace_contracts.py` | T01 N, T03 M, T16 M |
 | `tests/test_workspace_harness_acceptance.py` | T10 N |
 | `tests/test_workspace_legacy_gate.py` | T06 N |
 | `tests/test_workspace_matching.py` | T02 N, T14 M |

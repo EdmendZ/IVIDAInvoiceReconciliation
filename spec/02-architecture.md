@@ -75,6 +75,8 @@ ID 为 UUID 字符串；时刻为 UTC ISO-8601；金额和数量以十进制字�
 | error_code | nullable text，稳定系统错误码；成功同步后清空 |
 | created_by, created_at, updated_at | created_by nullable UUID FK admin_users；机器导入 null；时间非空 UTC |
 
+`DocumentDetail` 读取关系不新增表：Invoice 返回所选收货修订及其中可读取原件的 document_id；Receive Note 反向扫描同 scope 中当前选择包含它的 Invoice，返回按 document_id 排序的 `related_invoices`。该关系是当前预览/确认的读取投影，自动候选本身不冒充正式占用。
+
 `WorkspaceRevision`（追加式）：revision_id、document_id FK、sequence integer、source_draft_id nullable FK、source_version_id nullable FK document_versions、payload（现有业务 JSON）、evidence（原 FieldEvidence[]）、validation_issues（原 ValidationIssue[]）、content_sha256、origin=extracted/manual/upstream、actor_id nullable、reason nullable、created_at。UNIQUE(document_id,sequence)；不允许 update/delete。新 revision 保留机器 evidence 原样，并明确 evidence_origin_revision_id（nullable、自 FK）；人工改动不伪造新原文证据。
 
 `WorkspacePreview`（追加式）：preview_id、invoice_document_id、input_revision_ids（invoice 在首，其余 document_id 排序）、scope_generation bigint、selection_origin、rule_version=`ir-simple-rules-1`、tolerances={quantity:"0",unit_price:"0.01",amount:"0.02"}、input_sha256、result（03 DTO）、created_at。没有 created_by/approved 字段；它不代表批准。相同 invoice+input_sha256+rule_version UNIQUE；input_sha256 包含有序输入、所选关联、容差、scope_generation。

@@ -1,5 +1,5 @@
 {
-  "spec_version": "IR-SIMPLE-1.0.8",
+  "spec_version": "IR-SIMPLE-1.0.9",
   "execution": "strictly_sequential_fresh_sessions",
   "path_base": "repository_root",
   "deletes_allowed": false,
@@ -1128,6 +1128,113 @@
         "start_local_demo.ps1",
         "stop_local_demo.ps1",
         "tests/test_dev_entrypoints.py"
+      ],
+      "code_changes_allowed": true
+    },
+    {
+      "id": "T16",
+      "name": "Order-independent navigation and paired source review",
+      "depends_on": [
+        "T15"
+      ],
+      "modify": [
+        "app/domain/workspace.py",
+        "app/infra/postgres_workspace_repository.py",
+        "docs/architecture.md",
+        "docs/product.md",
+        "frontend/src/app/App.tsx",
+        "frontend/src/styles.css",
+        "frontend/src/workspace/DocumentPage.test.tsx",
+        "frontend/src/workspace/DocumentPage.tsx",
+        "frontend/src/workspace/WorkspacePage.test.tsx",
+        "frontend/src/workspace/WorkspacePage.tsx",
+        "frontend/src/workspace/workspaceTypes.ts",
+        "tests/test_postgres_workspace_repository.py",
+        "tests/test_workspace_contracts.py"
+      ],
+      "create": [
+        ".harness/runs/T16/result.json"
+      ],
+      "provides": [
+        "receive-note reverse relation projection",
+        "unique post-upload navigation to invoice review",
+        "side-by-side invoice and selected receiving source review"
+      ],
+      "consumes": [
+        "T15 accepted baseline",
+        "existing deterministic selection and immutable confirmation model",
+        "existing per-document authorized source endpoint"
+      ],
+      "acceptance_ids": [
+        "D15",
+        "D16",
+        "D17",
+        "D18"
+      ],
+      "commands": [
+        [
+          "python",
+          "-m",
+          "pytest",
+          "-q",
+          "tests/test_workspace_contracts.py",
+          "tests/test_workspace_api.py",
+          "tests/test_postgres_workspace_repository.py"
+        ],
+        [
+          "npm",
+          "--prefix",
+          "frontend",
+          "test",
+          "--",
+          "--run",
+          "src/workspace/WorkspacePage.test.tsx",
+          "src/workspace/DocumentPage.test.tsx"
+        ],
+        [
+          "npm",
+          "--prefix",
+          "frontend",
+          "run",
+          "build"
+        ],
+        [
+          "python",
+          "tools/check_spec_contract.py",
+          "--spec-root",
+          "spec"
+        ],
+        [
+          "python",
+          "tools/check_documentation_sync.py",
+          "--base-ref",
+          "${TASK_BASE}"
+        ],
+        [
+          "git",
+          "diff",
+          "--check",
+          "${TASK_BASE}"
+        ]
+      ],
+      "status": "not_started",
+      "read_inputs": [
+        "spec/README.md",
+        "spec/01-product.md",
+        "spec/02-architecture.md",
+        "spec/03-contracts.md",
+        "spec/04-rules.md",
+        "spec/05-tasks.md",
+        "spec/06-harness.md",
+        "spec/07-acceptance.md",
+        "spec/tasks.json",
+        "app/domain/workspace.py",
+        "app/infra/postgres_workspace_repository.py",
+        "frontend/src/app/App.tsx",
+        "frontend/src/styles.css",
+        "frontend/src/workspace/DocumentPage.tsx",
+        "frontend/src/workspace/WorkspacePage.tsx",
+        "frontend/src/workspace/workspaceTypes.ts"
       ],
       "code_changes_allowed": true
     }

@@ -33,6 +33,8 @@ selection_note: string|null
 current_revision: RevisionView|null
 candidates: Candidate[]
 selected_receivings: RevisionView[]
+selected_receiving_source_ids: UUID[] // 所选收货中 source_kind=upload，可通过既有 source 路由读取原件
+related_invoices: DocumentSummary[]   // Receive Note 的反向当前关系；Invoice 固定 []
 preview: PreviewView|null
 preview_stale: bool
 confirmation: ConfirmationView|null
@@ -106,6 +108,8 @@ confirm：
 acknowledged_sources 必须 true；unverified 集合须与当前 preview 完全相同（排序无关、不得重复）。blocked 禁止确认；difference 仅 resolved_with_note，trim 后 note 1..2000；consistent 仅 matched，note 可空。所有其他 reason/note 约束也为 1..2000，HTTP 日志不输出正文或证据。
 
 GET source 以服务端读取当前 scope 原件并流式转发，不暴露 MinIO 凭据；Content-Disposition inline、正确 MIME、nosniff、Cache-Control private,no-store。PNG/JPEG/PDF 复用已验证格式。CSV 列固定：confirmation_id,invoice_number,receive_note_numbers,rule_version,resolution,note,match_key,sku,description,invoice_quantity,received_quantity,quantity_difference,quantity_status,price_status,amount_status。所有单元格以 =,+,-,@,TAB,CR 开头时前置单引号防公式注入；负十进制数值列保留数值文本，只有确定来自 Decimal 的数值可豁免。导出数据英文值不翻译。
+
+发票核对布局使用现有每个 document 的 source 路由，不新增批量文件接口。多张收货只加载当前标签原件；切换差异行时依据 `LineResult.receive_lines[].document_id` 切换相应标签。上游无上传原件时显示只读结构化来源，不伪造 PDF。
 
 ## 4. Python 模块接口
 
