@@ -52,3 +52,7 @@
 ## IR-SIMPLE-1.0.12 T18 文档映射补全
 
 文档同步门禁指出 `scripts/local_demo_common.ps1` 属于运维入口，T18 原文件白名单遗漏其映射文档。补充 `docs/development.md` 修改权限并要求记录 Basic Parsing 兼容原因；不改变 T18 行为、接口或验收结论。
+
+## IR-SIMPLE-1.0.13 未核验解释
+
+现有页面只列“未核验维度”名称，用户无法判断它与差异、阻断的关系。T19 复用现有 PreviewResult/result_snapshot，在前端固定解释原因、影响和处理方式，并用黄色未核验、红色阻断、差异处理说明区分三类结果。后端契约和业务流程保持不变。

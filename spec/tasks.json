@@ -1,5 +1,5 @@
 {
-  "spec_version": "IR-SIMPLE-1.0.12",
+  "spec_version": "IR-SIMPLE-1.0.13",
   "execution": "strictly_sequential_fresh_sessions",
   "path_base": "repository_root",
   "deletes_allowed": false,
@@ -1419,6 +1419,96 @@
         "stop_local_demo.ps1",
         "scripts/local_demo_common.ps1",
         "tests/test_dev_entrypoints.py"
+      ],
+      "code_changes_allowed": true
+    },
+    {
+      "id": "T19",
+      "name": "Explain unverified dimensions, blockers, and differences",
+      "depends_on": [
+        "T18"
+      ],
+      "modify": [
+        "docs/product.md",
+        "frontend/src/history/HistoryPage.test.tsx",
+        "frontend/src/history/HistoryPage.tsx",
+        "frontend/src/styles.css",
+        "frontend/src/workspace/DocumentPage.test.tsx",
+        "frontend/src/workspace/DocumentPage.tsx",
+        "frontend/src/workspace/workspacePresentation.test.ts",
+        "frontend/src/workspace/workspacePresentation.ts"
+      ],
+      "create": [
+        ".harness/runs/T19/result.json"
+      ],
+      "provides": [
+        "plain-language unverified dimension explanations",
+        "visually distinct blocker and difference guidance",
+        "shared current-review and immutable-history explanation rules"
+      ],
+      "consumes": [
+        "T18 accepted baseline",
+        "existing PreviewResult and immutable result_snapshot",
+        "existing single acknowledgement and difference-note rules"
+      ],
+      "acceptance_ids": [
+        "D25",
+        "D26",
+        "D27",
+        "D28"
+      ],
+      "commands": [
+        [
+          "npm",
+          "--prefix",
+          "frontend",
+          "test",
+          "--",
+          "--run",
+          "src/workspace/workspacePresentation.test.ts",
+          "src/workspace/DocumentPage.test.tsx",
+          "src/history/HistoryPage.test.tsx"
+        ],
+        [
+          "npm",
+          "--prefix",
+          "frontend",
+          "run",
+          "build"
+        ],
+        [
+          "python",
+          "tools/check_spec_contract.py",
+          "--spec-root",
+          "spec"
+        ],
+        [
+          "python",
+          "tools/check_documentation_sync.py",
+          "--base-ref",
+          "${TASK_BASE}"
+        ],
+        [
+          "git",
+          "diff",
+          "--check",
+          "${TASK_BASE}"
+        ]
+      ],
+      "status": "not_started",
+      "read_inputs": [
+        "spec/README.md",
+        "spec/01-product.md",
+        "spec/04-rules.md",
+        "spec/05-tasks.md",
+        "spec/06-harness.md",
+        "spec/07-acceptance.md",
+        "spec/tasks.json",
+        "frontend/src/history/HistoryPage.tsx",
+        "frontend/src/styles.css",
+        "frontend/src/workspace/DocumentPage.tsx",
+        "frontend/src/workspace/workspacePresentation.ts",
+        "frontend/src/workspace/workspaceTypes.ts"
       ],
       "code_changes_allowed": true
     }

@@ -1,6 +1,6 @@
 # 05 任务、模块责任与文件权限
 
-机器权威清单是 [tasks.json](tasks.json)。下表定义工作内容和验收含义；两者不一致时停止。任务严格串行 T00→T18，每个任务单独新执行上下文；协调者负责验收和推进。
+机器权威清单是 [tasks.json](tasks.json)。下表定义工作内容和验收含义；两者不一致时停止。任务严格串行 T00→T19，每个任务单独新执行上下文；协调者负责验收和推进。
 
 任何任务只能读冻结 Spec＋本任务列出的输入实现＋直接依赖的已验收代码/报告；可只读检查现有源码寻找证据，但不得把旧聊天、旧计划作为新需求。整个 spec/ 对执行 Agent 只读。不自动读取 .env、个人配置、数据库备份或 evaluation_data 私有样本。
 
@@ -123,6 +123,12 @@ v1.0.3：允许修改现有 CI，将新 PostgreSQL 测试接入专用以 `_works
 同步 `docs/development.md` 说明启动器兼容 Windows PowerShell 5.1 的 Basic Parsing 健康探测，避免维护者删除该开关后再次误报超时。
 
 协调者必须执行真实 start/stop/start：四个组件由启动器记录并能安全停止，第二次启动后 `/api/health`、前端和新 `/api/workspace/confirmations` 路由均来自当前提交。测试固定 Windows PowerShell 兼容开关，防止后续回归。
+
+## T19：未核验、阻断与差异解释
+
+在现有展示层为每个未核验维度提供固定中文说明：名称、原因、影响和处理方式。说明只能从现有 PreviewResult/result_snapshot 推导；`document_total`、`tax` 说明 Receive Note 不提供对应付款维度，`price`、`amount` 根据缺值或多价格说明不可比原因。不得把未核验显示为差异或阻断。
+
+核对页同时把 blocking_codes 显示为红色“必须修正”说明，把 difference 显示为需要填写处理说明的独立提示。正式历史使用同一未核验解释规则并保持只读。T19 不新增 API、表、迁移、状态、审批、认领或第二次确认。
 
 ## 任务报告（每任务唯一输出）
 

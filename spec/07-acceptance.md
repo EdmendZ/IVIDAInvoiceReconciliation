@@ -71,6 +71,8 @@ T17 追加验收：D19 `/history` 默认列出当前 scope 全部 Confirmation�
 
 T18 追加验收：D23 Windows PowerShell 5.1 的健康请求使用 `-UseBasicParsing`，HTTP 200 不再被 IE 解析异常误报为超时。D24 真实 start/stop/start 后 API、Extraction Worker、Workspace Worker、Frontend 均由状态记录安全管理，8200/5274 恢复响应，OpenAPI 包含当前 `/api/workspace/confirmations` 路由。
 
+T19 追加验收：D25 核对页的每个未核验维度均显示原因、影响和处理方式，黄色提示明确其不是差异，并继续使用既有一次知情确认。D26 阻断项使用红色说明且确认保持禁用；真实差异独立提示必须填写处理说明，三类含义不混淆。D27 正式历史从固定 result_snapshot 使用同一未核验解释，仍无修改、审批或认领入口。D28 T19 不改变 API、数据库、匹配、确认请求体或历史快照。
+
 ## 4. 迁移与兼容验证
 
 1. 使用生产相同 PostgreSQL 主版本的独立测试库，从20260807_14迁移至15；保留旧表和记录。
