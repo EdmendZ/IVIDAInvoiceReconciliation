@@ -90,3 +90,9 @@ flowchart TD
 
 仓库提供 `tools/check_documentation_sync.py`，用于检查关键代码变更是否同时
 包含对应文档变更。
+
+## 简化工作台文档
+
+工作台新增 `/api/workspace` 读写边界、独立 Worker 和八张 `ws_` 表。端到端回归使用
+`tests/test_workspace_acceptance.py`，通过数据库名以 `_workspace_test` 结尾的临时库
+运行，并在其中创建随机私有 schema；不会接触演示库或生产数据。

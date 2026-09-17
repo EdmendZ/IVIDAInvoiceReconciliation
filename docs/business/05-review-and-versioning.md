@@ -141,3 +141,10 @@ Evidence 描述的是机器抽取时的原文来源。人工编辑后应结合�
 # 中文审核界面
 
 审核队列、结构化编辑表单、类型确认和批准/驳回操作现使用中文标签。原始英文单据内容、证据、供应商和商品名称保持原样；高级 JSON 保留原字段。中文显示不改变 draft/approved/rejected 等接口状态值，也不改变审核门禁。
+
+## 工作台确认门禁
+
+工作台的 `awaiting_confirmation` 只表示存在可确认预览，不表示系统自动批准。Reviewer
+必须确认来源并逐项确认 `document_total`、`tax` 等未核验维度；`difference` 需要
+`resolved_with_note` 和非空说明。确认后的结果快照、规则版本、容差和输入 Revision
+保持不变，网络重试依靠同一 `Idempotency-Key` 重放原响应。

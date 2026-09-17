@@ -103,3 +103,11 @@ Pull Request CI 使用仓库内容读取权限和临时本地凭据，不保存�
 JUnit Artifact 保留 7 天。GHCR 保留有 Release 依据的语义版本和 SHA 标签；临时
 候选包的清理由仓库所有者显式批准，自动化不删除发布证据。Release Manifest 应与
 对应 Release 一起长期保留，便于面试演示、审计和确定性回滚。
+
+## Workspace PostgreSQL 回归
+
+`postgres-integration` 使用临时 PostgreSQL 服务，并显式连接数据库名以
+`_workspace_test` 结尾的 workspace 测试库，环境变量名为 `WORKSPACE_TEST_DATABASE_URL`。
+CI 先迁移 head，再运行旧 PostgreSQL 回归和 `tests/test_workspace_acceptance.py`；后者
+在数据库内创建随机私有 schema，避免共享旧测试表。若未提供专用 URL，测试本地可以
+skip，发布门禁必须让该套件实际执行。

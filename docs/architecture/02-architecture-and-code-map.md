@@ -124,3 +124,11 @@ Task T-1
 - Port/Repository 让测试可以使用 Fake 或 SQLite；
 - 模型与规则分离，便于独立评测和替换模型；
 - 版本不可变，避免财务结果被静默覆盖。
+
+## 工作台端到端边界
+
+`workspace_routes` 负责认证、请求校验和 DTO；`WorkspaceService` 负责操作语义，
+`PostgresWorkspaceRepository` 在 scope advisory lock 内完成 revision、preview、
+confirmation 和幂等响应的原子写入。`WorkspaceWorker` 先同步来源，再在锁外执行匹配与
+比对，最后用 generation/revision CAS 保存结果。测试用固定 fake parser/normalizer 和
+真实 PostgreSQL 私有 schema 验证这条链路。

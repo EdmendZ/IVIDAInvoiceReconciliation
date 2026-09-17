@@ -372,3 +372,10 @@ Draft 或旧 `document_versions`，保存 payload、证据、校验问题及内�
 
 工作台历史引用使用 RESTRICT 外键；列表中的 ID 在事务内验证。迁移仅允许在八张
 工作台表均无数据时降级；有数据时通过功能开关回退，保留全部历史。
+
+## 工作台验证约定
+
+工作台集成测试使用数据库名以 `_workspace_test` 结尾的专用 PostgreSQL，并在该库内
+创建 `ws_accept_<随机十六进制>` 私有 schema；测试结束只删除自己的 schema。每个确认、
+幂等重放和并发用例均通过真实表约束和事务执行。固定 fake 只替代 parser、normalizer
+与对象存储，不替代 workspace repository 或 HTTP service。

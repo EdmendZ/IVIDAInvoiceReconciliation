@@ -253,3 +253,23 @@ Get-NetTCPConnection -LocalPort 8200 -State Listen
 # 中文界面与英文业务数据
 
 2026-09-16：登录、上传、审核、对账、差异处理及质量评测页面采用简体中文。系统状态通过显示标签转换，API 枚举、JSON 字段、币种、英文供应商/商品/原文证据和导出数据契约保持不变。已知规则提示在前端翻译，未知外部错误和自由文本保留原文，避免误译证据。高级 JSON 与技术溯源信息保留原始键值。
+
+## Workspace Worker
+
+工作台启用且已配置门店范围后，另开终端运行：
+
+```powershell
+.\.venv\Scripts\python.exe run_workspace_worker.py
+```
+
+它每 3 秒同步 ready 的上传和 Taptouch 收货来源，自动保存匹配预览；浏览器只查看
+预览并执行一次确认。端到端本地验收使用专用库：
+
+```powershell
+$env:WORKSPACE_TEST_DATABASE_URL = "postgresql+psycopg://USER:PASSWORD@HOST:5432/ir_simple_local_workspace_test"
+.\.venv\Scripts\python.exe -m pytest tests/test_workspace_acceptance.py -q
+```
+
+仅可使用名称以 `_workspace_test` 结尾的 PostgreSQL 数据库。仓库内
+`.git\ir-harness\run_test_db.py` 是本机 Harness 的安全环境注入辅助器，CI 和公开操作
+步骤仍应显式设置 `WORKSPACE_TEST_DATABASE_URL`。

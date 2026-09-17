@@ -159,3 +159,14 @@ UI 通过 `/api/runtime/status` 区分 Worker online/offline。
 - 长任务状态必须落库，不能依赖 FastAPI BackgroundTasks；
 - 取消是阶段边界上的协作式取消；
 - 只有 Approved Version 能进入财务核对。
+
+## Workspace Document 生命周期
+
+本篇前述 `Approved Version` 结论描述旧 Reconciliation 流程；`WORKSPACE_ENABLED=true`
+时新工作台使用下列独立的 workspace Revision/Preview/Confirmation 生命周期，旧历史仍
+保持只读。
+
+工作台上传先创建 `Task`、`Run` 和 workspace `Document`，来源 ready 后由 Worker 追加
+extracted Revision。每次来源变化或用户编辑都会使当前预览失效；确认写入 Confirmation、
+Claim 和 Action 同一事务。`reopen` 保留原 Confirmation 与其输入版本，释放占用后等待
+新的预览，不把历史结果改写成当前结果。

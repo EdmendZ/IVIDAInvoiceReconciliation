@@ -368,3 +368,11 @@ Case 业务错误统一为：
 - Case 每次变更都携带 revision，并返回统一详情读模型；
 - 实验 API 只治理持久化证据，不在请求线程调用外部模型；
 - 开发诊断端点与真实批准版本流程明确分离。
+
+## Workspace API
+
+工作台接口统一使用 `/api/workspace` 前缀和 HttpOnly session。所有 POST、PUT、PATCH
+必须携带 UUID `Idempotency-Key`；修改单据还必须携带 `expected_revision`。上传响应
+只返回文档、Task 和 Run 摘要，提取与预览由后台 Worker 完成；`POST /confirm` 返回
+不可变 Confirmation，`GET /confirmations/{id}/export.csv` 导出其冻结快照。详情中的
+`coverage` 只说明商品行核验范围，不能解释为付款金额已核验。

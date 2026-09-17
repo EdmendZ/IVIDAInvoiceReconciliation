@@ -196,3 +196,9 @@ Invoice 与两张分批 Receive Notes 的候选匹配和一对多核对。该脚
 - [五分钟演示脚本](docs/interview/demo-script.md)
 - [架构与责任边界](docs/interview/architecture.md)
 - [模型选择记录](docs/interview/model-selection.md)
+
+## 简化工作台
+
+工作台以 Invoice 为主单据，收货单可以先到，后台 `run_workspace_worker.py` 每 3 秒同步
+ready 来源并生成确定性预览。预览必须由 Reviewer 一次确认；差异确认需要说明，确认和
+重开都保留不可变快照。工作台默认关闭，启用前请先完成迁移和专用测试库验收。
