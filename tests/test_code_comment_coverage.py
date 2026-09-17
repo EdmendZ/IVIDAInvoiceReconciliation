@@ -61,9 +61,7 @@ def test_core_business_types_have_teaching_docstrings() -> None:
 
 
 def test_comment_guide_links_the_end_to_end_source_path() -> None:
-    guide = Path("docs/reference/18-code-comment-guide.md").read_text(
-        encoding="utf-8"
-    )
+    guide = Path("docs/demo.md").read_text(encoding="utf-8")
     required_sources = [
         "document_upload_service.py",
         "extraction_worker.py",

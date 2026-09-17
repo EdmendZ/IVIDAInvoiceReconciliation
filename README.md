@@ -4,7 +4,7 @@ IVIDA 发票（Invoice）与收货单（Receive Note）比对原型。该项目�
 
 第一次阅读项目请从 [文档中心](docs/README.md) 开始。业务、架构、AI 抽取、
 人工审核、一对多核对、运行排障和面试复习均有独立说明。修改代码时必须遵守
-[文档维护规范](docs/documentation-policy.md)，并同步更新对应文档。
+[开发与文档规范](docs/development.md)，并同步更新对应文档。
 
 ## 当前阶段
 
@@ -133,7 +133,7 @@ PostgreSQL 和 MinIO 可以使用现有服务器；database 与 bucket 必须使
 
 ## 评测数据
 
-项目本地包含一套澳洲披萨门店采购合成评测集，位于 `evaluation_data/`，并已被 Git 忽略。生成器、场景说明和校验方式见 [docs/evaluation-dataset.md](docs/evaluation-dataset.md)。
+项目本地包含一套澳洲披萨门店采购合成评测集，位于 `evaluation_data/`，并已被 Git 忽略。生成器、场景说明和校验方式见 [docs/ai.md](docs/ai.md)。
 
 评测命令会缓存 MinerU 解析结果，再计算结构化字段准确率、行项目 F1、
 证据覆盖率、延迟和估算成本：
@@ -152,12 +152,12 @@ Admin 可在 <http://127.0.0.1:5274/lab> 使用 Extraction Quality Lab 查看不
 实验只由 `app.cli.create_experiment` / `app.cli.run_experiment` 执行；Web API 不调用
 外部模型。推荐结论不会自动切换生产配置，只有 Admin 确认的 `model_error` 才有 Gold
 资格。详细命令与 5–8 分钟演示顺序见
-[API、UI 与本地运行](docs/operations/08-api-ui-and-local-run.md)。
+[开发与运行](docs/development.md)。
 
 模型选择不是写死的：先用同一份 MinerU 缓存分别评测 Max、Plus 或 Flash，
 再按 Schema 通过率、字段准确率、行项目 F1、证据覆盖率、延迟和成本选择。
 当前单文档结果只是链路冒烟测试，不作为生产模型结论。具体依据见
-[docs/interview/model-selection.md](docs/interview/model-selection.md)。
+[docs/ai.md](docs/ai.md)。
 
 ## 人工审核与对账
 
@@ -176,7 +176,7 @@ Reconciliation 是不可覆盖的规则计算快照；Case 只保存可变的人
 上传、通知、SLA/分析报表或生产部署能力。
 
 完整启动顺序、恢复和备份说明见
-[docs/operations/review-workflow.md](docs/operations/review-workflow.md)。
+[开发与运行](docs/development.md)。
 
 ## CI/CD 与容器演示
 
@@ -188,7 +188,7 @@ Reconciliation 是不可覆盖的规则计算快照；Case 只保存可变的人
 `v*` Tag 会在完整 CI、Compose Smoke 和镜像扫描通过后发布三个 GHCR 镜像及
 GitHub Release。该流程用于模拟企业交付，不代表已经部署到生产服务器。命令、
 回滚边界和仓库设置见
-[CI/CD、容器发布与回滚](docs/operations/20-ci-cd-and-release.md)。
+[开发与运行](docs/development.md)。
 
 ## 不连接外部服务学习业务规则
 
@@ -197,14 +197,13 @@ Invoice 与两张分批 Receive Notes 的候选匹配和一对多核对。该脚
 `.env`，不连接 PostgreSQL、MinIO、MinerU 或模型 API。
 
 断点位置和变量观察顺序见
-[PyCharm 断点调试业务流程](docs/tutorial/19-pycharm-debug-walkthrough.md)。
+[演示与源码导读](docs/demo.md)。
 
-## 面试材料
+## 演示与讲解
 
-- [项目故事](docs/interview/project-story.md)
-- [五分钟演示脚本](docs/interview/demo-script.md)
-- [架构与责任边界](docs/interview/architecture.md)
-- [模型选择记录](docs/interview/model-selection.md)
+- [五分钟演示与源码导读](docs/demo.md)
+- [架构与责任边界](docs/architecture.md)
+- [模型选择与评测边界](docs/ai.md)
 
 ## 简化工作台
 
