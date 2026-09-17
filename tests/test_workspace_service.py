@@ -61,12 +61,14 @@ def intake(*, task_id: str, duplicate: bool) -> IntakeResponse:
 
 
 def confirmation() -> ConfirmationView:
-    metric = lambda left, right, difference, status: MetricComparison(
-        invoice_value=left,
-        received_value=right,
-        difference=difference,
-        status=status,
-    )
+    def metric(left, right, difference, status):
+        return MetricComparison(
+            invoice_value=left,
+            received_value=right,
+            difference=difference,
+            status=status,
+        )
+
     return ConfirmationView(
         confirmation_id=uid(20),
         preview_id=uid(21),

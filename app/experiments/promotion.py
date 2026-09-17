@@ -1,7 +1,6 @@
 """Fail-closed comparison rules for baseline and candidate experiments."""
 
 from datetime import datetime
-from decimal import Decimal
 from uuid import uuid4
 
 from app.experiments.domain import (

@@ -1,11 +1,9 @@
 """机器 Draft 到人工批准 Version 的治理边界。"""
 
-from typing import Protocol
 
 from pydantic import ValidationError
 
 from app.domain.admin_users import AuthenticatedUser
-from app.domain.document_drafts import DraftBundle
 from app.domain.document_versions import (
     DocumentVersion,
     DocumentVersionStatus,
@@ -13,7 +11,6 @@ from app.domain.document_versions import (
 )
 from app.domain.documents import DocumentType, Invoice, ReceiveNote
 from app.infra.postgres_review_repository import (
-    ApprovedVersionImmutable,
     PostgresReviewRepository,
     ReviewVersionNotFound,
 )

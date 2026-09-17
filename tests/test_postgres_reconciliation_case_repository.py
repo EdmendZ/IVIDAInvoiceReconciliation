@@ -11,7 +11,6 @@ from sqlalchemy import (
     UniqueConstraint,
     create_engine,
     event,
-    select,
     update,
 )
 from sqlalchemy.exc import IntegrityError
