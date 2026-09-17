@@ -63,6 +63,8 @@ T13 追加验收：D04 production 环境在访问数据库或对象存储前拒�
 
 T14 追加验收：D08 Party 可保留 `name=null` 与有依据的 business_number/address，并完成 JSON 往返；D09 提示词明确禁止把通用单据标题当供应商名称，缺失名称输出 null；D10 ValidationService 对通用标题产生 `SUPPLIER_NAME_GENERIC` warning；D11 匹配与重复检测在名称为空时仍安全优先使用双方 ABN，缺少双方可靠身份时保持 unverified。
 
+T15 追加验收：D12 JSON 反序列化后的 DateTime 与原 ISO 字符串均能通过同一 UTC 进程起始时间校验；D13 只对已验证归属的记录停止其当前子孙进程和父进程，不按名称或端口误杀；D14 真实 start/stop/start 后四个本地组件均停止且可恢复，健康检查重新为 200。
+
 ## 4. 迁移与兼容验证
 
 1. 使用生产相同 PostgreSQL 主版本的独立测试库，从20260807_14迁移至15；保留旧表和记录。

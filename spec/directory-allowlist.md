@@ -35,7 +35,7 @@
 | `docs/ai.md` | T14 M |
 | `docs/architecture.md` | T03 M, T09 M, T14 M |
 | `docs/code-document-map.json` | T00 M, T12 M, T13 M |
-| `docs/development.md` | T09 M, T12 M, T13 M |
+| `docs/development.md` | T09 M, T12 M, T13 M, T15 M |
 | `docs/product.md` | T09 M, T12 M |
 | `docs/README.md` | T09 M |
 | `frontend/src/api/client.ts` | T07 M |
@@ -63,7 +63,7 @@
 | `README.md` | T09 M, T12 M, T13 M |
 | `run_local_demo.py` | T12 N |
 | `run_workspace_worker.py` | T04 N |
-| `scripts/local_demo_common.ps1` | T04 M |
+| `scripts/local_demo_common.ps1` | T04 M, T15 M |
 | `setup_demo_data.py` | T13 N |
 | `setup_dev_admin.py` | T12 N |
 | `start_local_demo.ps1` | T04 M |
@@ -71,7 +71,7 @@
 | `tests/fixtures/workspace_scenarios.json` | T09 N |
 | `tests/test_delivery_configuration.py` | T04 M |
 | `tests/test_demo_data_entrypoint.py` | T13 N |
-| `tests/test_dev_entrypoints.py` | T12 N |
+| `tests/test_dev_entrypoints.py` | T12 N, T15 M |
 | `tests/test_document_upload_service.py` | T05 M |
 | `tests/test_harness_guards.py` | T00 N |
 | `tests/test_normalization_provider.py` | T14 M |

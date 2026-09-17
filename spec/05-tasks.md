@@ -1,6 +1,6 @@
 # 05 任务、模块责任与文件权限
 
-机器权威清单是 [tasks.json](tasks.json)。下表定义工作内容和验收含义；两者不一致时停止。任务严格串行 T00→T14，每个任务单独新执行上下文；协调者负责验收和推进。
+机器权威清单是 [tasks.json](tasks.json)。下表定义工作内容和验收含义；两者不一致时停止。任务严格串行 T00→T15，每个任务单独新执行上下文；协调者负责验收和推进。
 
 任何任务只能读冻结 Spec＋本任务列出的输入实现＋直接依赖的已验收代码/报告；可只读检查现有源码寻找证据，但不得把旧聊天、旧计划作为新需求。整个 spec/ 对执行 Agent 只读。不自动读取 .env、个人配置、数据库备份或 evaluation_data 私有样本。
 
@@ -97,6 +97,12 @@ v1.0.3：允许修改现有 CI，将新 PostgreSQL 测试接入专用以 `_works
 根据真实英文 PDF 验收修正 Supplier 契约：`Party.name` 改为 nullable，ABN/地址有依据时允许保留部分 Party。结构化提示词明确通用单据标题不是供应商名称；缺少真实名称时输出 null，禁止编造。ValidationService 对既有或外部模型返回的通用标题产生 `SUPPLIER_NAME_GENERIC` warning，字段仍可人工编辑。
 
 匹配与重复发票身份继续优先使用双方 ABN；只有 ABN 不完整时才比较双方非空名称。前端类型同步 nullable，不新增页面、状态、路由、表、依赖或自动确认。验收使用固定 Fake 检查请求提示词和确定性规则；真实外部调用仅作为协调者验收证据，不写入自动测试。
+
+## T15：Windows 本地演示可靠停止
+
+修复 PowerShell 7 `ConvertFrom-Json` 把 ISO 时间自动转换为 DateTime 后，进程归属校验再次按本地时区解析导致的误判。时间比较必须同时接受 DateTime 和字符串，并按 UTC 比较。停止已验证归属的 Python 启动器时，必须先停止其当前子孙进程再停止父进程，避免 uv Python shim 留下孤儿 API/Worker；不得按进程名或端口批量终止其他项目。
+
+自动测试覆盖 JSON 往返后的时间归属判断；协调者用真实 start/stop/start 周期验证 8200/5274、Extraction Worker 和 Workspace Worker 均按归属停止并可恢复。不得新增第二套启动器、Docker 或服务管理依赖。
 
 ## 任务报告（每任务唯一输出）
 
