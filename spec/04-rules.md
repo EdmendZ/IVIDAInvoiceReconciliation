@@ -8,7 +8,7 @@
 
 normalize_identity 固定：Unicode NFKC → casefold → 仅保留 Unicode 字母和数字（str.isalnum）。结果空字符串表示缺失，不是可匹配身份。原字段不修改。
 
-供应商身份：双方 business_number 均非空时仅按规范化号码比较；否则双方规范化 name 非空且完全相同才算 equal；不同为 conflict、任一缺失为 unverified。ABN 存在但不同不能用同名覆盖。名称别名暂不支持；操作员可依据原件修正上传字段，上游记录需上游修正。
+供应商身份：`Party.name` 可为空；双方 business_number 均非空时仅按规范化号码比较；否则双方规范化 name 非空且完全相同才算 equal；不同为 conflict、任一缺失为 unverified。ABN 存在但不同不能用同名覆盖。名称别名暂不支持；操作员可依据原件修正上传字段，上游记录需上游修正。`TAX INVOICE`、`INVOICE`、`GOODS RECEIVED NOTE`、`RECEIVE NOTE` 等通用单据标题不是供应商名称；模型返回这些值时确定性校验产生 `SUPPLIER_NAME_GENERIC` warning，界面要求人工校正，但可靠 ABN 仍可用于身份比较。
 
 自动候选前置：receive_note、ready、同部署 scope、未 voided、未被其他发票正式占用、供应商 equal、币种 equal、双方日期存在且绝对间隔≤30日。日期之外候选不会自动预选；手动候选搜索可返回同店全部 ready 收货（分页 API 列表），选中时允许超过30天/缺日期但必须提供理由，主体/币种不允许豁免。
 

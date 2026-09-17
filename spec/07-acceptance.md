@@ -61,6 +61,8 @@ T12 追加验收：开发管理员入口能创建、重复运行时重置同一�
 
 T13 追加验收：D04 production 环境在访问数据库或对象存储前拒绝；D05 一次运行得到六份英文 PDF 和双方分别等待、自动一致、数量差异四类可见结果；D06 同一范围重复执行不增加 Task、Run、Draft、Workspace Document、Revision 或 Preview；D07 只复用现有用例/Worker，输出不含 Secret，文档明确 demo fixture 不代表真实抽取或 TapTouch 接入。
 
+T14 追加验收：D08 Party 可保留 `name=null` 与有依据的 business_number/address，并完成 JSON 往返；D09 提示词明确禁止把通用单据标题当供应商名称，缺失名称输出 null；D10 ValidationService 对通用标题产生 `SUPPLIER_NAME_GENERIC` warning；D11 匹配与重复检测在名称为空时仍安全优先使用双方 ABN，缺少双方可靠身份时保持 unverified。
+
 ## 4. 迁移与兼容验证
 
 1. 使用生产相同 PostgreSQL 主版本的独立测试库，从20260807_14迁移至15；保留旧表和记录。

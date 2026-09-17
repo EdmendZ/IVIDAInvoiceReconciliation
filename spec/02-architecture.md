@@ -48,7 +48,7 @@ frontend/src/workspace/DocumentPage.tsx
 
 ## 3. 通用类型约束
 
-ID 为 UUID 字符串；时刻为 UTC ISO-8601；金额和数量以十进制字符串返回，内部 Decimal；禁止 float 财务计算。JSON DTO `extra=forbid`。业务正文 `document` 使用现有 Invoice/ReceiveNote Schema，不改变原 Prompt 和模型输出契约。
+ID 为 UUID 字符串；时刻为 UTC ISO-8601；金额和数量以十进制字符串返回，内部 Decimal；禁止 float 财务计算。JSON DTO `extra=forbid`。业务正文 `document` 使用 Invoice/ReceiveNote Schema。`Party.name` 为 nullable；当 ABN 或地址有原文依据但名称缺失时保留部分 Party，禁止用单据标题伪造名称。
 
 `WorkspaceDocument`：
 

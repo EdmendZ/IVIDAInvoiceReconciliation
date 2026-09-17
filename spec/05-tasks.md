@@ -1,6 +1,6 @@
 # 05 任务、模块责任与文件权限
 
-机器权威清单是 [tasks.json](tasks.json)。下表定义工作内容和验收含义；两者不一致时停止。任务严格串行 T00→T11，每个任务单独新执行上下文；协调者负责验收和推进。
+机器权威清单是 [tasks.json](tasks.json)。下表定义工作内容和验收含义；两者不一致时停止。任务严格串行 T00→T14，每个任务单独新执行上下文；协调者负责验收和推进。
 
 任何任务只能读冻结 Spec＋本任务列出的输入实现＋直接依赖的已验收代码/报告；可只读检查现有源码寻找证据，但不得把旧聊天、旧计划作为新需求。整个 spec/ 对执行 Agent 只读。不自动读取 .env、个人配置、数据库备份或 evaluation_data 私有样本。
 
@@ -91,6 +91,12 @@ v1.0.3：允许修改现有 CI，将新 PostgreSQL 测试接入专用以 `_works
 固定数据为六份有效本地 PDF：Invoice 等待 Receive Note、Receive Note 等待 Invoice、自动关联且数量一致的一对、自动关联但数量有差异的一对。每个场景使用不同 supplier/PO/SKU，避免跨场景候选；币种 AUD。重复执行必须复用同一上传和 Draft，不新增文档、Run、Revision 或 Preview。脚本读取服务端 workspace tenant/store，不接受命令行范围；要求既有 `adminuser` 作为审计 actor，缺失时提示先运行 `setup_dev_admin.py`。
 
 脚本输出各场景的 document ID 和最终显示状态，不输出密码、Token、DSN 或其他 Secret。真实模型和 TapTouch 都不在本任务调用范围；文档必须明确该入口只演示工作台业务流程，不能用于宣称抽取准确率。
+
+## T14：真实抽取的部分供应商身份
+
+根据真实英文 PDF 验收修正 Supplier 契约：`Party.name` 改为 nullable，ABN/地址有依据时允许保留部分 Party。结构化提示词明确通用单据标题不是供应商名称；缺少真实名称时输出 null，禁止编造。ValidationService 对既有或外部模型返回的通用标题产生 `SUPPLIER_NAME_GENERIC` warning，字段仍可人工编辑。
+
+匹配与重复发票身份继续优先使用双方 ABN；只有 ABN 不完整时才比较双方非空名称。前端类型同步 nullable，不新增页面、状态、路由、表、依赖或自动确认。验收使用固定 Fake 检查请求提示词和确定性规则；真实外部调用仅作为协调者验收证据，不写入自动测试。
 
 ## 任务报告（每任务唯一输出）
 

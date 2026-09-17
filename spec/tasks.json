@@ -1,5 +1,5 @@
 {
-  "spec_version": "IR-SIMPLE-1.0.5",
+  "spec_version": "IR-SIMPLE-1.0.6",
   "execution": "strictly_sequential_fresh_sessions",
   "path_base": "repository_root",
   "deletes_allowed": false,
@@ -966,6 +966,97 @@
         "app/services/workspace_service.py",
         "app/workers/workspace_worker.py",
         "setup_dev_admin.py"
+      ],
+      "code_changes_allowed": true
+    },
+    {
+      "id": "T14",
+      "name": "Truthful partial supplier identity",
+      "depends_on": [
+        "T13"
+      ],
+      "modify": [
+        "app/domain/documents.py",
+        "app/infra/postgres_workspace_repository.py",
+        "app/resources/prompts/normalize_document_system.txt",
+        "app/services/validation_service.py",
+        "app/services/workspace_matching.py",
+        "docs/ai.md",
+        "frontend/src/workspace/workspaceTypes.ts",
+        "tests/test_normalization_provider.py",
+        "tests/test_validation_service.py",
+        "tests/test_workspace_matching.py"
+      ],
+      "create": [
+        ".harness/runs/T14/result.json"
+      ],
+      "provides": [
+        "nullable supplier name with retained evidenced ABN/address",
+        "generic document-title supplier warning",
+        "normalization instructions for truthful partial supplier identity"
+      ],
+      "consumes": [
+        "T13 accepted baseline",
+        "existing Party and ValidationService contracts",
+        "existing deterministic ABN-first workspace matching"
+      ],
+      "acceptance_ids": [
+        "D08",
+        "D09",
+        "D10",
+        "D11"
+      ],
+      "commands": [
+        [
+          "python",
+          "-m",
+          "pytest",
+          "-q",
+          "tests/test_normalization_provider.py",
+          "tests/test_validation_service.py",
+          "tests/test_workspace_matching.py"
+        ],
+        [
+          "npm",
+          "--prefix",
+          "frontend",
+          "test",
+          "--",
+          "--run"
+        ],
+        [
+          "python",
+          "tools/check_spec_contract.py",
+          "--spec-root",
+          "spec"
+        ],
+        [
+          "python",
+          "tools/check_documentation_sync.py",
+          "--base-ref",
+          "${TASK_BASE}"
+        ],
+        [
+          "git",
+          "diff",
+          "--check",
+          "${TASK_BASE}"
+        ]
+      ],
+      "status": "not_started",
+      "read_inputs": [
+        "spec/README.md",
+        "spec/02-architecture.md",
+        "spec/04-rules.md",
+        "spec/05-tasks.md",
+        "spec/07-acceptance.md",
+        "spec/tasks.json",
+        "app/domain/documents.py",
+        "app/infra/openai_normalization_provider.py",
+        "app/infra/postgres_workspace_repository.py",
+        "app/services/validation_service.py",
+        "app/services/workspace_matching.py",
+        "frontend/src/workspace/workspaceTypes.ts"
       ],
       "code_changes_allowed": true
     }
