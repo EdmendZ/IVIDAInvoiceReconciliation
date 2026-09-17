@@ -1148,6 +1148,7 @@
         "frontend/src/workspace/DocumentPage.tsx",
         "frontend/src/workspace/WorkspacePage.test.tsx",
         "frontend/src/workspace/WorkspacePage.tsx",
+        "frontend/src/workspace/workspacePresentation.test.ts",
         "frontend/src/workspace/workspaceTypes.ts",
         "tests/test_postgres_workspace_repository.py",
         "tests/test_workspace_contracts.py"

@@ -56,7 +56,7 @@
 | `frontend/src/workspace/workspaceClient.ts` | T07 N |
 | `frontend/src/workspace/WorkspacePage.test.tsx` | T08 N, T16 M |
 | `frontend/src/workspace/WorkspacePage.tsx` | T08 N, T16 M |
-| `frontend/src/workspace/workspacePresentation.test.ts` | T07 N |
+| `frontend/src/workspace/workspacePresentation.test.ts` | T07 N, T16 M |
 | `frontend/src/workspace/workspacePresentation.ts` | T07 N |
 | `frontend/src/workspace/workspaceTypes.ts` | T07 N, T14 M, T16 M |
 | `migrations/versions/20260916_15_workspace.py` | T03 N |
