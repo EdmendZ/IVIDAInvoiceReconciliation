@@ -1,5 +1,6 @@
 from datetime import UTC, datetime
 from pathlib import Path
+import subprocess
 
 import pytest
 from sqlalchemy import create_engine, func, select
@@ -74,3 +75,33 @@ def test_python_launcher_delegates_to_existing_powershell_entrypoint() -> None:
         "-File",
         str(root / "start_local_demo.ps1"),
     ]
+
+
+def test_powershell_ownership_survives_json_datetime_conversion() -> None:
+    root = Path(__file__).resolve().parents[1]
+    common = root / "scripts" / "local_demo_common.ps1"
+    script = f"""
+. '{common}'
+$root = '{root}'
+$start = (Get-Process -Id $PID).StartTime.ToUniversalTime().ToString('o')
+$record = [pscustomobject]@{{
+    pid = $PID
+    started_at = $start
+    command_signature = 'ivida-owned-marker'
+    project_root = $root
+}}
+$roundTrip = $record | ConvertTo-Json | ConvertFrom-Json
+if (-not (Test-IvidaOwnedProcess -Record $record -ProjectRoot $root)) {{ exit 2 }}
+if (-not (Test-IvidaOwnedProcess -Record $roundTrip -ProjectRoot $root)) {{ exit 3 }}
+Write-Output 'ivida-owned-marker'
+"""
+    completed = subprocess.run(
+        ["pwsh.exe", "-NoProfile", "-Command", script],
+        cwd=root,
+        check=False,
+        capture_output=True,
+        text=True,
+        timeout=20,
+    )
+    assert completed.returncode == 0, completed.stderr
+    assert "ivida-owned-marker" in completed.stdout
