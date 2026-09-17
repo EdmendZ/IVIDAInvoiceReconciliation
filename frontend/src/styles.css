@@ -896,6 +896,25 @@ button:disabled { cursor: not-allowed; opacity: .5; }
 .confirmation-sources p { color: #68766f; font-size: 12px; margin-bottom: 0; }
 .unverified-list { background: #fff5d8; border-radius: 8px; margin: 15px 0; padding: 13px; }
 .unverified-list ul { display: flex; flex-wrap: wrap; gap: 6px 20px; margin-bottom: 0; }
+.result-guidance { border: 1px solid; border-radius: 10px; margin: 15px 0; padding: 15px; }
+.result-guidance header { margin-bottom: 12px; }
+.result-guidance header strong { font-size: 15px; }
+.result-guidance header p { font-size: 12px; line-height: 1.5; margin: 4px 0 0; }
+.result-guidance-grid { display: grid; gap: 10px; grid-template-columns: repeat(auto-fit, minmax(230px, 1fr)); }
+.result-guidance article { background: #ffffffa6; border-radius: 8px; padding: 12px; }
+.result-guidance h4 { align-items: center; display: flex; font-size: 14px; gap: 8px; justify-content: space-between; margin: 0 0 9px; }
+.result-guidance h4 span { border-radius: 999px; font-size: 10px; padding: 3px 7px; }
+.result-guidance dl { display: grid; gap: 7px; margin: 0; }
+.result-guidance dl div { display: grid; gap: 2px; }
+.result-guidance dt, .guidance-summary b { font-size: 10px; letter-spacing: .06em; text-transform: uppercase; }
+.result-guidance dd { font-size: 12px; line-height: 1.45; margin: 0; }
+.unverified-guidance { background: #fff8e6; border-color: #e7c56c; color: #604b15; }
+.unverified-guidance h4 span { background: #f7df9a; color: #604b15; }
+.blocking-guidance { background: #fff0ed; border-color: #dc8f84; color: #7f2d23; }
+.blocking-guidance h4 span { background: #f4c0b8; color: #7f2d23; }
+.difference-guidance { background: #fff4df; border-color: #dfa94b; color: #6f4a0c; }
+.guidance-summary { display: grid; gap: 8px; }
+.guidance-summary span { display: grid; font-size: 12px; gap: 2px; line-height: 1.45; }
 .decision-panel textarea { border: 1px solid #bdc9c4; border-radius: 8px; padding: 11px; resize: vertical; width: 100%; }
 .confirmation-check { align-items: center; background: #eef7f3; border-radius: 8px; display: flex; font-weight: 600; gap: 9px; margin-top: 14px; padding: 13px; }
 .confirmation-check input { width: auto; }

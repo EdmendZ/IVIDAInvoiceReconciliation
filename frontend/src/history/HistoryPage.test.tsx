@@ -110,6 +110,9 @@ describe("HistoryPage", () => {
     expect(screen.getByText("Supplier confirmed a short delivery.")).toBeTruthy();
     expect(screen.getByText("actor-1")).toBeTruthy();
     expect(screen.getByText("已确认的未核验维度")).toBeTruthy();
+    expect(screen.getByText("确认时已知这些项目缺少可比较数据；它们没有被记为差异。")).toBeTruthy();
+    expect(screen.getByText("Receive Note 通常不记录 GST，缺少可与 Invoice 税额比较的数据。")).toBeTruthy();
+    expect(screen.getByText("已保存的实际差异")).toBeTruthy();
     expect(screen.getByRole("button", { name: "导出 CSV" })).toBeTruthy();
     expect(screen.queryByRole("button", { name: /认领|审批|修改/ })).toBeNull();
     fireEvent.click(screen.getByRole("button", { name: "返回历史记录" }));

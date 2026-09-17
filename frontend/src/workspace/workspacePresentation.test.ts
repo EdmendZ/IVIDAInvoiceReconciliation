@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { canConfirm, canEdit, canReopen, displayStatusLabel, metricStatusLabel, unverifiedSummary } from "./workspacePresentation";
+import { blockingExplanations, canConfirm, canEdit, canReopen, differenceExplanation, displayStatusLabel, metricStatusLabel, unverifiedExplanations, unverifiedSummary } from "./workspacePresentation";
 import type { DocumentDetail, PreviewResult } from "./workspaceTypes";
 
 const revision = {
@@ -36,6 +36,17 @@ describe("workspace presentation", () => {
     expect(displayStatusLabel("awaiting_confirmation")).toBe("待确认");
     expect(metricStatusLabel("within_tolerance")).toBe("容差内");
     expect(unverifiedSummary(result)).toBe("未核验：单价、金额、单据总额、税额");
+    expect(unverifiedExplanations(result)).toEqual(expect.arrayContaining([
+      expect.objectContaining({ key: "tax", title: "税额", reason: expect.stringContaining("GST"), action: expect.stringContaining("知情确认") }),
+      expect.objectContaining({ key: "amount", impact: expect.stringContaining("不能判断") }),
+    ]));
+  });
+
+  it("keeps unverified, blocking, and real differences as separate explanations", () => {
+    const blocked = { ...result, outcome: "blocked" as const, blocking_codes: ["UNIT_CONFLICT" as const] };
+    expect(blockingExplanations(blocked)[0]).toEqual(expect.objectContaining({ title: "单位不一致", action: expect.stringContaining("单位换算") }));
+    expect(differenceExplanation(blocked)).toBeNull();
+    expect(differenceExplanation({ ...result, outcome: "difference" })).toEqual(expect.objectContaining({ title: "发现实际差异", action: expect.stringContaining("处理说明") }));
   });
 
   it("only enables confirmation for a current selected invoice preview", () => {

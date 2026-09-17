@@ -4,7 +4,7 @@ import { useQuery } from "@tanstack/react-query";
 import { label } from "../i18n";
 import { exportConfirmation, getConfirmation, listConfirmations } from "../workspace/workspaceClient";
 import type { PreviewOutcome } from "../workspace/workspaceTypes";
-import { metricStatusLabel, unverifiedSummary } from "../workspace/workspacePresentation";
+import { differenceExplanation, metricStatusLabel, unverifiedExplanations, unverifiedSummary } from "../workspace/workspacePresentation";
 
 type HistoryPageProps = {
   confirmationId?: string;
@@ -24,6 +24,8 @@ function SnapshotDetail({ confirmationId, onNavigate }: Required<HistoryPageProp
 
   const confirmation = detail.data;
   const result = confirmation.result_snapshot;
+  const unverifiedGuidance = unverifiedExplanations(result);
+  const differenceGuidance = differenceExplanation(result);
   return (
     <section className="page history-page">
       <div className="page-heading">
@@ -43,7 +45,8 @@ function SnapshotDetail({ confirmationId, onNavigate }: Required<HistoryPageProp
 
       <section className="workspace-panel">
         <div className="workspace-panel-heading"><div><span className="eyebrow">当时保存的结果</span><h3>{label(result.outcome)}</h3><p>{unverifiedSummary(result)}</p></div></div>
-        <div className="unverified-list"><strong>已确认的未核验维度</strong><ul>{confirmation.acknowledged_unverified_dimensions.map((dimension) => <li key={dimension}>{label(dimension)}</li>)}</ul></div>
+        {unverifiedGuidance.length ? <section aria-label="已确认的未核验维度" className="result-guidance unverified-guidance"><header><strong>已确认的未核验维度</strong><p>确认时已知这些项目缺少可比较数据；它们没有被记为差异。</p></header><div className="result-guidance-grid">{unverifiedGuidance.map((item) => <article key={item.key}><h4>{item.title}<span>未核验</span></h4><dl><div><dt>原因</dt><dd>{item.reason}</dd></div><div><dt>影响</dt><dd>{item.impact}</dd></div><div><dt>处理</dt><dd>{item.action}</dd></div></dl></article>)}</div></section> : null}
+        {differenceGuidance && <section aria-label="已保存的差异处理" className="result-guidance difference-guidance"><header><strong>已保存的实际差异</strong><p>{differenceGuidance.impact}</p></header><div className="guidance-summary"><span><b>原因</b>{differenceGuidance.reason}</span><span><b>处理</b>确认时要求填写处理说明，原差异继续保留在本快照中。</span></div></section>}
         <div className="workspace-metrics"><div><strong>{result.summary.total_lines}</strong><span>商品行</span></div><div><strong>{result.summary.different_lines}</strong><span>差异行</span></div><div><strong>{result.summary.unverified_lines}</strong><span>未核验行</span></div></div>
         <div className="table-scroll"><table className="result-table"><thead><tr><th>商品</th><th>数量</th><th>单价</th><th>金额</th><th>行状态</th></tr></thead><tbody>{result.lines.map((line) => <tr key={line.match_key}><td><strong>{line.sku || line.description}</strong>{line.sku && <small>{line.description}</small>}</td><td>{line.quantity.invoice_value ?? "—"} / {line.quantity.received_value ?? "—"}<small>{metricStatusLabel(line.quantity.status)}</small></td><td>{line.price.invoice_value ?? "—"} / {line.price.received_value ?? "—"}<small>{metricStatusLabel(line.price.status)}</small></td><td>{line.amount.invoice_value ?? "—"} / {line.amount.received_value ?? "—"}<small>{metricStatusLabel(line.amount.status)}</small></td><td>{label(line.status)}</td></tr>)}</tbody></table></div>
       </section>

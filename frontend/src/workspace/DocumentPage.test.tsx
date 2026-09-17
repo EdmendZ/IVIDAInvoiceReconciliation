@@ -188,7 +188,10 @@ describe("DocumentPage", () => {
 
     expect(await screen.findByText("<script>alert('evidence')</script> English evidence")).toBeTruthy();
     expect(document.querySelector("script")).toBeNull();
-    expect(screen.getByText("未核验维度")).toBeTruthy();
+    expect(screen.getByText("未核验：允许知情确认")).toBeTruthy();
+    expect(screen.getByText("这些项目缺少可比较数据，并不表示已经发现差异。")).toBeTruthy();
+    expect(screen.getByText("Receive Note 通常不记录 GST，缺少可与 Invoice 税额比较的数据。")).toBeTruthy();
+    expect(screen.getByText("发现实际差异")).toBeTruthy();
     expect(screen.getByText("单据总额")).toBeTruthy();
     expect(screen.getByRole("heading", { name: "发现 1 行差异" })).toBeTruthy();
     expect(screen.queryByRole("button", { name: "高级 JSON 编辑" })).toBeNull();
@@ -208,6 +211,21 @@ describe("DocumentPage", () => {
     expect(sent.resolution).toBe("resolved_with_note");
     expect(sent.acknowledged_sources).toBe(true);
     expect(sent.acknowledged_unverified_dimensions).toEqual(["price", "amount", "document_total", "tax"]);
+  });
+
+  it("explains blocking issues and keeps confirmation disabled", async () => {
+    const blockedResult: PreviewResult = { ...result, outcome: "blocked", blocking_codes: ["UNIT_CONFLICT"] };
+    const blocked = invoiceDetail({ preview: { ...invoiceDetail().preview!, result: blockedResult } });
+    vi.spyOn(globalThis, "fetch").mockImplementation((input) => {
+      if (String(input) === "/api/workspace/documents/invoice-1") return response(blocked);
+      throw new Error(`Unexpected request: ${String(input)}`);
+    });
+    render(<DocumentPage documentId="invoice-1" onNavigate={vi.fn()} />);
+
+    expect(await screen.findByText("必须修正后才能确认")).toBeTruthy();
+    expect(screen.getByText("Invoice 与 Receive Note 的同一商品使用了不兼容的单位。")).toBeTruthy();
+    expect(screen.getByText("校正提取字段，或先完成可靠的单位换算。")).toBeTruthy();
+    expect((screen.getByRole("button", { name: "确认核对结果" }) as HTMLButtonElement).disabled).toBe(true);
   });
 
   it("refreshes after a 409 while retaining unsaved fields, selection and notes without replay", async () => {

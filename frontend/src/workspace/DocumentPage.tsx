@@ -17,7 +17,7 @@ import {
   selectReceivings,
   voidDocument,
 } from "./workspaceClient";
-import { canConfirm, canEdit, canReopen, displayStatusLabel, metricStatusLabel, unverifiedSummary } from "./workspacePresentation";
+import { blockingExplanations, canConfirm, canEdit, canReopen, differenceExplanation, displayStatusLabel, metricStatusLabel, unverifiedExplanations, unverifiedSummary } from "./workspacePresentation";
 import type {
   ActionView,
   Candidate,
@@ -344,6 +344,9 @@ export function DocumentPage({
   const confirmable = detail.document.source_kind === "upload" && canConfirm(detail) && !editorDirty && !selectionDirty;
   const preview = detail.preview?.result;
   const outcome = preview?.outcome;
+  const blockerGuidance = preview ? blockingExplanations(preview) : [];
+  const differenceGuidance = preview ? differenceExplanation(preview) : null;
+  const unverifiedGuidance = preview ? unverifiedExplanations(preview) : [];
   const completed = detail.document.display_status === "completed";
   const mutableInvoice = isInvoice && detail.document.source_kind === "upload" && !completed && detail.document.processing_status === "ready" && detail.review_status !== "completed";
   const canVoid = detail.document.source_kind === "upload" && !completed && detail.document.processing_status !== "voided";
@@ -584,7 +587,7 @@ export function DocumentPage({
       {isInvoice && detail.preview && (
         <section className="workspace-panel preview-panel">
           <div className="workspace-panel-heading preview-heading"><div><span className="eyebrow">核对预览</span><h3>{label(detail.preview.result.outcome)}</h3><p>{label(detail.preview.result.coverage)} · {unverifiedSummary(detail.preview.result)}</p></div><span className={`result-decision ${outcome === "consistent" ? "clear" : "review"}`}>{label(outcome ?? "")}</span></div>
-          {preview?.blocking_codes.length ? <div className="error-banner">阻断：{preview.blocking_codes.map(label).join("、")}</div> : null}
+          {blockerGuidance.length ? <section aria-label="必须修正的问题" className="result-guidance blocking-guidance"><header><strong>必须修正后才能确认</strong><p>以下问题会让当前关联或比较结果不安全。</p></header><div className="result-guidance-grid">{blockerGuidance.map((item) => <article key={item.key}><h4>{item.title}<span>阻断</span></h4><dl><div><dt>原因</dt><dd>{item.reason}</dd></div><div><dt>影响</dt><dd>{item.impact}</dd></div><div><dt>处理</dt><dd>{item.action}</dd></div></dl></article>)}</div></section> : null}
           <div className="workspace-metrics"><div><strong>{preview?.summary.total_lines}</strong><span>商品行</span></div><div><strong>{preview?.summary.different_lines}</strong><span>差异行</span></div><div><strong>{preview?.summary.unverified_lines}</strong><span>未核验行</span></div></div>
           <div className="table-scroll"><table className="result-table"><thead><tr><th>商品</th><th>数量</th><th>单价</th><th>金额</th><th>行状态</th></tr></thead><tbody>{preview?.lines.map((line) => <tr key={line.match_key}><td><button className="line-source-button" disabled={!line.receive_lines.length} onClick={() => { const sourceId = line.receive_lines[0]?.document_id; if (sourceId) setActiveReceivingId(sourceId); }} title={line.receive_lines.length ? "查看对应收货单原件" : "该行没有对应收货记录"} type="button"><strong>{line.sku || line.description}</strong>{line.sku && <small>{line.description}</small>}</button></td><td>{line.quantity.invoice_value ?? "—"} / {line.quantity.received_value ?? "—"}<small>{metricStatusLabel(line.quantity.status)}</small></td><td>{line.price.invoice_value ?? "—"} / {line.price.received_value ?? "—"}<small>{metricStatusLabel(line.price.status)}</small></td><td>{line.amount.invoice_value ?? "—"} / {line.amount.received_value ?? "—"}<small>{metricStatusLabel(line.amount.status)}</small></td><td>{label(line.status)}</td></tr>)}</tbody></table></div>
         </section>
@@ -597,7 +600,8 @@ export function DocumentPage({
             {detail.current_revision && <article><h4>发票字段</h4><dl>{payloadSummary(detail.current_revision.payload).map(([name, value]) => <div key={name}><dt>{name}</dt><dd>{value}</dd></div>)}</dl><p>{detail.current_revision.payload.items.length} 个商品行</p></article>}
             {selectedRevisions.map((revision) => <article key={revision.document_id}><h4>所选收货记录</h4><dl>{payloadSummary(revision.payload).map(([name, value]) => <div key={name}><dt>{name}</dt><dd>{value}</dd></div>)}</dl><p>{revision.payload.items.length} 个商品行 · {revision.evidence.length} 条证据</p></article>)}
           </div>
-          {preview?.unverified_dimensions.length ? <div className="unverified-list"><strong>未核验维度</strong><ul>{preview.unverified_dimensions.map((dimension) => <li key={dimension}>{label(dimension)}</li>)}</ul></div> : null}
+          {unverifiedGuidance.length ? <section aria-label="未核验说明" className="result-guidance unverified-guidance"><header><strong>未核验：允许知情确认</strong><p>这些项目缺少可比较数据，并不表示已经发现差异。</p></header><div className="result-guidance-grid">{unverifiedGuidance.map((item) => <article key={item.key}><h4>{item.title}<span>未核验</span></h4><dl><div><dt>原因</dt><dd>{item.reason}</dd></div><div><dt>影响</dt><dd>{item.impact}</dd></div><div><dt>处理</dt><dd>{item.action}</dd></div></dl></article>)}</div></section> : null}
+          {differenceGuidance && <section aria-label="实际差异说明" className="result-guidance difference-guidance"><header><strong>{differenceGuidance.title}</strong><p>{differenceGuidance.impact}</p></header><div className="guidance-summary"><span><b>原因</b>{differenceGuidance.reason}</span><span><b>处理</b>{differenceGuidance.action}</span></div></section>}
           {outcome === "difference" && <label>差异处理说明<textarea maxLength={2000} onChange={(event) => setResolutionNote(event.target.value)} placeholder="说明如何处理；原差异仍会保留在正式快照中" rows={3} value={resolutionNote} /></label>}
           <label className="confirmation-check"><input checked={acknowledged} onChange={(event) => setAcknowledged(event.target.checked)} type="checkbox" />我已核对发票、所选收货记录与未核验项目</label>
           {(editorDirty || selectionDirty) && <div className="info-banner">存在未保存的字段或关联选择。请先显式保存并等待新预览。</div>}
