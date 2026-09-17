@@ -2,6 +2,14 @@
 
 ## 一键启动
 
+### 直接运行 Python 文件
+
+在 PyCharm 中右键根目录的 `run_local_demo.py` 并运行。该入口只调用已经验收的
+`start_local_demo.ps1`，因此端口检查、已有进程复用、日志、健康检查和浏览器打开
+行为完全一致。
+
+### PowerShell
+
 在 PowerShell 中：
 
 ```powershell
@@ -103,6 +111,12 @@ Set-Location E:\ZephyrLLM\Projects\IVIDAInvoiceReconciliation
 ```
 
 命令会安全读取密码，不应把明文密码提交到 `.env`、SQL 文件或文档。
+
+本机开发也可以直接运行根目录的 `setup_dev_admin.py`。默认用户名为 `adminuser`；
+脚本会创建账号，或在账号已存在时重置密码、恢复 Admin/active 状态并撤销旧 Session。
+临时强密码只在本次控制台输出一次，再次运行会再次轮换。设置
+`IVIDA_DEV_ADMIN_USERNAME` 可以改开发用户名。`APP_ENV=prod` 或 `production` 时脚本
+拒绝执行；生产账号仍必须走正式的安全管理流程。
 
 ## 环境变量分组
 

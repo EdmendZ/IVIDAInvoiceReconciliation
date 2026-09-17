@@ -33,6 +33,11 @@ IVIDA 发票（Invoice）与收货单（Receive Note）比对原型。该项目�
 
 ### 推荐：一键启动本机演示
 
+在 PyCharm 或其他 IDE 中直接运行根目录的 `run_local_demo.py`。它复用下方已经验收的
+PowerShell 启动器，不维护第二套启动流程。
+
+也可以在 PowerShell 中运行：
+
 ```powershell
 cd E:\ZephyrLLM\Projects\IVIDAInvoiceReconciliation
 .\start_local_demo.ps1
@@ -49,6 +54,10 @@ cd E:\ZephyrLLM\Projects\IVIDAInvoiceReconciliation
 ```
 
 停止脚本只处理启动器记录且可验证属于本项目的进程，不会按端口盲目结束其他应用。
+
+开发阶段需要快速创建或重置管理员时，直接运行根目录的 `setup_dev_admin.py`。脚本
+默认处理 `adminuser`，每次生成新的临时强密码、恢复 Admin 权限并注销旧 Session；
+生产环境会拒绝运行。
 
 ### 分别启动组件
 

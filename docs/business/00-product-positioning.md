@@ -31,6 +31,18 @@ IVIDA/Taptouch 的产品场景是本项目的需求来源；Zeemart 只用于参
 生产 API。接入真实 API 时，应在适配器层完成字段转换，而不是改变内部
 `Invoice`、`ReceiveNote` 和对账规则。
 
+## 外部 invoice-processor 仓库的参考边界
+
+外部 MatchFlow/invoice-processor 只用于参考两类表达：列表的搜索、筛选和紧凑状态信息，
+以及详情页集中呈现原件、抽取字段、匹配结果和差异；其
+Controller/Application/Repository/Infrastructure 分层也用于核对本项目现有分层方向。
+当前工作台和详情页已经覆盖这些信息结构，因此不为参考仓库重构架构。
+
+不采用该仓库的 PO 业务对象、手动 Start Match、前端模拟进度、三字段百分比置信度、
+缺失值补零、localStorage JWT、同步阻塞 OCR 上传和硬编码 Dashboard 指标。本项目继续
+使用 Invoice 与 Receive Note 任意顺序到达、后台自动处理、行级保守比对、HttpOnly
+Session 和一次人工确认。
+
 ## 明确不做什么
 
 - 不在本项目重新实现完整采购订单（PO）系统；PO 号只是可选匹配信号。

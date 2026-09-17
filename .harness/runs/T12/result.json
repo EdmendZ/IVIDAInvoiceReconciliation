@@ -1,0 +1,112 @@
+{
+  "task_id": "T12",
+  "status": "passed",
+  "base_commit": "a4ca09b5893bfd803f13249ed76ce69fcc645ef4",
+  "candidate_commit": null,
+  "spec_version": "IR-SIMPLE-1.0.4",
+  "spec_sha256": "930357586a3871dfd9cc27cf341d6f33977cc3e21cd47fec7648fbdddbad0fbb",
+  "changed_files": [
+    ".harness/runs/T12/result.json",
+    "README.md",
+    "docs/business/00-product-positioning.md",
+    "docs/code-document-map.json",
+    "docs/operations/08-api-ui-and-local-run.md",
+    "run_local_demo.py",
+    "setup_dev_admin.py",
+    "tests/test_dev_entrypoints.py"
+  ],
+  "commands": [
+    {
+      "argv": [
+        ".venv/Scripts/python.exe",
+        "-m",
+        "pytest",
+        "-q",
+        "tests/test_dev_entrypoints.py"
+      ],
+      "exit_code": 0,
+      "captured_log_sha256": "ebe84d960920387b50d8cb31d9331e72a7130478a5c6dcbe34d900f6832ac3c2",
+      "results": {
+        "passed": 3
+      }
+    },
+    {
+      "argv": [
+        "uv",
+        "run",
+        "ruff",
+        "check",
+        "setup_dev_admin.py",
+        "run_local_demo.py",
+        "tests/test_dev_entrypoints.py"
+      ],
+      "exit_code": 0,
+      "captured_log_sha256": "881513cd027e0334026cfcbad052e34fecb3f2c1fef5ab000c86973bc0196cd7"
+    },
+    {
+      "argv": [
+        ".venv/Scripts/python.exe",
+        "-m",
+        "pytest",
+        "-q"
+      ],
+      "exit_code": 0,
+      "captured_log_sha256": "1debc8f5546cd2ba0247dcbb8fd66eca548415cc0e80006fc03dc780f0d07091"
+    },
+    {
+      "argv": [
+        ".venv/Scripts/python.exe",
+        "tools/check_spec_contract.py",
+        "--spec-root",
+        "spec"
+      ],
+      "exit_code": 0,
+      "captured_log_sha256": "12796ad0f9ab880283fc8c0d18f414011a65f0b9337b5f8865665111c341ec6b"
+    },
+    {
+      "argv": [
+        ".venv/Scripts/python.exe",
+        "tools/check_documentation_sync.py",
+        "--base-ref",
+        "a4ca09b5893bfd803f13249ed76ce69fcc645ef4"
+      ],
+      "exit_code": 0,
+      "captured_log_sha256": "42c66f4c7f2189b54a1c24c93d2c358be99c5606bff78c6601d0005b0ea2a67a"
+    },
+    {
+      "argv": [
+        ".venv/Scripts/python.exe",
+        "tools/check_task_scope.py",
+        "--task",
+        "T12",
+        "--base",
+        "a4ca09b5893bfd803f13249ed76ce69fcc645ef4",
+        "--spec-root",
+        "spec",
+        "--evidence",
+        ".git/ir-harness/freeze.json"
+      ],
+      "exit_code": 0,
+      "captured_log_sha256": "d5d6dec6ae2a7a3157ceb7cf95ddf82dd5cceb4fb0d838956fd39dff7952b914"
+    },
+    {
+      "argv": [
+        "git",
+        "diff",
+        "--check",
+        "a4ca09b5893bfd803f13249ed76ce69fcc645ef4"
+      ],
+      "exit_code": 0,
+      "captured_log_sha256": "708d5f99fb11b4f230e8de77a4fbcefa95c7f0134f44aa3a981767ff87364c46"
+    }
+  ],
+  "acceptance_ids": [
+    "D01",
+    "D02",
+    "D03"
+  ],
+  "known_limits": [
+    "The Python launcher delegates to the accepted Windows PowerShell launcher; no second process manager was introduced.",
+    "The live development database credential was not rotated during automated verification; create/reset behavior was verified against an isolated in-memory database."
+  ]
+}
