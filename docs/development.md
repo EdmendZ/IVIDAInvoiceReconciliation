@@ -29,6 +29,24 @@ WORKSPACE_POLL_SECONDS=3
 .\.venv\Scripts\python.exe -m app.cli.create_admin --username reviewer --role reviewer
 ```
 
+需要固定工作台演示状态时，先创建 `adminuser`，确认 PostgreSQL、MinIO 及
+`WORKSPACE_ENABLED=true` 已配置，再在 IDE 中运行 `setup_demo_data.py`，或执行：
+
+```powershell
+.\.venv\Scripts\python.exe setup_demo_data.py
+```
+
+脚本从服务端 `WORKSPACE_TENANT_ID` / `WORKSPACE_STORE_ID` 读取范围，不接受命令行门店
+参数。它幂等上传六份有效英文 PDF，并通过既有 WorkspaceService、PostgreSQL Repository
+和 Workspace Worker 形成四类可见结果：Invoice 等待 Receive Note、Receive Note 等待
+Invoice、自动关联且数量一致、自动关联但数量有差异。重复执行复用原 Task、Run、Draft、
+工作台单据、Revision 和 Preview。若缺少 `adminuser`，脚本会提示先运行
+`setup_dev_admin.py`；production 环境会在访问数据库或对象存储前拒绝执行。
+
+这些固定 Draft 明确标记为 demo fixture，并绕过 MinerU、真实模型和 TapTouch。该入口只
+演示工作台业务流程，不能用于宣称抽取准确率或真实 TapTouch 生产接入。标准输出仅包含
+每个场景的 document ID、显示状态和预览结果，不包含密码、Token、DSN 或其他 Secret。
+
 在 IDE 中运行 `run_local_demo.py`，或执行 `start_local_demo.ps1`。启动器复用已存在的
 本项目进程，启动 API、Extraction Worker、Workspace Worker 和前端，写日志到
 `logs/local-demo/`，健康检查后打开 <http://127.0.0.1:5274>。

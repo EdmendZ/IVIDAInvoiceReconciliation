@@ -124,6 +124,7 @@
         "run_workspace_worker.py",
         "run_local_demo.py",
         "setup_dev_admin.py",
+        "setup_demo_data.py",
         "start_local_demo.ps1",
         "stop_local_demo.ps1",
         ".env.example"

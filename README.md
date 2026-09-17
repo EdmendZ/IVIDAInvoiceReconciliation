@@ -61,6 +61,13 @@ cd E:\ZephyrLLM\Projects\IVIDAInvoiceReconciliation
 默认处理 `adminuser`，每次生成新的临时强密码、恢复 Admin 权限并注销旧 Session；
 生产环境会拒绝运行。
 
+创建管理员并配置工作台范围后，可运行根目录的 `setup_demo_data.py`。该脚本在非生产
+环境幂等创建六份英文 PDF，展示 Invoice/Receive Note 分别等待、自动一致和数量差异
+四类工作台状态。它复用正式上传用例、PostgreSQL Repository 和 Workspace Worker，
+但会为这些固定文件写入明确标记的 demo fixture Draft，绕过 MinerU 和结构化模型。
+这些数据只用于体验已验收的工作台流程，不代表真实抽取准确率，也不代表已接入真实
+TapTouch。脚本只输出场景 document ID 和显示状态，不输出密码、Token 或连接配置。
+
 ### 分别启动组件
 
 ```powershell
