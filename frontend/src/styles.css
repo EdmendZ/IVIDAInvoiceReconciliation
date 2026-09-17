@@ -839,16 +839,35 @@ button:disabled { cursor: not-allowed; opacity: .5; }
 .result-summary-panel.blocked, .result-summary-panel.failed { background: linear-gradient(135deg, #fff7f5, #fde9e5); }
 .result-summary-action { background: #0f705d; border: 1px solid #0f705d; border-radius: 8px; color: white; flex: 0 0 auto; font-weight: 800; padding: 10px 16px; text-decoration: none; }
 .result-summary-action:hover { background: #0b5d4d; }
-.workspace-detail-grid { display: grid; gap: 18px; grid-template-columns: minmax(300px, .85fr) minmax(580px, 1.65fr); }
+.workspace-source-review { display: grid; gap: 18px; }
+.workspace-source-review.single { grid-template-columns: minmax(300px, .85fr) minmax(580px, 1.65fr); }
+.workspace-source-review.paired { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+.workspace-source-review.paired .document-editor-panel { grid-column: 1 / -1; }
 .workspace-panel { background: white; border: 1px solid #dce4e0; border-radius: 13px; margin-top: 18px; min-width: 0; padding: 21px; }
 .workspace-panel-heading { align-items: center; display: flex; gap: 16px; justify-content: space-between; margin-bottom: 16px; }
 .workspace-panel-heading h3 { font-family: Georgia, serif; font-size: 25px; margin: 3px 0; }
 .workspace-panel-heading p { color: #68766f; font-size: 13px; margin: 4px 0 0; }
-.source-document-panel { margin-top: 0; }
+.source-document-panel, .receiving-source-panel { margin-top: 0; }
+.source-document-title { display: block; font-family: Georgia, serif; font-size: 25px; margin-top: 3px; }
 .document-editor-panel { margin-top: 0; padding: 0; overflow: hidden; }
 .document-editor-panel > .workspace-panel-heading { padding: 21px 21px 0; }
+.document-editor-panel > summary { cursor: pointer; list-style: none; }
+.document-editor-panel > summary::-webkit-details-marker { display: none; }
+.document-editor-panel > summary::after { color: #0f705d; content: "展开"; font-size: 12px; font-weight: 800; }
+.document-editor-panel[open] > summary::after { content: "收起"; }
 .workspace-source-frame { border: 1px solid #d8e1dd; border-radius: 8px; height: 540px; width: 100%; }
-.workspace-source-image { border: 1px solid #d8e1dd; border-radius: 8px; display: block; height: auto; max-width: 100%; }
+.workspace-source-image { border: 1px solid #d8e1dd; border-radius: 8px; display: block; max-height: 540px; object-fit: contain; width: 100%; }
+.receiving-source-heading { align-items: flex-start; flex-wrap: wrap; }
+.receiving-source-tabs { background: #e8efec; border-radius: 8px; display: flex; flex-wrap: wrap; gap: 4px; padding: 4px; }
+.receiving-source-tabs button { background: transparent; border-color: transparent; font-size: 11px; padding: 6px 9px; }
+.receiving-source-tabs button.active { background: #fff; box-shadow: 0 2px 8px #173d3220; color: #0f6655; font-weight: 800; }
+.source-quick-summary { color: #68766f; display: flex; font-size: 12px; gap: 18px; margin-top: 12px; }
+.related-invoice-list { display: grid; gap: 9px; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); }
+.related-invoice-list button { display: grid; gap: 5px; text-align: left; }
+.related-invoice-list small { color: #68766f; }
+.line-source-button { background: transparent; border: 0; display: grid; gap: 3px; padding: 0; text-align: left; width: 100%; }
+.line-source-button:not(:disabled):hover strong { color: #0f705d; text-decoration: underline; }
+.line-source-button:disabled { color: inherit; cursor: default; opacity: 1; }
 .evidence-list { display: grid; gap: 9px; margin-top: 15px; max-height: 360px; overflow-y: auto; }
 .workspace-save-row { align-items: end; border-top: 1px solid #e3e9e6; display: grid; gap: 12px; grid-template-columns: 1fr auto; padding: 16px; }
 .workspace-save-row input, .manual-receiving-search input, .decision-panel input, .document-maintenance-panel input { min-width: 0; width: 100%; }
@@ -915,7 +934,8 @@ button:disabled { cursor: not-allowed; opacity: .5; }
   .case-admin-decision-actions { justify-content: flex-start; }
   .lab-selectors, .lab-run-grid { grid-template-columns: 1fr; }
   .lab-feedback-card { align-items: stretch; grid-template-columns: 1fr 1fr; }
-  .workspace-intake-card, .workspace-detail-grid { grid-template-columns: 1fr; }
+  .workspace-intake-card, .workspace-source-review.single, .workspace-source-review.paired { grid-template-columns: 1fr; }
+  .workspace-source-review.paired .document-editor-panel { grid-column: auto; }
   .workspace-toolbar { align-items: stretch; flex-direction: column; }
   .workspace-filters { width: 100%; }
   .workspace-document-row { grid-template-columns: 70px minmax(200px, 1fr) auto; }

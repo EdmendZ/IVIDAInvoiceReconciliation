@@ -419,6 +419,8 @@ class DocumentDetail(WorkspaceDTO):
     current_revision: RevisionView | None = None
     candidates: list[Candidate] = Field(default_factory=list)
     selected_receivings: list[RevisionView] = Field(default_factory=list)
+    selected_receiving_source_ids: UniqueIDs = Field(default_factory=list)
+    related_invoices: list[DocumentSummary] = Field(default_factory=list)
     preview: PreviewView | None = None
     preview_stale: bool
     confirmation: ConfirmationView | None = None

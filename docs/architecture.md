@@ -38,6 +38,11 @@ MinIO 保存原件与解析产物。Worker 可独立重启，通过租约、fenc
 工作台使用独立 `ws_` 表，不改写旧批准版本和旧核对快照。确认、重开、作废和来源
 变化都留下追加式 Action。预览可以失效和重算，Confirmation 不可覆盖。
 
+双原件审查不新增关系表或文件接口。Invoice 仍是核对聚合根；详情读取所选收货修订与
+可用上传原件 ID，Receive Note 详情从同 scope 当前选择反向投影关联发票。前端继续逐个
+调用受授权的 `/documents/{id}/source`，多张收货只加载当前标签，避免复制文件或暴露
+对象存储地址。自动跳转只使用该读取投影，不改变 provisional selection 或正式 claim。
+
 ## 接口与权限
 
 日常工作台使用 `/api/workspace`；旧上传、审核、核对和 Case 接口在工作台启用后只读。

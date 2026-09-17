@@ -221,6 +221,8 @@ export type DocumentDetail = {
   current_revision: RevisionView | null;
   candidates: Candidate[];
   selected_receivings: RevisionView[];
+  selected_receiving_source_ids: string[];
+  related_invoices: DocumentSummary[];
   preview: PreviewView | null;
   preview_stale: boolean;
   confirmation: ConfirmationView | null;

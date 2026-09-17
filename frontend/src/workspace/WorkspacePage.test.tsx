@@ -76,7 +76,7 @@ describe("WorkspacePage", () => {
     const fileInput = screen.getByLabelText(/上传单据/) as HTMLInputElement;
     fireEvent.change(fileInput, { target: { files: [new File(["image"], "receiving.png", { type: "image/png" })] } });
 
-    await waitFor(() => expect(navigate).toHaveBeenCalledWith("/documents/rn-1"));
+    await waitFor(() => expect(navigate).toHaveBeenCalledWith("/documents/rn-1?uploaded=1"));
     expect(uploadedForm).not.toBeNull();
     expect((uploadedForm as unknown as FormData).get("document_type")).toBe("receive_note");
     const uploadCall = fetchMock.mock.calls.find(([input, init]) => String(input) === "/api/workspace/documents" && init?.method === "POST");

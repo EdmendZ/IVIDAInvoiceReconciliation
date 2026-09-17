@@ -23,6 +23,7 @@ function detail(overrides: Partial<DocumentDetail> = {}): DocumentDetail {
       source_changed: false, updated_at: "2026-09-16T00:00:00Z", error_code: null },
     review_status: "open", match_status: "selected", selection_origin: "automatic", selection_note: null,
     current_revision: revision, candidates: [], selected_receivings: [],
+    selected_receiving_source_ids: [], related_invoices: [],
     preview: { preview_id: "preview-1", input_revision_ids: ["rev-1"], scope_generation: 1,
       rule_version: "ir-simple-rules-1", tolerances: { quantity: "0", unit_price: "0.01", amount: "0.02" },
       input_sha256: "hash", result, created_at: "2026-09-16T00:00:00Z" }, preview_stale: false,

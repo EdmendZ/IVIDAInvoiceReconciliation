@@ -115,6 +115,30 @@ def test_query_defaults_do_not_share_mutable_lists():
     assert second.model_dump(mode="json") == dict(page=1, page_size=20, type="invoice", status=[], q=None)
 
 
+def test_document_detail_relation_projections_are_explicit_and_round_trip():
+    summary = w.DocumentSummary(
+        document_id=ID,
+        document_type="receive_note",
+        source_kind="upload",
+        revision=1,
+        processing_status="ready",
+        display_status="waiting_counterpart",
+        document_number="RN-English-01",
+        updated_at=NOW,
+    )
+    detail = w.DocumentDetail(
+        document=summary,
+        match_status="waiting_counterpart",
+        preview_stale=False,
+        selected_receiving_source_ids=[OTHER],
+        related_invoices=[summary.model_copy(update={"document_id": OTHER, "document_type": w.DocumentType.INVOICE})],
+        source_url_available=True,
+    )
+    assert w.DocumentDetail.model_validate_json(detail.model_dump_json()) == detail
+    assert detail.selected_receiving_source_ids == [OTHER]
+    assert detail.related_invoices[0].document_id == OTHER
+
+
 def test_all_new_dtos_forbid_extra_and_protocol_is_complete():
     dtos = [v for v in vars(w).values() if inspect.isclass(v) and issubclass(v, w.WorkspaceDTO)]
     assert len(dtos) >= 35

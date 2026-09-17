@@ -72,6 +72,8 @@ function invoiceDetail(overrides: Partial<DocumentDetail> = {}): DocumentDetail 
     current_revision: revision("invoice-1"),
     candidates: [{ document_id: "rn-1", revision_id: "revision-rn-1", document_number: "RN-1", score: 80, eligible: true, reason_codes: ["PO_MATCH", "SUPPLIER_MATCH", "CURRENCY_MATCH"], source_kind: "upload", supplier_name: "English Foods Pty Ltd", document_date: "2026-09-16", already_used: false }],
     selected_receivings: [revision("rn-1", receivingPayload)],
+    selected_receiving_source_ids: [],
+    related_invoices: [],
     preview: { preview_id: "preview-1", input_revision_ids: ["revision-invoice-1", "revision-rn-1"], scope_generation: 1, rule_version: "ir-simple-rules-1", tolerances: { quantity: "0", unit_price: "0.01", amount: "0.02" }, input_sha256: "hash", result, created_at: "2026-09-16T00:00:00Z" },
     preview_stale: false,
     confirmation: null,
@@ -85,9 +87,96 @@ afterEach(() => {
   cleanup();
   vi.useRealTimers();
   vi.restoreAllMocks();
+  Reflect.deleteProperty(URL, "createObjectURL");
+  Reflect.deleteProperty(URL, "revokeObjectURL");
 });
 
 describe("DocumentPage", () => {
+  it("shows invoice and multiple receive-note originals and follows a line source tab", async () => {
+    const receivingOne = invoiceDetail().selected_receivings[0]!;
+    const receivingTwoPayload: DocumentPayload = {
+      ...receivingOne.payload,
+      document_number: "RN-2",
+      items: [{ ...receivingOne.payload.items[0]!, quantity: "2" }],
+    };
+    const receivingTwo = revision("rn-2", receivingTwoPayload);
+    const paired = invoiceDetail({
+      document: { ...invoiceDetail().document, selected_document_ids: ["rn-1", "rn-2"] },
+      selected_receivings: [receivingOne, receivingTwo],
+      selected_receiving_source_ids: ["rn-1", "rn-2"],
+      source_url_available: true,
+    });
+    const createObjectURL = vi.fn((blob: Blob) => `blob:test-${blob.size}-${createObjectURL.mock.calls.length}`);
+    Object.defineProperty(URL, "createObjectURL", { configurable: true, value: createObjectURL });
+    Object.defineProperty(URL, "revokeObjectURL", { configurable: true, value: vi.fn() });
+    const fetchMock = vi.spyOn(globalThis, "fetch").mockImplementation((input) => {
+      const path = String(input);
+      if (path === "/api/workspace/documents/invoice-1") return response(paired);
+      if (["/api/workspace/documents/invoice-1/source", "/api/workspace/documents/rn-1/source", "/api/workspace/documents/rn-2/source"].includes(path)) {
+        return Promise.resolve(new Response(new Blob(["pdf"], { type: "application/pdf" }), { headers: { "Content-Type": "application/pdf" } }));
+      }
+      throw new Error(`Unexpected request: ${path}`);
+    });
+
+    render(<DocumentPage documentId="invoice-1" onNavigate={vi.fn()} />);
+
+    expect(await screen.findByText("Invoice 原件")).toBeTruthy();
+    expect(screen.getByText("Receive Note 原件")).toBeTruthy();
+    const firstTab = await screen.findByRole("tab", { name: "RN-1" }) as HTMLButtonElement;
+    const secondTab = screen.getByRole("tab", { name: "RN-2" }) as HTMLButtonElement;
+    await waitFor(() => expect(firstTab.getAttribute("aria-selected")).toBe("true"));
+    fireEvent.click(secondTab);
+    await waitFor(() => expect(secondTab.getAttribute("aria-selected")).toBe("true"));
+    fireEvent.click(screen.getByTitle("查看对应收货单原件"));
+    await waitFor(() => expect(firstTab.getAttribute("aria-selected")).toBe("true"));
+    await waitFor(() => expect(screen.getAllByTitle("单据 PDF 原件")).toHaveLength(2));
+    expect(fetchMock.mock.calls.some(([input]) => String(input).endsWith("/rn-2/source"))).toBe(true);
+  });
+
+  it("auto-opens only the unique related invoice for a newly uploaded receive note", async () => {
+    const receivePayload: DocumentPayload = { ...payload, document_type: "receive_note", document_number: "RN-NEW" };
+    const receiveDetail = invoiceDetail({
+      document: { ...invoiceDetail().document, document_id: "rn-new", document_type: "receive_note", display_status: "waiting_counterpart", document_number: "RN-NEW", selected_document_ids: [] },
+      review_status: null,
+      match_status: "waiting_counterpart",
+      selection_origin: null,
+      current_revision: revision("rn-new", receivePayload),
+      candidates: [], selected_receivings: [], selected_receiving_source_ids: [], preview: null,
+      related_invoices: [invoiceDetail().document],
+    });
+    vi.spyOn(globalThis, "fetch").mockImplementation((input) => {
+      if (String(input) === "/api/workspace/documents/rn-new") return response(receiveDetail);
+      throw new Error(`Unexpected request: ${String(input)}`);
+    });
+    const navigate = vi.fn();
+    render(<DocumentPage autoOpenRelated documentId="rn-new" onNavigate={navigate} />);
+
+    expect(await screen.findByRole("heading", { level: 2, name: "RN-NEW" })).toBeTruthy();
+    await waitFor(() => expect(navigate).toHaveBeenCalledWith("/documents/invoice-1?view=compare", true));
+  });
+
+  it("does not guess when an uploaded receive note has multiple related invoices", async () => {
+    const receivePayload: DocumentPayload = { ...payload, document_type: "receive_note", document_number: "RN-AMBIGUOUS" };
+    const secondInvoice = { ...invoiceDetail().document, document_id: "invoice-2", document_number: "INV-200" };
+    const receiveDetail = invoiceDetail({
+      document: { ...invoiceDetail().document, document_id: "rn-many", document_type: "receive_note", display_status: "waiting_counterpart", document_number: "RN-AMBIGUOUS", selected_document_ids: [] },
+      review_status: null, match_status: "waiting_counterpart", selection_origin: null,
+      current_revision: revision("rn-many", receivePayload), candidates: [], selected_receivings: [],
+      selected_receiving_source_ids: [], preview: null, related_invoices: [invoiceDetail().document, secondInvoice],
+    });
+    vi.spyOn(globalThis, "fetch").mockImplementation((input) => {
+      if (String(input) === "/api/workspace/documents/rn-many") return response(receiveDetail);
+      throw new Error(`Unexpected request: ${String(input)}`);
+    });
+    const navigate = vi.fn();
+    render(<DocumentPage autoOpenRelated documentId="rn-many" onNavigate={navigate} />);
+
+    expect(await screen.findByText("这张收货单目前关联到多张未完成发票，请人工核实。")).toBeTruthy();
+    expect(screen.getByRole("button", { name: /INV-100/ })).toBeTruthy();
+    expect(screen.getByRole("button", { name: /INV-200/ })).toBeTruthy();
+    expect(navigate).not.toHaveBeenCalled();
+  });
+
   it("renders English evidence as text and requires one acknowledged difference confirmation", async () => {
     const fetchMock = vi.spyOn(globalThis, "fetch").mockImplementation((input, init) => {
       const path = String(input);
@@ -138,6 +227,7 @@ describe("DocumentPage", () => {
     render(<DocumentPage allowAdvancedJson documentId="invoice-1" onNavigate={vi.fn()} />);
     await screen.findByRole("heading", { name: "INV-100" });
 
+    fireEvent.click(screen.getByRole("heading", { name: "提取字段" }));
     fireEvent.click(screen.getByRole("button", { name: "高级 JSON 编辑" }));
     const json = screen.getByLabelText("结构化单据 JSON") as HTMLTextAreaElement;
     const changed = json.value.replace('"quantity": "10"', '"quantity": "12"');
@@ -288,7 +378,7 @@ describe("DocumentPage", () => {
     });
     render(<DocumentPage documentId="rn-upstream" onNavigate={vi.fn()} />);
 
-    expect(await screen.findByText("RN-UPSTREAM")).toBeTruthy();
+    expect(await screen.findByRole("heading", { level: 2, name: "RN-UPSTREAM" })).toBeTruthy();
     expect(screen.getByText("上游权威记录，只读")).toBeTruthy();
     expect(screen.queryByRole("button", { name: "显式保存字段" })).toBeNull();
     expect(screen.queryByRole("button", { name: "确认核对结果" })).toBeNull();

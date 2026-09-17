@@ -104,6 +104,7 @@ export function App() {
           documentMatch ? (
             <DocumentPage
               allowAdvancedJson={user.role === "admin"}
+              autoOpenRelated={new URLSearchParams(window.location.search).get("uploaded") === "1"}
               documentId={decodeURIComponent(documentMatch[1])}
               onNavigate={navigate}
             />

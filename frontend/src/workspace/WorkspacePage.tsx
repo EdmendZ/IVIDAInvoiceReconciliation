@@ -85,7 +85,7 @@ export function WorkspacePage({ onNavigate }: { onNavigate: (path: string) => vo
       uploadRetry.current = null;
       setNotice(result.duplicate ? "该文件已上传，已打开现有单据。" : "上传成功，系统正在自动提取和核对。可离开此页面。 ");
       await documents.refetch();
-      onNavigate(`/documents/${encodeURIComponent(result.document.document_id)}`);
+      onNavigate(`/documents/${encodeURIComponent(result.document.document_id)}?uploaded=1`);
     } catch (problem) {
       if (problem instanceof ApiError) uploadRetry.current = null;
       else uploadRetry.current = operation;

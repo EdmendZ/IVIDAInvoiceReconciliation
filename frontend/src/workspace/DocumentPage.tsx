@@ -29,6 +29,40 @@ import type {
 
 type RetryOperation = { label: string; key: string; run: () => Promise<void> };
 type ManualResult = { summary: DocumentSummary; detail: DocumentDetail; eligible: boolean; reason: string };
+type SourcePreview = { status: "idle" | "loading" | "ready" | "error"; url: string; type: string };
+
+function useDocumentSource(documentId: string | null, available: boolean): SourcePreview {
+  const [source, setSource] = useState<SourcePreview>({ status: "idle", url: "", type: "" });
+  useEffect(() => {
+    let active = true;
+    let objectUrl = "";
+    setSource({ status: available ? "loading" : "idle", url: "", type: "" });
+    if (!documentId || !available) return;
+    void fetch(`/api/workspace/documents/${encodeURIComponent(documentId)}/source`, { credentials: "include" })
+      .then(async (response) => {
+        if (!response.ok) throw new Error("无法加载原件");
+        const blob = await response.blob();
+        if (!active) return;
+        objectUrl = URL.createObjectURL(blob);
+        setSource({ status: "ready", url: objectUrl, type: blob.type });
+      })
+      .catch(() => { if (active) setSource({ status: "error", url: "", type: "" }); });
+    return () => {
+      active = false;
+      if (objectUrl) URL.revokeObjectURL(objectUrl);
+    };
+  }, [available, documentId]);
+  return source;
+}
+
+function SourceViewer({ source, unavailableText }: { source: SourcePreview; unavailableText: string }) {
+  if (source.status === "idle") return <div className="empty-state">{unavailableText}</div>;
+  if (source.status === "loading") return <div className="empty-state">正在安全加载原件…</div>;
+  if (source.status === "error") return <div className="error-banner">无法加载原件，请刷新后重试。</div>;
+  return source.type.startsWith("image/")
+    ? <img alt="单据原件" className="workspace-source-image" src={source.url} />
+    : <iframe className="workspace-source-frame" src={source.url} title="单据 PDF 原件" />;
+}
 
 function normalized(value: string | null | undefined): string {
   return (value ?? "").normalize("NFKC").toLocaleLowerCase().replace(/[^\p{L}\p{N}]/gu, "");
@@ -65,12 +99,14 @@ function payloadSummary(payload: DocumentPayload) {
 
 export function DocumentPage({
   allowAdvancedJson = false,
+  autoOpenRelated = false,
   documentId,
   onNavigate,
 }: {
   allowAdvancedJson?: boolean;
+  autoOpenRelated?: boolean;
   documentId: string;
-  onNavigate: (path: string) => void;
+  onNavigate: (path: string, replace?: boolean) => void;
 }) {
   const [detail, setDetail] = useState<DocumentDetail | null>(null);
   const [loading, setLoading] = useState(true);
@@ -92,10 +128,11 @@ export function DocumentPage({
   const [manualResults, setManualResults] = useState<ManualResult[]>([]);
   const [manualSearching, setManualSearching] = useState(false);
   const [showSelectionTools, setShowSelectionTools] = useState(false);
+  const [showStructuredFields, setShowStructuredFields] = useState(false);
   const [olderActions, setOlderActions] = useState<ActionView[]>([]);
   const [actionsPage, setActionsPage] = useState(2);
   const [actionsTotal, setActionsTotal] = useState<number | null>(null);
-  const [source, setSource] = useState<{ url: string; type: string } | null>(null);
+  const [activeReceivingId, setActiveReceivingId] = useState<string | null>(null);
   const retryOperation = useRef<RetryOperation | null>(null);
   const initialized = useRef(false);
   const editorDirtyRef = useRef(false);
@@ -161,9 +198,11 @@ export function DocumentPage({
     setManualQuery("");
     setManualResults([]);
     setShowSelectionTools(false);
+    setShowStructuredFields(false);
     setOlderActions([]);
     setActionsPage(2);
     setActionsTotal(null);
+    setActiveReceivingId(null);
     retryOperation.current = null;
     void refresh(true);
   }, [documentId, refresh]);
@@ -176,7 +215,8 @@ export function DocumentPage({
       && detail.document.processing_status !== "voided";
     const shouldPoll = detail.document.processing_status === "processing"
       || detail.preview_stale
-      || unfinishedInvoice;
+      || unfinishedInvoice
+      || (autoOpenRelated && detail.document.document_type === "receive_note" && detail.related_invoices.length === 0);
     const interval = shouldPoll ? window.setInterval(tick, 3_000) : null;
     const visible = () => { if (!document.hidden) void refresh(false); };
     document.addEventListener("visibilitychange", visible);
@@ -184,27 +224,13 @@ export function DocumentPage({
       if (interval !== null) window.clearInterval(interval);
       document.removeEventListener("visibilitychange", visible);
     };
-  }, [detail?.document.document_type, detail?.document.processing_status, detail?.preview_stale, detail?.review_status, refresh]);
+  }, [autoOpenRelated, detail?.document.document_type, detail?.document.processing_status, detail?.preview_stale, detail?.related_invoices.length, detail?.review_status, refresh]);
 
   useEffect(() => {
-    let active = true;
-    let objectUrl = "";
-    setSource(null);
-    if (!detail?.source_url_available) return;
-    void fetch(`/api/workspace/documents/${encodeURIComponent(documentId)}/source`, { credentials: "include" })
-      .then(async (response) => {
-        if (!response.ok) throw new Error("无法加载原件");
-        const blob = await response.blob();
-        if (!active) return;
-        objectUrl = URL.createObjectURL(blob);
-        setSource({ url: objectUrl, type: blob.type });
-      })
-      .catch(() => { if (active) setSource(null); });
-    return () => {
-      active = false;
-      if (objectUrl) URL.revokeObjectURL(objectUrl);
-    };
-  }, [detail?.source_url_available, documentId]);
+    if (!autoOpenRelated || detail?.document.document_type !== "receive_note") return;
+    if (detail.related_invoices.length !== 1) return;
+    onNavigate(`/documents/${encodeURIComponent(detail.related_invoices[0].document_id)}?view=compare`, true);
+  }, [autoOpenRelated, detail?.document.document_type, detail?.related_invoices, onNavigate]);
 
   async function execute(operation: RetryOperation) {
     setBusy(operation.label);
@@ -285,6 +311,26 @@ export function DocumentPage({
     for (const result of manualResults) if (result.detail.current_revision) byId.set(result.summary.document_id, result.detail.current_revision);
     return selectedIds.map((id) => byId.get(id)).filter((value): value is RevisionView => Boolean(value));
   }, [detail?.selected_receivings, manualResults, selectedIds]);
+
+  const selectedSourceIds = useMemo(() => {
+    const ids = new Set(detail?.selected_receiving_source_ids ?? []);
+    for (const result of manualResults) {
+      if (result.detail.source_url_available) ids.add(result.summary.document_id);
+    }
+    return ids;
+  }, [detail?.selected_receiving_source_ids, manualResults]);
+
+  useEffect(() => {
+    if (selectedRevisions.some((revision) => revision.document_id === activeReceivingId)) return;
+    setActiveReceivingId(selectedRevisions[0]?.document_id ?? null);
+  }, [activeReceivingId, selectedRevisions]);
+
+  const activeReceiving = selectedRevisions.find((revision) => revision.document_id === activeReceivingId) ?? null;
+  const source = useDocumentSource(documentId, Boolean(detail?.source_url_available));
+  const receivingSource = useDocumentSource(
+    activeReceiving?.document_id ?? null,
+    Boolean(activeReceiving && selectedSourceIds.has(activeReceiving.document_id)),
+  );
 
   useEffect(() => {
     setAcknowledged(false);
@@ -368,12 +414,26 @@ export function DocumentPage({
         </section>
       )}
 
-      <div className="workspace-detail-grid">
+      {!isInvoice && detail.related_invoices.length > 0 && (
+        <section className="workspace-panel related-invoices-panel">
+          <div className="workspace-panel-heading">
+            <div><span className="eyebrow">当前关系</span><h3>关联发票</h3><p>{detail.related_invoices.length === 1 ? "这张收货单已有唯一核对入口。" : "这张收货单目前关联到多张未完成发票，请人工核实。"}</p></div>
+          </div>
+          <div className="related-invoice-list">
+            {detail.related_invoices.map((invoice) => (
+              <button key={invoice.document_id} onClick={() => onNavigate(`/documents/${encodeURIComponent(invoice.document_id)}?view=compare`)}>
+                <strong>{invoice.document_number || "尚未提取编号"}</strong>
+                <small>{invoice.supplier_name || "尚未提取供应商"} · {displayStatusLabel(invoice.display_status)}</small>
+              </button>
+            ))}
+          </div>
+        </section>
+      )}
+
+      <div className={`workspace-source-review ${isInvoice && hasSelection ? "paired" : "single"}`}>
         <section className="workspace-panel source-document-panel">
-          <div className="workspace-panel-heading"><div><span className="eyebrow">原件</span><h3>源单据</h3></div></div>
-          {!detail.source_url_available && <div className="empty-state">该上游记录没有可展示的上传原件。</div>}
-          {detail.source_url_available && !source && <div className="empty-state">正在安全加载原件…</div>}
-          {source?.type.startsWith("image/") ? <img alt="单据原件" className="workspace-source-image" src={source.url} /> : source ? <iframe className="workspace-source-frame" src={source.url} title="单据 PDF 原件" /> : null}
+          <div className="workspace-panel-heading"><div><span className="eyebrow">{isInvoice ? "Invoice 原件" : "Receive Note 原件"}</span><strong className="source-document-title">{detail.document.document_number || "当前单据"}</strong></div></div>
+          <SourceViewer source={source} unavailableText={detail.document.source_kind === "taptouch" ? "该记录来自 TapTouch，只提供结构化只读数据。" : "该单据没有可展示的上传原件。"} />
           <div className="evidence-list">
             {detail.current_revision?.evidence.map((item, index) => (
               <article className="evidence" key={`${item.field_path}-${index}`}><strong>{item.field_path}</strong><span>{item.page ? `页码 ${item.page}` : "页码未知"}</span><p>{item.source_text}</p></article>
@@ -381,11 +441,30 @@ export function DocumentPage({
           </div>
         </section>
 
-        <section className="workspace-panel document-editor-panel">
-          <div className="workspace-panel-heading">
+        {isInvoice && hasSelection && (
+          <section className="workspace-panel receiving-source-panel">
+            <div className="workspace-panel-heading receiving-source-heading">
+              <div><span className="eyebrow">Receive Note 原件</span><strong className="source-document-title">{activeReceiving?.payload.document_number || "所选收货记录"}</strong></div>
+              {selectedRevisions.length > 1 && (
+                <div className="receiving-source-tabs" role="tablist" aria-label="所选收货单原件">
+                  {selectedRevisions.map((revision) => (
+                    <button aria-selected={revision.document_id === activeReceivingId} className={revision.document_id === activeReceivingId ? "active" : ""} key={revision.document_id} onClick={() => setActiveReceivingId(revision.document_id)} role="tab" type="button">
+                      {revision.payload.document_number || "编号未知"}
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
+            <SourceViewer source={receivingSource} unavailableText={activeReceiving ? "该收货记录来自 TapTouch，只提供结构化只读数据。" : "尚未选择收货记录。"} />
+            {activeReceiving && <div className="source-quick-summary"><span>{activeReceiving.payload.items.length} 个商品行</span><span>{activeReceiving.evidence.length} 条原文证据</span></div>}
+          </section>
+        )}
+
+        <details className="workspace-panel document-editor-panel" onToggle={(event) => setShowStructuredFields(event.currentTarget.open)} open={showStructuredFields || !hasSelection}>
+          <summary className="workspace-panel-heading">
             <div><span className="eyebrow">结构化数据</span><h3>提取字段</h3></div>
             {!editable && <span className="read-only-pill">只读</span>}
-          </div>
+          </summary>
           {detail.current_revision ? (
             <StructuredDocumentEditor
               editor={editor}
@@ -416,7 +495,7 @@ export function DocumentPage({
               >显式保存字段</button>
             </div>
           )}
-        </section>
+        </details>
       </div>
 
       {mutableInvoice && (
@@ -507,7 +586,7 @@ export function DocumentPage({
           <div className="workspace-panel-heading preview-heading"><div><span className="eyebrow">核对预览</span><h3>{label(detail.preview.result.outcome)}</h3><p>{label(detail.preview.result.coverage)} · {unverifiedSummary(detail.preview.result)}</p></div><span className={`result-decision ${outcome === "consistent" ? "clear" : "review"}`}>{label(outcome ?? "")}</span></div>
           {preview?.blocking_codes.length ? <div className="error-banner">阻断：{preview.blocking_codes.map(label).join("、")}</div> : null}
           <div className="workspace-metrics"><div><strong>{preview?.summary.total_lines}</strong><span>商品行</span></div><div><strong>{preview?.summary.different_lines}</strong><span>差异行</span></div><div><strong>{preview?.summary.unverified_lines}</strong><span>未核验行</span></div></div>
-          <div className="table-scroll"><table className="result-table"><thead><tr><th>商品</th><th>数量</th><th>单价</th><th>金额</th><th>行状态</th></tr></thead><tbody>{preview?.lines.map((line) => <tr key={line.match_key}><td><strong>{line.sku || line.description}</strong>{line.sku && <small>{line.description}</small>}</td><td>{line.quantity.invoice_value ?? "—"} / {line.quantity.received_value ?? "—"}<small>{metricStatusLabel(line.quantity.status)}</small></td><td>{line.price.invoice_value ?? "—"} / {line.price.received_value ?? "—"}<small>{metricStatusLabel(line.price.status)}</small></td><td>{line.amount.invoice_value ?? "—"} / {line.amount.received_value ?? "—"}<small>{metricStatusLabel(line.amount.status)}</small></td><td>{label(line.status)}</td></tr>)}</tbody></table></div>
+          <div className="table-scroll"><table className="result-table"><thead><tr><th>商品</th><th>数量</th><th>单价</th><th>金额</th><th>行状态</th></tr></thead><tbody>{preview?.lines.map((line) => <tr key={line.match_key}><td><button className="line-source-button" disabled={!line.receive_lines.length} onClick={() => { const sourceId = line.receive_lines[0]?.document_id; if (sourceId) setActiveReceivingId(sourceId); }} title={line.receive_lines.length ? "查看对应收货单原件" : "该行没有对应收货记录"} type="button"><strong>{line.sku || line.description}</strong>{line.sku && <small>{line.description}</small>}</button></td><td>{line.quantity.invoice_value ?? "—"} / {line.quantity.received_value ?? "—"}<small>{metricStatusLabel(line.quantity.status)}</small></td><td>{line.price.invoice_value ?? "—"} / {line.price.received_value ?? "—"}<small>{metricStatusLabel(line.price.status)}</small></td><td>{line.amount.invoice_value ?? "—"} / {line.amount.received_value ?? "—"}<small>{metricStatusLabel(line.amount.status)}</small></td><td>{label(line.status)}</td></tr>)}</tbody></table></div>
         </section>
       )}
 

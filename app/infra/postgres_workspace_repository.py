@@ -407,12 +407,26 @@ class PostgresWorkspaceRepository:
             doc = self._document(session, scope, document_id)
             preview = session.get(Preview, doc.current_preview_id) if doc.current_preview_id else None
             input = self._input(session, scope, doc) if doc.current_revision_id and doc.document_type == "invoice" else None
-            selected = [self._revision(session, self._document(session, scope, i).current_revision_id) for i in doc.selected_document_ids]
-            return w.DocumentDetail(document=self._summary(session, doc), review_status=doc.review_status,
+            selected_documents = [self._document(session, scope, i) for i in doc.selected_document_ids]
+            selected = [self._revision(session, selected_document.current_revision_id) for selected_document in selected_documents]
+            used = self._used(session, scope)
+            related_invoices = []
+            if doc.document_type == "receive_note":
+                related_invoices = [
+                    self._summary(session, invoice, used)
+                    for invoice in sorted(self._documents(session, scope), key=lambda row: row.document_id)
+                    if invoice.document_type == "invoice"
+                    and invoice.processing_status != "voided"
+                    and doc.document_id in invoice.selected_document_ids
+                ]
+            return w.DocumentDetail(document=self._summary(session, doc, used), review_status=doc.review_status,
                 match_status=doc.match_status, selection_origin=doc.selection_origin, selection_note=doc.selection_note,
                 current_revision=self._revision(session, doc.current_revision_id),
                 candidates=select_candidates(input.invoice, input.receivings, input.used_ids).candidates if input else [],
                 selected_receivings=[r for r in selected if r],
+                selected_receiving_source_ids=[selected_document.document_id for selected_document in selected_documents
+                                               if selected_document.source_kind == "upload"],
+                related_invoices=related_invoices,
                 preview=w.PreviewView(**_fields(preview, w.PreviewView)) if preview else None,
                 preview_stale=doc.preview_stale,
                 confirmation=self._confirmation(session, scope, doc.current_confirmation_id) if doc.current_confirmation_id else None,

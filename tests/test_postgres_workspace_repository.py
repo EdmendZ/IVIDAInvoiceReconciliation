@@ -207,6 +207,22 @@ def test_preview_cas_no_fake_result_and_readonly_get(ctx):
     assert not repo.save_preview(scope, stale, proposal, None)
 
 
+def test_detail_projects_selected_sources_and_reverse_invoice_relation(ctx):
+    repo, _, scope, _ = ctx
+    invoice = ready(ctx, "invoice", "INV-RELATION")
+    receiving = ready(ctx, "receive_note", "RN-RELATION")
+    previews(ctx)
+
+    invoice_detail = repo.get_document(scope, invoice)
+    assert invoice_detail.document.selected_document_ids == [receiving]
+    assert invoice_detail.selected_receiving_source_ids == [receiving]
+    assert invoice_detail.related_invoices == []
+
+    receive_detail = repo.get_document(scope, receiving)
+    assert [item.document_id for item in receive_detail.related_invoices] == [invoice]
+    assert receive_detail.related_invoices[0].document_number == "INV-RELATION"
+
+
 def test_confirm_replay_reopen_history_and_source_change(ctx):
     repo, factory, scope, actor = ctx
     invoice = ready(ctx)
