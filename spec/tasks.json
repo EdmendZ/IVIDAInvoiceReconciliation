@@ -1,5 +1,5 @@
 {
-  "spec_version": "IR-SIMPLE-1.0.13",
+  "spec_version": "IR-SIMPLE-1.0.14",
   "execution": "strictly_sequential_fresh_sessions",
   "path_base": "repository_root",
   "deletes_allowed": false,
@@ -1429,6 +1429,7 @@
         "T18"
       ],
       "modify": [
+        "docs/architecture.md",
         "docs/product.md",
         "frontend/src/history/HistoryPage.test.tsx",
         "frontend/src/history/HistoryPage.tsx",

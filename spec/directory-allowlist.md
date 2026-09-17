@@ -35,7 +35,7 @@
 | `compose.yaml` | T04 M |
 | `docs/README.md` | T09 M |
 | `docs/ai.md` | T14 M |
-| `docs/architecture.md` | T03 M, T09 M, T14 M, T16 M, T17 M |
+| `docs/architecture.md` | T03 M, T09 M, T14 M, T16 M, T17 M, T19 M |
 | `docs/code-document-map.json` | T00 M, T12 M, T13 M |
 | `docs/development.md` | T09 M, T12 M, T13 M, T15 M, T18 M |
 | `docs/product.md` | T09 M, T12 M, T16 M, T17 M, T19 M |
