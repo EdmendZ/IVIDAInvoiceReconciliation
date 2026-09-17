@@ -78,6 +78,12 @@ v1.0.3：允许修改现有 CI，将新 PostgreSQL 测试接入专用以 `_works
 
 只读业务代码；固定场景检查、生成证据，不自动部署/切换开关。执行全量 pytest、前端测试/build、文档同步、diff检查、Spec契约/任务权限检查。发现失败退回原任务，不以“最后收尾”为由扩大权限。
 
+## T12：开发入口与参考边界
+
+新增两个根目录 Python 入口。`setup_dev_admin.py` 只允许在非 production 环境运行，可重复创建或重置固定用户名的 Admin，使用 Argon2，重置时撤销该用户全部旧 Session；默认生成临时强密码并仅输出一次，不提交固定明文密码。`run_local_demo.py` 只代理现有 `start_local_demo.ps1`，保持已有端口复用、进程归属、日志、健康检查和浏览器打开行为，不实现第二套进程管理器。
+
+产品文档固定外部 invoice-processor 仅用于列表/详情信息布局和 Controller/Application/Infrastructure 分层表达参考；不得引入 PO 业务、手动 Start Match、模拟进度、三字段百分比置信度、缺失值补零、localStorage JWT 或同步 OCR 上传。
+
 ## 任务报告（每任务唯一输出）
 
 `.harness/runs/Txx/result.json`：task_id、spec_version、spec_sha256、base_commit、candidate_commit/null、changed_files、commands（argv/exit_code/log_sha256）、acceptance_ids、known_limits、status=passed/failed/blocked。该文件是审计产物，不改变批准状态；可信调度器复制到外部证据库并签署 accepted/rejected。stdout 日志存外部证据库，不任意写 repo。禁止凭“tests passed”字符串替代命令退出码。
