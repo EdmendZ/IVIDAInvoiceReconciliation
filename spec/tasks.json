@@ -1,5 +1,5 @@
 {
-  "spec_version": "IR-SIMPLE-1.0.16",
+  "spec_version": "IR-SIMPLE-1.0.17",
   "execution": "strictly_sequential_fresh_sessions",
   "path_base": "repository_root",
   "deletes_allowed": false,
@@ -1655,6 +1655,74 @@
         "frontend/src/workspace/workspacePresentation.test.ts",
         "frontend/src/workspace/workspaceTypes.ts",
         "frontend/src/styles.css"
+      ],
+      "code_changes_allowed": true
+    },
+    {
+      "id": "T22",
+      "name": "TapTouch source identity consistency",
+      "depends_on": [
+        "T21"
+      ],
+      "modify": [
+        "app/infra/postgres_taptouch_receiving_repository.py",
+        "docs/product.md",
+        "tests/test_taptouch_receiving_import.py"
+      ],
+      "create": [
+        ".harness/runs/T22/result.json"
+      ],
+      "provides": [
+        "stable TapTouch supplier source lineage",
+        "supplier identity drift protection"
+      ],
+      "consumes": [
+        "T21 accepted baseline",
+        "existing TapTouch receiving version repository",
+        "existing external version conflict semantics"
+      ],
+      "acceptance_ids": [
+        "D34",
+        "D35"
+      ],
+      "commands": [
+        [
+          "python",
+          "-m",
+          "pytest",
+          "tests/test_taptouch_receiving_import.py",
+          "tests/test_taptouch_integration_api.py",
+          "-q"
+        ],
+        [
+          "python",
+          "tools/check_spec_contract.py",
+          "--spec-root",
+          "spec"
+        ],
+        [
+          "git",
+          "diff",
+          "--check",
+          "${TASK_BASE}"
+        ]
+      ],
+      "status": "not_started",
+      "read_inputs": [
+        "spec/README.md",
+        "spec/02-architecture.md",
+        "spec/03-contracts.md",
+        "spec/04-rules.md",
+        "spec/05-tasks.md",
+        "spec/06-harness.md",
+        "spec/07-acceptance.md",
+        "spec/tasks.json",
+        "app/infra/postgres_taptouch_receiving_repository.py",
+        "app/services/taptouch_receiving_import_service.py",
+        "app/domain/taptouch_receiving.py",
+        "tests/test_taptouch_receiving_import.py",
+        "tests/test_taptouch_integration_api.py",
+        "docs/product.md"
       ],
       "code_changes_allowed": true
     }

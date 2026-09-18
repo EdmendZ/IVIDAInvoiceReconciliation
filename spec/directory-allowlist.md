@@ -20,7 +20,7 @@
 | `app/domain/documents.py` | T14 M |
 | `app/domain/workspace.py` | T01 N, T03 M, T16 M, T17 M |
 | `app/infra/database_models.py` | T03 M |
-| `app/infra/postgres_taptouch_receiving_repository.py` | T03 M |
+| `app/infra/postgres_taptouch_receiving_repository.py` | T03 M, T22 M |
 | `app/infra/postgres_workspace_repository.py` | T03 N, T14 M, T16 M, T17 M |
 | `app/main.py` | T06 M |
 | `app/resources/prompts/normalize_document_system.txt` | T14 M |
@@ -38,7 +38,7 @@
 | `docs/architecture.md` | T03 M, T09 M, T14 M, T16 M, T17 M, T19 M |
 | `docs/code-document-map.json` | T00 M, T12 M, T13 M |
 | `docs/development.md` | T09 M, T12 M, T13 M, T15 M, T18 M, T20 M |
-| `docs/product.md` | T09 M, T12 M, T16 M, T17 M, T19 M, T21 M |
+| `docs/product.md` | T09 M, T12 M, T16 M, T17 M, T19 M, T21 M, T22 M |
 | `frontend/src/api/client.ts` | T07 M |
 | `frontend/src/app/App.tsx` | T08 M, T16 M, T17 M |
 | `frontend/src/cases/CaseDetailPage.test.tsx` | T08 M |
@@ -78,6 +78,7 @@
 | `tests/test_harness_guards.py` | T00 N |
 | `tests/test_normalization_provider.py` | T14 M |
 | `tests/test_postgres_workspace_repository.py` | T03 N, T16 M, T17 M |
+| `tests/test_taptouch_receiving_import.py` | T22 M |
 | `tests/test_validation_service.py` | T02 M, T14 M |
 | `tests/test_workspace_acceptance.py` | T09 N |
 | `tests/test_workspace_api.py` | T06 N, T17 M |
