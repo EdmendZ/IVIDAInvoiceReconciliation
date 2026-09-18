@@ -64,3 +64,7 @@
 ## IR-SIMPLE-1.0.15 PostgreSQL 联调恢复
 
 额度恢复后继续执行时，确认项目停在 T19，真实 PostgreSQL 测试仍因本机未设置专用连接而跳过。使用一次性独立 `ir_simple_ci_workspace_test` 数据库运行 Repository 与 Workspace acceptance 测试，共 24 项全部通过；新增 T20 只固化该证据并修正文档变量名，不引入新业务设计。
+
+## IR-SIMPLE-1.0.16 匹配依据可视化
+
+T20 完成后，下一项只补充详情页的供应商判断依据说明。依据复用现有 ABN/名称规范化和 `PreviewResult.subject`，不扩展身份模型、不新增状态或接口；新增 T21 作为展示层任务，文件白名单和验收项固定在 `tasks.json` 与 `07-acceptance.md`。

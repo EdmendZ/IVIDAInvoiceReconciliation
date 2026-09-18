@@ -38,7 +38,7 @@
 | `docs/architecture.md` | T03 M, T09 M, T14 M, T16 M, T17 M, T19 M |
 | `docs/code-document-map.json` | T00 M, T12 M, T13 M |
 | `docs/development.md` | T09 M, T12 M, T13 M, T15 M, T18 M, T20 M |
-| `docs/product.md` | T09 M, T12 M, T16 M, T17 M, T19 M |
+| `docs/product.md` | T09 M, T12 M, T16 M, T17 M, T19 M, T21 M |
 | `frontend/src/api/client.ts` | T07 M |
 | `frontend/src/app/App.tsx` | T08 M, T16 M, T17 M |
 | `frontend/src/cases/CaseDetailPage.test.tsx` | T08 M |
@@ -52,15 +52,15 @@
 | `frontend/src/review/ReviewDocumentPage.tsx` | T08 M |
 | `frontend/src/review/ReviewQueuePage.tsx` | T08 M |
 | `frontend/src/review/StructuredDocumentEditor.tsx` | T08 M |
-| `frontend/src/styles.css` | T08 M, T16 M, T17 M, T19 M |
-| `frontend/src/workspace/DocumentPage.test.tsx` | T08 N, T16 M, T19 M |
-| `frontend/src/workspace/DocumentPage.tsx` | T08 N, T16 M, T19 M |
+| `frontend/src/styles.css` | T08 M, T16 M, T17 M, T19 M, T21 M |
+| `frontend/src/workspace/DocumentPage.test.tsx` | T08 N, T16 M, T19 M, T21 M |
+| `frontend/src/workspace/DocumentPage.tsx` | T08 N, T16 M, T19 M, T21 M |
 | `frontend/src/workspace/WorkspacePage.test.tsx` | T08 N, T16 M |
 | `frontend/src/workspace/WorkspacePage.tsx` | T08 N, T16 M |
 | `frontend/src/workspace/workspaceClient.test.ts` | T07 N |
 | `frontend/src/workspace/workspaceClient.ts` | T07 N, T17 M |
-| `frontend/src/workspace/workspacePresentation.test.ts` | T07 N, T16 M, T19 M |
-| `frontend/src/workspace/workspacePresentation.ts` | T07 N, T19 M |
+| `frontend/src/workspace/workspacePresentation.test.ts` | T07 N, T16 M, T19 M, T21 M |
+| `frontend/src/workspace/workspacePresentation.ts` | T07 N, T19 M, T21 M |
 | `frontend/src/workspace/workspaceTypes.ts` | T07 N, T14 M, T16 M, T17 M |
 | `migrations/versions/20260916_15_workspace.py` | T03 N |
 | `run_local_demo.py` | T12 N |

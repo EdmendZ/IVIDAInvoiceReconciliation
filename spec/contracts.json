@@ -1,5 +1,5 @@
 {
-  "spec_version": "IR-SIMPLE-1.0.15",
+  "spec_version": "IR-SIMPLE-1.0.16",
   "prefix": "/api/workspace",
   "model_definitions": "03-contracts.md",
   "routes": [

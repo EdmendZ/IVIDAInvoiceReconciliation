@@ -1,6 +1,6 @@
 # 05 任务、模块责任与文件权限
 
-机器权威清单是 [tasks.json](tasks.json)。下表定义工作内容和验收含义；两者不一致时停止。任务严格串行 T00→T20，每个任务单独新执行上下文；协调者负责验收和推进。
+机器权威清单是 [tasks.json](tasks.json)。下表定义工作内容和验收含义；两者不一致时停止。任务严格串行 T00→T21，每个任务单独新执行上下文；协调者负责验收和推进。
 
 任何任务只能读冻结 Spec＋本任务列出的输入实现＋直接依赖的已验收代码/报告；可只读检查现有源码寻找证据，但不得把旧聊天、旧计划作为新需求。整个 spec/ 对执行 Agent 只读。不自动读取 .env、个人配置、数据库备份或 evaluation_data 私有样本。
 
@@ -133,6 +133,10 @@ v1.0.3：允许修改现有 CI，将新 PostgreSQL 测试接入专用以 `_works
 ## T20：真实 PostgreSQL 工作台联调
 
 使用独立数据库名以 `_workspace_test` 结尾的 PostgreSQL，显式设置 `WORKSPACE_TEST_DATABASE_URL`，运行现有 `tests/test_postgres_workspace_repository.py` 和 `tests/test_workspace_acceptance.py`。验证迁移、JSONB、事务幂等、并发占用、不可变历史、HTTP 工作台流程和完整确认闭环均通过；不修改业务代码、接口、表结构或测试隔离规则。仅同步开发文档中的环境变量名称和本次验证记录。
+
+## T21：匹配依据可视化
+
+在现有工作台详情页展示供应商匹配依据：按 ABN、按名称、供应商未核验或供应商冲突。说明必须由当前 `RevisionView.payload.supplier`、所选收货修订和已有 `PreviewResult.subject` 推导；多张收货依据不一致时逐项展示。不得修改匹配函数、API、状态枚举、数据库结构、外部 ID 或确认请求体。新增展示测试覆盖四类依据、大小写和标点规范化，以及多张收货混合依据；保留现有英文业务值和中文界面。
 
 ## 任务报告（每任务唯一输出）
 

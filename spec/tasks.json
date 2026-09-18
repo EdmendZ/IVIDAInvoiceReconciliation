@@ -1,5 +1,5 @@
 {
-  "spec_version": "IR-SIMPLE-1.0.15",
+  "spec_version": "IR-SIMPLE-1.0.16",
   "execution": "strictly_sequential_fresh_sessions",
   "path_base": "repository_root",
   "deletes_allowed": false,
@@ -1578,6 +1578,83 @@
         "tests/test_postgres_workspace_repository.py",
         "tests/test_workspace_acceptance.py",
         ".github/workflows/ci.yml"
+      ],
+      "code_changes_allowed": true
+    },
+    {
+      "id": "T21",
+      "name": "Visualize supplier matching basis",
+      "depends_on": [
+        "T20"
+      ],
+      "modify": [
+        "docs/product.md",
+        "frontend/src/styles.css",
+        "frontend/src/workspace/DocumentPage.test.tsx",
+        "frontend/src/workspace/DocumentPage.tsx",
+        "frontend/src/workspace/workspacePresentation.test.ts",
+        "frontend/src/workspace/workspacePresentation.ts"
+      ],
+      "create": [
+        ".harness/runs/T21/result.json"
+      ],
+      "provides": [
+        "visible supplier identity matching basis",
+        "display-only evidence for conservative supplier matching"
+      ],
+      "consumes": [
+        "T20 accepted baseline",
+        "existing RevisionView supplier payloads",
+        "existing PreviewResult.subject comparison"
+      ],
+      "acceptance_ids": [
+        "D32",
+        "D33"
+      ],
+      "commands": [
+        [
+          "npm",
+          "--prefix",
+          "frontend",
+          "test",
+          "--",
+          "run"
+        ],
+        [
+          "npm",
+          "--prefix",
+          "frontend",
+          "run",
+          "build"
+        ],
+        [
+          "python",
+          "tools/check_spec_contract.py",
+          "--spec-root",
+          "spec"
+        ],
+        [
+          "git",
+          "diff",
+          "--check",
+          "${TASK_BASE}"
+        ]
+      ],
+      "status": "not_started",
+      "read_inputs": [
+        "spec/README.md",
+        "spec/02-architecture.md",
+        "spec/04-rules.md",
+        "spec/05-tasks.md",
+        "spec/06-harness.md",
+        "spec/07-acceptance.md",
+        "spec/tasks.json",
+        "frontend/src/workspace/DocumentPage.tsx",
+        "frontend/src/workspace/DocumentPage.test.tsx",
+        "frontend/src/workspace/workspacePresentation.ts",
+        "frontend/src/workspace/workspacePresentation.test.ts",
+        "frontend/src/workspace/workspaceTypes.ts",
+        "frontend/src/styles.css"
       ],
       "code_changes_allowed": true
     }
