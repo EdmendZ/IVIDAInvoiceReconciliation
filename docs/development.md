@@ -73,8 +73,9 @@ npm --prefix frontend run build
 uv run ruff check .
 ```
 
-需要 PostgreSQL 的测试必须使用显式隔离的 `IVIDA_TEST_POSTGRES_URL`；测试套件拒绝连接
-开发库或生产库。测试启动时固定关闭本机工作台开关，需要启用场景的测试自行覆盖配置，
+需要 PostgreSQL 的工作台测试必须使用显式隔离的 `WORKSPACE_TEST_DATABASE_URL`，且数据库名
+必须以 `_workspace_test` 结尾；测试套件拒绝连接开发库或生产库。测试启动时固定关闭本机
+工作台开关，需要启用场景的测试自行覆盖配置，
 因此开发 `.env` 不会改变单元测试结果。缺少外部 MinerU、模型或 MinIO 时，只跳过对应
 集成验证，不伪报通过。
 
@@ -83,7 +84,7 @@ uv run ruff check .
 GitHub Actions 执行后端测试、前端测试与构建、Ruff、文档同步、Compose smoke 和镜像扫描。
 版本 Tag 通过后生成版本化 GHCR 镜像和预发布记录，保存镜像 Digest、Git commit 与
 Alembic revision。GitHub-hosted Runner 使用 PostgreSQL Service Container 和
-`IVIDA_TEST_POSTGRES_URL`；流程不连接现有服务器，不自动部署，也不自动 downgrade。
+`WORKSPACE_TEST_DATABASE_URL`；流程不连接现有服务器，不自动部署，也不自动 downgrade。
 
 ## 快速排障
 
