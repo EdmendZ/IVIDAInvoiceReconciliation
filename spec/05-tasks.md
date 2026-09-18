@@ -1,6 +1,6 @@
 # 05 任务、模块责任与文件权限
 
-机器权威清单是 [tasks.json](tasks.json)。下表定义工作内容和验收含义；两者不一致时停止。任务严格串行 T00→T19，每个任务单独新执行上下文；协调者负责验收和推进。
+机器权威清单是 [tasks.json](tasks.json)。下表定义工作内容和验收含义；两者不一致时停止。任务严格串行 T00→T20，每个任务单独新执行上下文；协调者负责验收和推进。
 
 任何任务只能读冻结 Spec＋本任务列出的输入实现＋直接依赖的已验收代码/报告；可只读检查现有源码寻找证据，但不得把旧聊天、旧计划作为新需求。整个 spec/ 对执行 Agent 只读。不自动读取 .env、个人配置、数据库备份或 evaluation_data 私有样本。
 
@@ -129,6 +129,10 @@ v1.0.3：允许修改现有 CI，将新 PostgreSQL 测试接入专用以 `_works
 在现有展示层为每个未核验维度提供固定中文说明：名称、原因、影响和处理方式。说明只能从现有 PreviewResult/result_snapshot 推导；`document_total`、`tax` 说明 Receive Note 不提供对应付款维度，`price`、`amount` 根据缺值或多价格说明不可比原因。不得把未核验显示为差异或阻断。
 
 核对页同时把 blocking_codes 显示为红色“必须修正”说明，把 difference 显示为需要填写处理说明的独立提示。正式历史使用同一未核验解释规则并保持只读。T19 不新增 API、表、迁移、状态、审批、认领或第二次确认。
+
+## T20：真实 PostgreSQL 工作台联调
+
+使用独立数据库名以 `_workspace_test` 结尾的 PostgreSQL，显式设置 `WORKSPACE_TEST_DATABASE_URL`，运行现有 `tests/test_postgres_workspace_repository.py` 和 `tests/test_workspace_acceptance.py`。验证迁移、JSONB、事务幂等、并发占用、不可变历史、HTTP 工作台流程和完整确认闭环均通过；不修改业务代码、接口、表结构或测试隔离规则。仅同步开发文档中的环境变量名称和本次验证记录。
 
 ## 任务报告（每任务唯一输出）
 

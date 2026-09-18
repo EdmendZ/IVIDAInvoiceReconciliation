@@ -1,5 +1,5 @@
 {
-  "spec_version": "IR-SIMPLE-1.0.14",
+  "spec_version": "IR-SIMPLE-1.0.15",
   "execution": "strictly_sequential_fresh_sessions",
   "path_base": "repository_root",
   "deletes_allowed": false,
@@ -1510,6 +1510,74 @@
         "frontend/src/workspace/DocumentPage.tsx",
         "frontend/src/workspace/workspacePresentation.ts",
         "frontend/src/workspace/workspaceTypes.ts"
+      ],
+      "code_changes_allowed": true
+    },
+    {
+      "id": "T20",
+      "name": "Real PostgreSQL workspace integration verification",
+      "depends_on": [
+        "T19"
+      ],
+      "modify": [
+        "docs/development.md"
+      ],
+      "create": [
+        ".harness/runs/T20/result.json"
+      ],
+      "provides": [
+        "zero-skip PostgreSQL workspace integration evidence",
+        "correct dedicated database environment documentation"
+      ],
+      "consumes": [
+        "T19 accepted baseline",
+        "existing CI PostgreSQL service definition",
+        "existing isolated-schema repository and acceptance tests"
+      ],
+      "acceptance_ids": [
+        "D29",
+        "D30",
+        "D31"
+      ],
+      "commands": [
+        [
+          "python",
+          "-m",
+          "pytest",
+          "-q",
+          "tests/test_postgres_workspace_repository.py",
+          "tests/test_workspace_acceptance.py"
+        ],
+        [
+          "python",
+          "tools/check_spec_contract.py",
+          "--spec-root",
+          "spec"
+        ],
+        [
+          "python",
+          "tools/check_documentation_sync.py",
+          "--base-ref",
+          "${TASK_BASE}"
+        ],
+        [
+          "git",
+          "diff",
+          "--check",
+          "${TASK_BASE}"
+        ]
+      ],
+      "status": "not_started",
+      "read_inputs": [
+        "spec/README.md",
+        "spec/05-tasks.md",
+        "spec/06-harness.md",
+        "spec/07-acceptance.md",
+        "spec/tasks.json",
+        "docs/development.md",
+        "tests/test_postgres_workspace_repository.py",
+        "tests/test_workspace_acceptance.py",
+        ".github/workflows/ci.yml"
       ],
       "code_changes_allowed": true
     }

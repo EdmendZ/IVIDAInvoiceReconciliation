@@ -60,3 +60,7 @@
 ## IR-SIMPLE-1.0.14 T19 文档映射补全
 
 文档同步门禁要求前端工作台展示变更同时更新现有架构映射文档。为 T19 补充 `docs/architecture.md` 修改权限，用于记录说明数据只由现有结果快照推导；不改变任务行为、接口或验收结论。
+
+## IR-SIMPLE-1.0.15 PostgreSQL 联调恢复
+
+额度恢复后继续执行时，确认项目停在 T19，真实 PostgreSQL 测试仍因本机未设置专用连接而跳过。使用一次性独立 `ir_simple_ci_workspace_test` 数据库运行 Repository 与 Workspace acceptance 测试，共 24 项全部通过；新增 T20 只固化该证据并修正文档变量名，不引入新业务设计。
