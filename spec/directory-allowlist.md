@@ -8,7 +8,7 @@
 | `.env.example` | T04 M |
 | `.github/workflows/ci.yml` | T00 M, T09 M |
 | `AGENTS.md` | T00 N |
-| `README.md` | T09 M, T12 M, T13 M |
+| `README.md` | T09 M, T12 M, T13 M, T24 M |
 | `app/api/dependencies.py` | T06 M |
 | `app/api/extraction_routes.py` | T06 M |
 | `app/api/reconciliation_case_routes.py` | T06 M |
@@ -36,8 +36,8 @@
 | `docs/README.md` | T09 M |
 | `docs/ai.md` | T14 M |
 | `docs/architecture.md` | T03 M, T09 M, T14 M, T16 M, T17 M, T19 M |
-| `docs/code-document-map.json` | T00 M, T12 M, T13 M |
-| `docs/development.md` | T09 M, T12 M, T13 M, T15 M, T18 M, T20 M, T23 M |
+| `docs/code-document-map.json` | T00 M, T12 M, T13 M, T24 M |
+| `docs/development.md` | T09 M, T12 M, T13 M, T15 M, T18 M, T20 M, T23 M, T24 M |
 | `docs/product.md` | T09 M, T12 M, T16 M, T17 M, T19 M, T21 M, T22 M |
 | `frontend/src/api/client.ts` | T07 M |
 | `frontend/src/app/App.tsx` | T08 M, T16 M, T17 M |
@@ -67,12 +67,14 @@
 | `run_workspace_worker.py` | T04 N |
 | `scripts/local_demo_common.ps1` | T04 M, T15 M, T18 M |
 | `setup_demo_data.py` | T13 N |
+| `setup_evaluation_data.py` | T24 N |
 | `setup_dev_admin.py` | T12 N |
 | `start_local_demo.ps1` | T04 M |
 | `stop_local_demo.ps1` | T04 M |
 | `tests/fixtures/workspace_scenarios.json` | T09 N |
 | `tests/test_delivery_configuration.py` | T04 M |
 | `tests/test_demo_data_entrypoint.py` | T13 N |
+| `tests/test_evaluation_data_entrypoint.py` | T24 N |
 | `tests/test_dev_entrypoints.py` | T12 N, T15 M, T18 M |
 | `tests/test_document_upload_service.py` | T05 M |
 | `tests/test_harness_guards.py` | T00 N |

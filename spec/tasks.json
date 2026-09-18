@@ -1,5 +1,5 @@
 {
-  "spec_version": "IR-SIMPLE-1.0.18",
+  "spec_version": "IR-SIMPLE-1.0.19",
   "execution": "strictly_sequential_fresh_sessions",
   "path_base": "repository_root",
   "deletes_allowed": false,
@@ -1792,6 +1792,93 @@
         "app/services/workspace_matching.py",
         "app/services/workspace_comparison.py",
         "tools/validate_evaluation_dataset.py"
+      ],
+      "code_changes_allowed": true
+    },
+    {
+      "id": "T24",
+      "name": "Evaluation dataset web import",
+      "depends_on": [
+        "T23"
+      ],
+      "modify": [
+        "README.md",
+        "docs/development.md",
+        "docs/code-document-map.json"
+      ],
+      "create": [
+        "setup_evaluation_data.py",
+        "tests/test_evaluation_data_entrypoint.py",
+        ".harness/runs/T24/result.json"
+      ],
+      "provides": [
+        "development-only idempotent web import for the local evaluation set"
+      ],
+      "consumes": [
+        "T23 accepted dataset rules",
+        "existing WorkspaceService upload flow",
+        "existing WorkspaceWorker and development runtime boundary"
+      ],
+      "acceptance_ids": [
+        "D39",
+        "D40",
+        "D41",
+        "D42"
+      ],
+      "commands": [
+        [
+          "uv",
+          "run",
+          "pytest",
+          "tests/test_evaluation_data_entrypoint.py",
+          "-q"
+        ],
+        [
+          "uv",
+          "run",
+          "ruff",
+          "check",
+          "setup_evaluation_data.py",
+          "tests/test_evaluation_data_entrypoint.py"
+        ],
+        [
+          "uv",
+          "run",
+          "python",
+          "tools/check_spec_contract.py",
+          "--spec-root",
+          "spec"
+        ],
+        [
+          "git",
+          "diff",
+          "--check",
+          "${TASK_BASE}"
+        ]
+      ],
+      "status": "not_started",
+      "read_inputs": [
+        "spec/README.md",
+        "spec/02-architecture.md",
+        "spec/03-contracts.md",
+        "spec/04-rules.md",
+        "spec/05-tasks.md",
+        "spec/06-harness.md",
+        "spec/07-acceptance.md",
+        "spec/tasks.json",
+        "app/core/config.py",
+        "app/domain/admin_users.py",
+        "app/domain/workspace.py",
+        "app/infra/database.py",
+        "app/infra/database_models.py",
+        "app/infra/minio_storage.py",
+        "app/infra/postgres_task_repository.py",
+        "app/infra/postgres_workspace_repository.py",
+        "app/services/document_upload_service.py",
+        "app/services/workspace_service.py",
+        "app/workers/workspace_worker.py",
+        "setup_demo_data.py",
+        "tests/test_demo_data_entrypoint.py"
       ],
       "code_changes_allowed": true
     }

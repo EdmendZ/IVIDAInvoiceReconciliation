@@ -68,6 +68,10 @@ cd E:\ZephyrLLM\Projects\IVIDAInvoiceReconciliation
 这些数据只用于体验已验收的工作台流程，不代表真实抽取准确率，也不代表已接入真实
 TapTouch。脚本只输出场景 document ID 和显示状态，不输出密码、Token 或连接配置。
 
+如果要在网页端查看完整的 8 个评测案例（17 份英文 PDF），在同一开发环境运行
+`setup_evaluation_data.py`。它使用 `evaluation_data/` 中的 Gold JSON 作为确定性 Draft，
+重复运行不会新增记录；该入口只用于本地网页演示，不代表真实 OCR、模型或 TapTouch 接入。
+
 ### 分别启动组件
 
 ```powershell

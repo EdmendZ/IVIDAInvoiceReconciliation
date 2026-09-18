@@ -81,6 +81,8 @@ T22 追加验收：D34 同一 TapTouch 外部收货来源使用更高版本更�
 
 T23 追加验收：D36 数据集 manifest、8 个 Gold 请求和 17 份合成 PDF 通过既有完整性及关键字段来源校验；数据集缺失时测试清晰跳过。D37 Gold JSON 进入现有工作台规则后，exact single、split delivery、short delivery、price variance、invoice-only、receive-note-only 和 rounding tolerance 分别得到预期自动关联、逐行结果和 outcome。D38 PO mismatch 的候选状态为 `needs_selection` 且不自动选择收货单；显式人工选择后逐行比较结果可复现，但不改变自动匹配门槛。
 
+T24 追加验收：D39 `setup_evaluation_data.py` 在 production 环境访问数据库或对象存储前拒绝；数据集缺失、路径越界、文档类型/编号与 Gold 不一致或非 fixture 重复记录均拒绝。D40 在隔离开发运行时导入 8 个案例的 17 份英文 PDF，Invoice/Receive Note 出现在工作台列表，Workspace Worker 生成一致、差异和 `needs_selection` 等真实显示状态。D41 同一范围重复运行不新增 Task、Run、Draft、Workspace Document、Revision 或 Preview，输出 ID 和状态稳定。D42 原件保留为可查看的 PDF，Gold payload 只作为明确 fixture Draft 写入；入口不连接 TapTouch、OCR 或外部模型，不输出 Secret。
+
 ## 4. 迁移与兼容验证
 
 1. 使用生产相同 PostgreSQL 主版本的独立测试库，从20260807_14迁移至15；保留旧表和记录。

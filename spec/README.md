@@ -1,6 +1,6 @@
 # Invoice / Receive Note 简化对账 Spec
 
-版本：`IR-SIMPLE-1.0.18`；日期：2026-09-18；状态：**用户已授权修正规范并继续开发，按任务顺序执行**。
+版本：`IR-SIMPLE-1.0.19`；日期：2026-09-18；状态：**用户已授权修正规范并继续开发，按任务顺序执行**。
 
 本目录是下一阶段开发的唯一设计依据。执行 Agent 没有架构决策权，不得从聊天记录自行补需求。架构、接口、文件路径、任务依赖和验收均由本包固定；未覆盖的问题进入变更请求，不允许边写边设计。
 
@@ -40,6 +40,8 @@
 TapTouch 来源一致性追加确认：同一 source_system + external_tenant_id + external_store_id + external_receiving_id 的版本链必须保持 external_supplier_id 不变；上游供应商 ID 变化时拒绝该版本并记录来源冲突，不能静默改写工作台收货单身份。external_supplier_id 只用于保护 TapTouch 来源版本链，不注入 Invoice，也不替代 Invoice 与 Receive Note 之间既有的 ABN/名称匹配规则。
 
 本地数据验收追加确认：继续使用项目已有的合成澳洲采购数据集验证 Invoice/Receive Note 工作台规则。Gold JSON 代表已提取结构化输入，PDF 只用于原件完整性和关键字段可读性校验；数据集缺失时测试明确跳过，不把缺失数据伪报成通过。该任务不接入 TapTouch、真实 OCR 或外部模型。
+
+网页演示追加确认：允许在非生产环境运行根目录 `setup_evaluation_data.py`，将同一套本地评测 PDF 和 Gold JSON 以明确的 evaluation fixture 标记导入工作台，供网页端查看 8 个发票案例及其收货单。入口必须复用正式上传、工作区仓储和 Worker，重复运行不新增记录；数据集不存在时拒绝导入，生产环境在连接数据库或对象存储前拒绝执行。
 
 ## 基线
 

@@ -1,6 +1,6 @@
 # 05 任务、模块责任与文件权限
 
-机器权威清单是 [tasks.json](tasks.json)。下表定义工作内容和验收含义；两者不一致时停止。任务严格串行 T00→T23，每个任务单独新执行上下文；协调者负责验收和推进。
+机器权威清单是 [tasks.json](tasks.json)。下表定义工作内容和验收含义；两者不一致时停止。任务严格串行 T00→T24，每个任务单独新执行上下文；协调者负责验收和推进。
 
 任何任务只能读冻结 Spec＋本任务列出的输入实现＋直接依赖的已验收代码/报告；可只读检查现有源码寻找证据，但不得把旧聊天、旧计划作为新需求。整个 spec/ 对执行 Agent 只读。不自动读取 .env、个人配置、数据库备份或 evaluation_data 私有样本。
 
@@ -145,6 +145,10 @@ v1.0.3：允许修改现有 CI，将新 PostgreSQL 测试接入专用以 `_works
 ## T23：合成数据集工作台验收
 
 使用现有 `evaluation_data/`（若本地存在）中的 manifest、Gold JSON 和 17 份 PDF，新增数据驱动的工作台纯规则验收。将 Gold JSON 作为已提取 `RevisionView` 输入，逐案例验证一对一、一对多、数量差异、价格差异、Invoice-only、Receive Note-only、金额容差和 PO 冲突。PDF 仅调用现有校验器确认原件可读及 Gold 关键字段可追溯，不执行真实 OCR/模型。数据集不存在时测试必须清晰 skip；不能生成替代数据冒充通过，不能连接 TapTouch，不修改业务接口、表或匹配规则。
+
+## T24：评测数据网页导入
+
+新增根目录 `setup_evaluation_data.py`，仅允许非生产环境运行。它读取本地 `evaluation_data/manifest.json`、17 份英文 PDF 和 Gold JSON，通过现有 `WorkspaceService.upload`、PostgreSQL Workspace Repository 和 Workspace Worker 创建带固定 evaluation fixture 标记的工作台记录。不得调用真实 OCR、模型或 TapTouch，不新增表、路由、状态或匹配规则。每个文档使用确定性幂等键；重复运行复用已有 Task、Run、Draft、Workspace Document、Revision 和 Preview。若数据集缺失、原件与 Gold 不一致或已存在非 fixture 记录，必须停止并说明，不覆盖既有业务数据。输出仅包含案例、文档 ID、显示状态、匹配状态和预览结果，不输出凭据或连接信息。补充隔离运行时测试覆盖生产拒绝、17 文档导入、网页可读状态和重复运行无新增记录。
 
 ## 任务报告（每任务唯一输出）
 

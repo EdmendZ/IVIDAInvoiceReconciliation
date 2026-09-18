@@ -47,6 +47,16 @@ Invoice、自动关联且数量一致、自动关联但数量有差异。重复�
 演示工作台业务流程，不能用于宣称抽取准确率或真实 TapTouch 生产接入。标准输出仅包含
 每个场景的 document ID、显示状态和预览结果，不包含密码、Token、DSN 或其他 Secret。
 
+要在网页端查看完整评测集，确认 `evaluation_data/` 已存在后运行：
+
+```powershell
+.\.venv\Scripts\python.exe setup_evaluation_data.py
+```
+
+该入口会导入 8 个案例的 17 份英文 PDF，并用对应 Gold JSON 创建 evaluation fixture
+Draft，再由 Workspace Worker 生成网页列表和预览状态。它同样只允许开发环境，重复运行
+复用既有记录，不调用 OCR、模型或 TapTouch；数据集缺失或原件与 Gold 不一致时会停止。
+
 在 IDE 中运行 `run_local_demo.py`，或执行 `start_local_demo.ps1`。启动器复用已存在的
 本项目进程，启动 API、Extraction Worker、Workspace Worker 和前端，写日志到
 `logs/local-demo/`，健康检查后打开 <http://127.0.0.1:5274>。
