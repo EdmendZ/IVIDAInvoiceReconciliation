@@ -1,5 +1,5 @@
 {
-  "spec_version": "IR-SIMPLE-1.0.17",
+  "spec_version": "IR-SIMPLE-1.0.18",
   "execution": "strictly_sequential_fresh_sessions",
   "path_base": "repository_root",
   "deletes_allowed": false,
@@ -1723,6 +1723,75 @@
         "tests/test_taptouch_receiving_import.py",
         "tests/test_taptouch_integration_api.py",
         "docs/product.md"
+      ],
+      "code_changes_allowed": true
+    },
+    {
+      "id": "T23",
+      "name": "Evaluation dataset workspace acceptance",
+      "depends_on": [
+        "T22"
+      ],
+      "modify": [
+        "docs/development.md"
+      ],
+      "create": [
+        "tests/test_workspace_evaluation_dataset.py",
+        ".harness/runs/T23/result.json"
+      ],
+      "provides": [
+        "dataset-driven workspace matching and comparison acceptance"
+      ],
+      "consumes": [
+        "T22 accepted baseline",
+        "evaluation_data manifest and Gold JSON when present locally",
+        "existing dataset PDF validator"
+      ],
+      "acceptance_ids": [
+        "D36",
+        "D37",
+        "D38"
+      ],
+      "commands": [
+        [
+          "python",
+          "tools/validate_evaluation_dataset.py"
+        ],
+        [
+          "python",
+          "-m",
+          "pytest",
+          "tests/test_workspace_evaluation_dataset.py",
+          "-q"
+        ],
+        [
+          "uv",
+          "run",
+          "ruff",
+          "check",
+          "tests/test_workspace_evaluation_dataset.py"
+        ],
+        [
+          "git",
+          "diff",
+          "--check",
+          "${TASK_BASE}"
+        ]
+      ],
+      "status": "not_started",
+      "read_inputs": [
+        "spec/README.md",
+        "spec/02-architecture.md",
+        "spec/03-contracts.md",
+        "spec/04-rules.md",
+        "spec/05-tasks.md",
+        "spec/06-harness.md",
+        "spec/07-acceptance.md",
+        "spec/tasks.json",
+        "app/domain/workspace.py",
+        "app/services/workspace_matching.py",
+        "app/services/workspace_comparison.py",
+        "tools/validate_evaluation_dataset.py"
       ],
       "code_changes_allowed": true
     }

@@ -79,6 +79,8 @@ T21 追加验收：D32 Invoice 核对详情根据现有修订和预览显示“�
 
 T22 追加验收：D34 同一 TapTouch 外部收货来源使用更高版本更新时，external_supplier_id 必须与既有版本一致；不一致返回既有 external_version_conflict 语义且数据库不新增该版本。D35 相同外部供应商 ID 的新版本、相同版本重放和旧版本回放继续分别遵守更新、幂等和过期拒绝规则；外部供应商 ID 不进入 Invoice/Receive Note 匹配输入，现有工作台规则和 API 保持不变。
 
+T23 追加验收：D36 数据集 manifest、8 个 Gold 请求和 17 份合成 PDF 通过既有完整性及关键字段来源校验；数据集缺失时测试清晰跳过。D37 Gold JSON 进入现有工作台规则后，exact single、split delivery、short delivery、price variance、invoice-only、receive-note-only 和 rounding tolerance 分别得到预期自动关联、逐行结果和 outcome。D38 PO mismatch 的候选状态为 `needs_selection` 且不自动选择收货单；显式人工选择后逐行比较结果可复现，但不改变自动匹配门槛。
+
 ## 4. 迁移与兼容验证
 
 1. 使用生产相同 PostgreSQL 主版本的独立测试库，从20260807_14迁移至15；保留旧表和记录。
