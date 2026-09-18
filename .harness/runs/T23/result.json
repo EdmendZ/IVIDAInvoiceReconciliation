@@ -1,0 +1,111 @@
+{
+  "task_id": "T23",
+  "spec_version": "IR-SIMPLE-1.0.18",
+  "spec_sha256": "3d44cf80348c9c523a875cd965df8c2c7ef33f60161676bb70f0b3f9286bc310",
+  "base_commit": "10933cc4fcab5ba15ec6372ef692254626a75200",
+  "candidate_commit": "baa955ecd2df78ed7df3727d7c435d481461175e",
+  "changed_files": [
+    ".harness/runs/T23/result.json",
+    "docs/development.md",
+    "tests/test_workspace_evaluation_dataset.py"
+  ],
+  "commands": [
+    {
+      "argv": [
+        "uv",
+        "run",
+        "python",
+        "tools/validate_evaluation_dataset.py"
+      ],
+      "exit_code": 0,
+      "log_sha256": "f97e4b6f59a281ba7c04a99d8b7d338fa33feabc8a4313cdb392f571ae45eab0"
+    },
+    {
+      "argv": [
+        "uv",
+        "run",
+        "pytest",
+        "tests/test_workspace_evaluation_dataset.py",
+        "-q"
+      ],
+      "exit_code": 0,
+      "log_sha256": "55cf85556f9212aec3cf3688ddb048b901ad2536966113215358784c657a7532"
+    },
+    {
+      "argv": [
+        "uv",
+        "run",
+        "ruff",
+        "check",
+        "tests/test_workspace_evaluation_dataset.py"
+      ],
+      "exit_code": 0,
+      "log_sha256": "a4443afdcfb6d7363adb285762515ccf7cf50473b1a05c20c1a50f6bed4d26b0"
+    },
+    {
+      "argv": [
+        "uv",
+        "run",
+        "python",
+        "tools/check_spec_contract.py",
+        "--spec-root",
+        "spec"
+      ],
+      "exit_code": 0,
+      "log_sha256": "cc7a933120f37ac5a8ef91a7cc5ba7d2f3c53cb459f7f59f08d6c0a24760a2a3"
+    },
+    {
+      "argv": [
+        "uv",
+        "run",
+        "python",
+        "tools/check_documentation_sync.py",
+        "--base-ref",
+        "10933cc4fcab5ba15ec6372ef692254626a75200"
+      ],
+      "exit_code": 0,
+      "log_sha256": "7ae650ea9e974497bea80eb403f32832205b50953e897105d2da85189d83f9ad"
+    },
+    {
+      "argv": [
+        "uv",
+        "run",
+        "pytest",
+        "-q"
+      ],
+      "exit_code": 0,
+      "log_sha256": "7b3d1d845ed39e5254f05968dca08bb246d580c490171e2b7dd6b4269c333cb7"
+    },
+    {
+      "argv": [
+        "git",
+        "diff",
+        "--check",
+        "10933cc4fcab5ba15ec6372ef692254626a75200"
+      ],
+      "exit_code": 0,
+      "log_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    }
+  ],
+  "acceptance_ids": [
+    "D36",
+    "D37",
+    "D38"
+  ],
+  "test_results": {
+    "dataset_integrity": {
+      "passed": 1,
+      "skipped": 0
+    },
+    "workspace_gold_cases": {
+      "passed": 8,
+      "skipped": 0
+    }
+  },
+  "known_limits": [
+    "evaluation_data is intentionally ignored by Git; a checkout without the local set skips the dataset tests clearly.",
+    "Gold JSON is trusted extracted input; this task does not measure OCR/model accuracy and does not connect TapTouch.",
+    "Full pytest retains pre-existing environment-dependent skips; the run exited 0."
+  ],
+  "status": "passed"
+}
