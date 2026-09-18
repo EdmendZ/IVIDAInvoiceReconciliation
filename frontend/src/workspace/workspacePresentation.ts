@@ -1,5 +1,5 @@
 import { label } from "../i18n";
-import type { BlockingCode, DocumentDetail, DisplayStatus, MetricStatus, PreviewResult } from "./workspaceTypes";
+import type { BlockingCode, DocumentDetail, DisplayStatus, DocumentPayload, MetricStatus, PreviewResult, SubjectComparison } from "./workspaceTypes";
 
 export type ResultExplanation = {
   key: string;
@@ -8,6 +8,63 @@ export type ResultExplanation = {
   impact: string;
   action: string;
 };
+
+export type SupplierMatchBasis = "abn" | "name" | "unverified" | "conflict";
+
+export type SupplierBasisView = {
+  key: string;
+  basis: SupplierMatchBasis;
+  title: string;
+  receivingLabel: string;
+  reason: string;
+};
+
+/** Keep the same conservative normalization used by the matching UI helpers. */
+export function normalizeSupplierIdentity(value: string | null | undefined): string {
+  return (value ?? "").normalize("NFKC").toLocaleLowerCase().replace(/[^\p{L}\p{N}]/gu, "");
+}
+
+export function supplierMatchBasis(
+  invoice: DocumentPayload | null,
+  receiving: DocumentPayload | null,
+  supplierStatus: SubjectComparison["supplier"] = "equal",
+): SupplierMatchBasis {
+  if (supplierStatus === "conflict") return "conflict";
+  if (supplierStatus === "unverified" || !invoice?.supplier || !receiving?.supplier) return "unverified";
+
+  const invoiceAbn = normalizeSupplierIdentity(invoice.supplier.business_number);
+  const receivingAbn = normalizeSupplierIdentity(receiving.supplier.business_number);
+  if (invoiceAbn && receivingAbn && invoiceAbn === receivingAbn) return "abn";
+
+  const invoiceName = normalizeSupplierIdentity(invoice.supplier.name);
+  const receivingName = normalizeSupplierIdentity(receiving.supplier.name);
+  if (invoiceName && receivingName && invoiceName === receivingName) return "name";
+  return "unverified";
+}
+
+function supplierBasisCopy(basis: SupplierMatchBasis): Pick<SupplierBasisView, "title" | "reason"> {
+  if (basis === "abn") return { title: "按 ABN 匹配", reason: "双方 ABN 规范化后相同。" };
+  if (basis === "name") return { title: "按名称匹配", reason: "双方没有可用 ABN，供应商名称规范化后相同。" };
+  if (basis === "conflict") return { title: "供应商冲突", reason: "双方 ABN 或供应商名称冲突，系统不会把它们当作同一供应商。" };
+  return { title: "供应商未核验", reason: "双方缺少足够的 ABN 或名称，系统没有把供应商身份当作已核验。" };
+}
+
+export function supplierBasisViews(
+  invoice: DocumentPayload | null,
+  receivings: Array<{ document_id: string; payload: DocumentPayload }>,
+  supplierStatus: SubjectComparison["supplier"] | null,
+): SupplierBasisView[] {
+  return receivings.map((receiving) => {
+    const basis = supplierMatchBasis(invoice, receiving.payload, supplierStatus ?? "equal");
+    const copy = supplierBasisCopy(basis);
+    return {
+      key: `${receiving.document_id}:${basis}`,
+      basis,
+      ...copy,
+      receivingLabel: receiving.payload.document_number || "编号未知",
+    };
+  });
+}
 
 const BLOCKING_EXPLANATIONS: Record<BlockingCode, Omit<ResultExplanation, "key">> = {
   EMPTY_ITEM_KEY: { title: "商品标识缺失", reason: "至少一个商品行既没有 SKU，也没有可用于关联的描述。", impact: "系统无法确定两边是否为同一商品。", action: "根据原件补充 SKU 或商品描述后重新核对。" },

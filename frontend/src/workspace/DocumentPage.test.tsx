@@ -92,6 +92,31 @@ afterEach(() => {
 });
 
 describe("DocumentPage", () => {
+  it("shows the supplier matching basis for each selected receive note", async () => {
+    const base = invoiceDetail();
+    const invoiceRevision = revision("invoice-1", { ...payload, supplier: { name: "English Foods Pty Ltd", business_number: "12 345 678 901", address: null } });
+    const abnReceiving = revision("rn-1", { ...base.selected_receivings[0]!.payload, supplier: { name: "Different display name", business_number: "12345678901", address: null } });
+    const nameReceiving = revision("rn-2", { ...base.selected_receivings[0]!.payload, document_number: "RN-2", supplier: { name: " English-Foods Pty. Ltd. ", business_number: null, address: null } });
+    const paired = invoiceDetail({
+      document: { ...base.document, selected_document_ids: ["rn-1", "rn-2"] },
+      current_revision: invoiceRevision,
+      selected_receivings: [abnReceiving, nameReceiving],
+      preview: { ...base.preview!, result: { ...base.preview!.result, subject: { ...base.preview!.result.subject, supplier: "equal" } } },
+    });
+    vi.spyOn(globalThis, "fetch").mockImplementation((input) => {
+      if (String(input) === "/api/workspace/documents/invoice-1") return response(paired);
+      throw new Error(`Unexpected request: ${String(input)}`);
+    });
+
+    render(<DocumentPage documentId="invoice-1" onNavigate={vi.fn()} />);
+
+    expect(await screen.findByRole("region", { name: "供应商匹配依据" })).toBeTruthy();
+    expect(screen.getByText("按 ABN 匹配")).toBeTruthy();
+    expect(screen.getByText("按名称匹配")).toBeTruthy();
+    expect(screen.getByText("双方 ABN 规范化后相同。")).toBeTruthy();
+    expect(screen.getByText("双方没有可用 ABN，供应商名称规范化后相同。")).toBeTruthy();
+  });
+
   it("shows invoice and multiple receive-note originals and follows a line source tab", async () => {
     const receivingOne = invoiceDetail().selected_receivings[0]!;
     const receivingTwoPayload: DocumentPayload = {

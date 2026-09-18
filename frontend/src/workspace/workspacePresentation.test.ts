@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
-import { blockingExplanations, canConfirm, canEdit, canReopen, differenceExplanation, displayStatusLabel, metricStatusLabel, unverifiedExplanations, unverifiedSummary } from "./workspacePresentation";
-import type { DocumentDetail, PreviewResult } from "./workspaceTypes";
+import { blockingExplanations, canConfirm, canEdit, canReopen, differenceExplanation, displayStatusLabel, metricStatusLabel, supplierBasisViews, supplierMatchBasis, unverifiedExplanations, unverifiedSummary } from "./workspacePresentation";
+import type { DocumentDetail, DocumentPayload, PreviewResult } from "./workspaceTypes";
 
 const revision = {
   revision_id: "rev-1", document_id: "doc-1", sequence: 1, origin: "extracted" as const,
@@ -32,6 +32,23 @@ function detail(overrides: Partial<DocumentDetail> = {}): DocumentDetail {
 }
 
 describe("workspace presentation", () => {
+  it("explains the conservative supplier identity basis without changing English values", () => {
+    const invoice: DocumentPayload = { ...revision.payload, supplier: { name: "English Foods Pty Ltd", business_number: "12 345 678 901", address: null } };
+    const abnReceiving: DocumentPayload = { ...revision.payload, document_type: "receive_note", document_number: "RN-ABN", supplier: { name: "Different display name", business_number: "12345678901", address: null } };
+    const nameReceiving: DocumentPayload = { ...abnReceiving, document_number: "RN-NAME", supplier: { name: " English-Foods Pty. Ltd. ", business_number: null, address: null } };
+    expect(supplierMatchBasis(invoice, abnReceiving, "equal")).toBe("abn");
+    expect(supplierMatchBasis(invoice, nameReceiving, "equal")).toBe("name");
+    expect(supplierMatchBasis(invoice, nameReceiving, "unverified")).toBe("unverified");
+    expect(supplierMatchBasis(invoice, nameReceiving, "conflict")).toBe("conflict");
+    expect(supplierBasisViews(invoice, [
+      { document_id: "rn-abn", payload: abnReceiving },
+      { document_id: "rn-name", payload: nameReceiving },
+    ], "equal")).toEqual([
+      expect.objectContaining({ basis: "abn", title: "按 ABN 匹配", receivingLabel: "RN-ABN" }),
+      expect.objectContaining({ basis: "name", title: "按名称匹配", receivingLabel: "RN-NAME" }),
+    ]);
+  });
+
   it("labels statuses in Chinese while leaving business values to callers", () => {
     expect(displayStatusLabel("awaiting_confirmation")).toBe("待确认");
     expect(metricStatusLabel("within_tolerance")).toBe("容差内");

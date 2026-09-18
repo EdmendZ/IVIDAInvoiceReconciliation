@@ -17,7 +17,7 @@ import {
   selectReceivings,
   voidDocument,
 } from "./workspaceClient";
-import { blockingExplanations, canConfirm, canEdit, canReopen, differenceExplanation, displayStatusLabel, metricStatusLabel, unverifiedExplanations, unverifiedSummary } from "./workspacePresentation";
+import { blockingExplanations, canConfirm, canEdit, canReopen, differenceExplanation, displayStatusLabel, metricStatusLabel, normalizeSupplierIdentity, supplierBasisViews, unverifiedExplanations, unverifiedSummary } from "./workspacePresentation";
 import type {
   ActionView,
   Candidate,
@@ -64,16 +64,12 @@ function SourceViewer({ source, unavailableText }: { source: SourcePreview; unav
     : <iframe className="workspace-source-frame" src={source.url} title="单据 PDF 原件" />;
 }
 
-function normalized(value: string | null | undefined): string {
-  return (value ?? "").normalize("NFKC").toLocaleLowerCase().replace(/[^\p{L}\p{N}]/gu, "");
-}
-
 function subjectEligible(invoice: DocumentPayload, receiving: DocumentPayload): { eligible: boolean; reason: string } {
-  const invoiceBusiness = normalized(invoice.supplier?.business_number);
-  const receiveBusiness = normalized(receiving.supplier?.business_number);
+  const invoiceBusiness = normalizeSupplierIdentity(invoice.supplier?.business_number);
+  const receiveBusiness = normalizeSupplierIdentity(receiving.supplier?.business_number);
   const supplierEqual = invoiceBusiness && receiveBusiness
     ? invoiceBusiness === receiveBusiness
-    : Boolean(normalized(invoice.supplier?.name)) && normalized(invoice.supplier?.name) === normalized(receiving.supplier?.name);
+    : Boolean(normalizeSupplierIdentity(invoice.supplier?.name)) && normalizeSupplierIdentity(invoice.supplier?.name) === normalizeSupplierIdentity(receiving.supplier?.name);
   if (!supplierEqual) return { eligible: false, reason: "供应商主体不一致或无法核验" };
   if (invoice.currency !== receiving.currency) return { eligible: false, reason: "币种不一致" };
   return { eligible: true, reason: "同供应商、同币种，可人工选择" };
@@ -347,6 +343,9 @@ export function DocumentPage({
   const blockerGuidance = preview ? blockingExplanations(preview) : [];
   const differenceGuidance = preview ? differenceExplanation(preview) : null;
   const unverifiedGuidance = preview ? unverifiedExplanations(preview) : [];
+  const supplierBasis = preview && detail.current_revision
+    ? supplierBasisViews(detail.current_revision.payload, selectedRevisions, preview.subject.supplier)
+    : [];
   const completed = detail.document.display_status === "completed";
   const mutableInvoice = isInvoice && detail.document.source_kind === "upload" && !completed && detail.document.processing_status === "ready" && detail.review_status !== "completed";
   const canVoid = detail.document.source_kind === "upload" && !completed && detail.document.processing_status !== "voided";
@@ -587,6 +586,7 @@ export function DocumentPage({
       {isInvoice && detail.preview && (
         <section className="workspace-panel preview-panel">
           <div className="workspace-panel-heading preview-heading"><div><span className="eyebrow">核对预览</span><h3>{label(detail.preview.result.outcome)}</h3><p>{label(detail.preview.result.coverage)} · {unverifiedSummary(detail.preview.result)}</p></div><span className={`result-decision ${outcome === "consistent" ? "clear" : "review"}`}>{label(outcome ?? "")}</span></div>
+          {supplierBasis.length ? <section aria-label="供应商匹配依据" className="supplier-basis-panel"><header><strong>供应商匹配依据</strong><p>以下说明来自当前单据和所选 Receive Note 的现有字段，不会替代逐行核对。</p></header><div className="supplier-basis-grid">{supplierBasis.map((item) => <article className={`supplier-basis-card ${item.basis}`} key={item.key}><div><strong>{item.title}</strong><span>{item.receivingLabel}</span></div><p>{item.reason}</p></article>)}</div></section> : null}
           {blockerGuidance.length ? <section aria-label="必须修正的问题" className="result-guidance blocking-guidance"><header><strong>必须修正后才能确认</strong><p>以下问题会让当前关联或比较结果不安全。</p></header><div className="result-guidance-grid">{blockerGuidance.map((item) => <article key={item.key}><h4>{item.title}<span>阻断</span></h4><dl><div><dt>原因</dt><dd>{item.reason}</dd></div><div><dt>影响</dt><dd>{item.impact}</dd></div><div><dt>处理</dt><dd>{item.action}</dd></div></dl></article>)}</div></section> : null}
           <div className="workspace-metrics"><div><strong>{preview?.summary.total_lines}</strong><span>商品行</span></div><div><strong>{preview?.summary.different_lines}</strong><span>差异行</span></div><div><strong>{preview?.summary.unverified_lines}</strong><span>未核验行</span></div></div>
           <div className="table-scroll"><table className="result-table"><thead><tr><th>商品</th><th>数量</th><th>单价</th><th>金额</th><th>行状态</th></tr></thead><tbody>{preview?.lines.map((line) => <tr key={line.match_key}><td><button className="line-source-button" disabled={!line.receive_lines.length} onClick={() => { const sourceId = line.receive_lines[0]?.document_id; if (sourceId) setActiveReceivingId(sourceId); }} title={line.receive_lines.length ? "查看对应收货单原件" : "该行没有对应收货记录"} type="button"><strong>{line.sku || line.description}</strong>{line.sku && <small>{line.description}</small>}</button></td><td>{line.quantity.invoice_value ?? "—"} / {line.quantity.received_value ?? "—"}<small>{metricStatusLabel(line.quantity.status)}</small></td><td>{line.price.invoice_value ?? "—"} / {line.price.received_value ?? "—"}<small>{metricStatusLabel(line.price.status)}</small></td><td>{line.amount.invoice_value ?? "—"} / {line.amount.received_value ?? "—"}<small>{metricStatusLabel(line.amount.status)}</small></td><td>{label(line.status)}</td></tr>)}</tbody></table></div>
