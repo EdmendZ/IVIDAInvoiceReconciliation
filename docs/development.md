@@ -79,6 +79,8 @@ uv run ruff check .
 因此开发 `.env` 不会改变单元测试结果。缺少外部 MinerU、模型或 MinIO 时，只跳过对应
 集成验证，不伪报通过。
 
+旧版说明曾使用 `IVIDA_TEST_POSTGRES_URL`；它只作为历史名称保留，工作台测试不再读取该变量。
+
 ## CI/CD
 
 GitHub Actions 执行后端测试、前端测试与构建、Ruff、文档同步、Compose smoke 和镜像扫描。
