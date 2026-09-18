@@ -56,6 +56,8 @@ Invoice、自动关联且数量一致、自动关联但数量有差异。重复�
 该入口会导入 8 个案例的 17 份英文 PDF，并用对应 Gold JSON 创建 evaluation fixture
 Draft，再由 Workspace Worker 生成网页列表和预览状态。它同样只允许开发环境，重复运行
 复用既有记录，不调用 OCR、模型或 TapTouch；数据集缺失或原件与 Gold 不一致时会停止。
+导入前还要确认 `DATABASE_URL` 可连接且 MinIO 可用；API 健康页返回 200 只表示 API 进程在线，
+不能替代数据库和对象存储联通检查。
 
 在 IDE 中运行 `run_local_demo.py`，或执行 `start_local_demo.ps1`。启动器复用已存在的
 本项目进程，启动 API、Extraction Worker、Workspace Worker 和前端，写日志到
