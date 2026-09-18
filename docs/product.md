@@ -9,6 +9,10 @@
 系统不实现合同、完整采购订单、付款、总账或库存主数据。PO number 只是可选匹配
 信号。当前 TapTouch 接口是稳定适配层，不代表已经接入真实生产 API。
 
+TapTouch 的 external_supplier_id 只用于保护同一外部收货来源的版本链不发生供应商身份漂移；
+它不会注入 Invoice，也不会替代双方 ABN/名称匹配。若同一外部收货 ID 的新版本更换供应商
+ID，导入会拒绝该版本，等待上游修正或人工处理。
+
 ## 简化流程
 
 1. 上传 Invoice 或 Receive Note；TapTouch Receiving 也可通过受保护接口导入。

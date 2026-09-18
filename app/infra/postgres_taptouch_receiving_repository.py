@@ -74,6 +74,10 @@ class PostgresTaptouchReceivingRepository:
             raise ReceivingVersionConflict(
                 f"External version {incoming_number} is older than {latest_number}"
             )
+        if existing[0].external_supplier_id != incoming.external_supplier_id:
+            raise ReceivingIdentityConflict(
+                "External receiving source changed supplier identity"
+            )
         same = next(
             (item for item in existing if item.external_version == incoming_number),
             None,
