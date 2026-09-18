@@ -73,6 +73,18 @@ npm --prefix frontend run build
 uv run ruff check .
 ```
 
+本地已有的合成澳洲采购数据集还可以用于工作台规则验收。它位于被 Git 忽略的
+`evaluation_data/`，包含 8 个案例、17 份英文 PDF 和 Gold JSON；Gold JSON 是已提取的
+结构化输入，不能用来宣称真实 OCR 或模型准确率：
+
+```powershell
+.\.venv\Scripts\python.exe tools\validate_evaluation_dataset.py
+.\.venv\Scripts\python.exe -m pytest tests\test_workspace_evaluation_dataset.py -q
+```
+
+如果当前 checkout 没有这套本地数据，工作台数据测试会明确跳过；不会生成替代数据或
+把跳过当作通过。测试只验证现有匹配、逐行比对、容差和人工选择门槛，不连接 TapTouch。
+
 需要 PostgreSQL 的工作台测试必须使用显式隔离的 `WORKSPACE_TEST_DATABASE_URL`，且数据库名
 必须以 `_workspace_test` 结尾；测试套件拒绝连接开发库或生产库。测试启动时固定关闭本机
 工作台开关，需要启用场景的测试自行覆盖配置，
