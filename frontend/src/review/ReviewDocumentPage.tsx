@@ -1,3 +1,4 @@
+import { label, systemMessage } from "../i18n";
 import { useEffect, useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { api } from "../api/client";
@@ -57,9 +58,11 @@ type ValidationPreview = {
 export function ReviewDocumentPage({
   versionId,
   onNavigate,
+  readOnly = false,
 }: {
   versionId: string;
   onNavigate: (path: string, replace?: boolean) => void;
+  readOnly?: boolean;
 }) {
   const detail = useQuery({
     queryKey: ["review-version", versionId],
@@ -88,12 +91,12 @@ export function ReviewDocumentPage({
   useEffect(() => {
     // 450ms 防抖避免用户每敲一个字符就请求后端。AbortController 取消过期请求，
     // 防止较早响应晚到并覆盖最新 JSON 对应的校验结果。
-    if (!detail.data || detail.data.version.status !== "draft") return;
+    if (readOnly || !detail.data || detail.data.version.status !== "draft") return;
     let document: Record<string, unknown>;
     try {
       const parsed: unknown = JSON.parse(editor);
       if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) {
-        throw new Error("Document must be a JSON object");
+        throw new Error("单据内容必须为 JSON 对象");
       }
       document = parsed as Record<string, unknown>;
     } catch {
@@ -106,7 +109,7 @@ export function ReviewDocumentPage({
             rule_code: "JSON_INVALID",
             severity: "blocking",
             field_path: "document",
-            message: "Document JSON is invalid",
+            message: "单据 JSON 无效",
             measured_difference: null,
           },
         ],
@@ -134,7 +137,7 @@ export function ReviewDocumentPage({
         setValidationError(
           problem instanceof Error
             ? problem.message
-            : "Live validation failed",
+            : "实时校验失败",
         );
         setValidationPreview(null);
       } finally {
@@ -145,7 +148,7 @@ export function ReviewDocumentPage({
       window.clearTimeout(timer);
       controller.abort();
     };
-  }, [detail.data, editor, versionId]);
+  }, [detail.data, editor, readOnly, versionId]);
 
   const displayedIssues = useMemo(
     () => validationPreview?.issues ?? detail.data?.issues ?? [],
@@ -168,7 +171,7 @@ export function ReviewDocumentPage({
       );
       onNavigate(`/review/${next.version_id}`, true);
     } catch (problem) {
-      setMessage(problem instanceof Error ? problem.message : "Save failed");
+      setMessage(problem instanceof Error ? problem.message : "保存失败");
     } finally {
       setBusy(false);
     }
@@ -177,7 +180,7 @@ export function ReviewDocumentPage({
   async function decide(action: "approve" | "reject") {
     const reason =
       action === "reject"
-        ? window.prompt("Why is this document rejected?") ?? ""
+        ? window.prompt("请输入驳回原因") ?? ""
         : "Source document verified";
     if (action === "reject" && !reason.trim()) return;
     setBusy(true);
@@ -195,7 +198,7 @@ export function ReviewDocumentPage({
       });
       onNavigate("/");
     } catch (problem) {
-      setMessage(problem instanceof Error ? problem.message : "Action failed");
+      setMessage(problem instanceof Error ? problem.message : "操作失败");
     } finally {
       setBusy(false);
     }
@@ -207,10 +210,10 @@ export function ReviewDocumentPage({
     }
     const currentLabel =
       detail.data.version.document_type === "invoice"
-        ? "Invoice"
-        : "Receive Note";
+        ? "发票"
+        : "收货单";
     const nextLabel =
-      selectedType === "invoice" ? "Invoice" : "Receive Note";
+      selectedType === "invoice" ? "发票" : "收货单";
     if (
       !window.confirm(
         `Change document type from ${currentLabel} to ${nextLabel}? A new audited version will be created.`,
@@ -236,52 +239,51 @@ export function ReviewDocumentPage({
       onNavigate(`/review/${next.version_id}`, true);
     } catch (problem) {
       setMessage(
-        problem instanceof Error ? problem.message : "Reclassification failed",
+        problem instanceof Error ? problem.message : "重新分类失败",
       );
     } finally {
       setBusy(false);
     }
   }
 
-  if (detail.isLoading) return <div className="loading">Loading document…</div>;
-  if (!detail.data) return <div className="error-banner">Document not found.</div>;
+  if (detail.isLoading) return <div className="loading">正在加载单据…</div>;
+  if (!detail.data) return <div className="error-banner">未找到单据。</div>;
 
   return (
     <section className="page">
       <button className="back-link" onClick={() => onNavigate("/")}>
-        ← Review queue
+        ← 返回审核列表
       </button>
       <div className="review-heading">
         <div>
-          <span className="eyebrow">VERSION {detail.data.version.version_number}</span>
+          <span className="eyebrow">版本 {detail.data.version.version_number}</span>
           <h2>
             {String(
               detail.data.version.document_json.document_number ??
-                "Untitled document",
+                "未命名单据",
             )}
           </h2>
         </div>
-        <span className={`status ${detail.data.version.status}`}>
+        <span className={`status ${label(detail.data.version.status)}`}>
           {detail.data.version.status}
         </span>
       </div>
       <section className="type-control-card" aria-labelledby="document-type-title">
         <div>
-          <span className="eyebrow">CLASSIFICATION CONTROL</span>
-          <h3 id="document-type-title">Confirm the source document type</h3>
+          <span className="eyebrow">单据分类</span>
+          <h3 id="document-type-title">确认原始单据类型</h3>
           <p>
-            Approval confirms this classification. If it is wrong, reclassify
-            the draft before approving it.
+            批准即确认此单据类型。如类型有误，请先修改分类并保存。
           </p>
         </div>
         <div className="type-control-actions">
           <label htmlFor="review-document-type">
-            Document type
+            单据类型
             <select
               id="review-document-type"
               name="document_type"
               value={selectedType}
-              disabled={busy || detail.data.version.status !== "draft"}
+              disabled={readOnly || busy || detail.data.version.status !== "draft"}
               onChange={(event) => {
                 setSelectedType(
                   event.target.value as "invoice" | "receive_note",
@@ -289,11 +291,11 @@ export function ReviewDocumentPage({
                 setTypeConfirmed(false);
               }}
             >
-              <option value="invoice">Invoice</option>
-              <option value="receive_note">Receive Note</option>
+              <option value="invoice">发票</option>
+              <option value="receive_note">收货单</option>
             </select>
           </label>
-          <button
+          {!readOnly && <button
             disabled={
               busy ||
               detail.data.version.status !== "draft" ||
@@ -301,10 +303,10 @@ export function ReviewDocumentPage({
             }
             onClick={reclassify}
           >
-            Reclassify as new version
-          </button>
+            保存分类为新版本
+          </button>}
         </div>
-        {selectedType === detail.data.version.document_type ? (
+        {!readOnly && selectedType === detail.data.version.document_type ? (
           <label
             className="type-confirmation"
             htmlFor="confirm-document-type"
@@ -317,47 +319,47 @@ export function ReviewDocumentPage({
               disabled={busy || detail.data.version.status !== "draft"}
               onChange={(event) => setTypeConfirmed(event.target.checked)}
             />
-            I checked the source and confirm this is a{" "}
+            我已核对原件，确认此单据为{" "}
             <strong>
-              {selectedType === "invoice" ? "Invoice" : "Receive Note"}
+              {selectedType === "invoice" ? "发票" : "收货单"}
             </strong>
             .
           </label>
-        ) : (
+        ) : !readOnly ? (
           <div className="type-warning">
-            Save the new classification before approval.
+            请先保存新的单据分类，再批准。
           </div>
-        )}
+        ) : null}
       </section>
       <div className="review-layout">
         <aside className="source-panel">
-          <h3>Source evidence</h3>
+          <h3>原文证据</h3>
           {detail.data.model_run && (
             <details className="model-run-panel">
-              <summary>Model run</summary>
+              <summary>模型运行信息</summary>
               <dl>
                 <div>
-                  <dt>Parser</dt>
+                  <dt>解析器</dt>
                   <dd>
-                    {detail.data.model_run.parser_provider ?? "Unknown"} /{" "}
-                    {detail.data.model_run.parser_model ?? "Unknown"}
+                    {detail.data.model_run.parser_provider ?? "未知"} /{" "}
+                    {detail.data.model_run.parser_model ?? "未知"}
                   </dd>
                 </div>
                 <div>
-                  <dt>Normalizer</dt>
+                  <dt>字段提取模型</dt>
                   <dd>
-                    {detail.data.model_run.normalizer_provider ?? "Unknown"} /{" "}
-                    {detail.data.model_run.normalizer_model ?? "Unknown"}
+                    {detail.data.model_run.normalizer_provider ?? "未知"} /{" "}
+                    {detail.data.model_run.normalizer_model ?? "未知"}
                   </dd>
                 </div>
                 <div>
-                  <dt>Prompt</dt>
+                  <dt>提示词版本</dt>
                   <dd>
-                    {detail.data.model_run.prompt_version ?? "Not recorded"}
+                    {detail.data.model_run.prompt_version ?? "未记录"}
                   </dd>
                 </div>
                 <div>
-                  <dt>Tokens</dt>
+                  <dt>Token 用量</dt>
                   <dd>
                     {presentTokens(
                       detail.data.model_run.input_tokens,
@@ -366,7 +368,7 @@ export function ReviewDocumentPage({
                   </dd>
                 </div>
                 <div>
-                  <dt>Normalization</dt>
+                  <dt>提取耗时</dt>
                   <dd>
                     {presentLatency(
                       detail.data.model_run.normalization_latency_ms,
@@ -374,7 +376,7 @@ export function ReviewDocumentPage({
                   </dd>
                 </div>
                 <div>
-                  <dt>Estimated cost</dt>
+                  <dt>估算成本</dt>
                   <dd>
                     {presentCost(detail.data.model_run.estimated_cost_aud)}
                   </dd>
@@ -385,11 +387,11 @@ export function ReviewDocumentPage({
           {detail.data.evidence.map((item, index) => (
             <article className="evidence" key={`${item.field_path}-${index}`}>
               <strong>{item.field_path}</strong>
-              <span>{item.page ? `Page ${item.page}` : "Page unknown"}</span>
+              <span>{item.page ? `页码 ${item.page}` : "页码未知"}</span>
               <p>{item.source_text}</p>
             </article>
           ))}
-          {!detail.data.evidence.length && <p>No evidence was extracted.</p>}
+          {!detail.data.evidence.length && <p>未提取到原文证据。</p>}
         </aside>
         <div className="editor-panel">
           <StructuredDocumentEditor
@@ -397,17 +399,18 @@ export function ReviewDocumentPage({
             evidence={detail.data.evidence}
             issues={displayedIssues}
             onChange={setEditor}
+            readOnly={readOnly}
           />
         </div>
         <aside className="issues-panel">
           <div className="validation-heading">
-            <h3>Live validation</h3>
-            {validationBusy && <span>Checking…</span>}
+            <h3>实时校验</h3>
+            {validationBusy && <span>正在校验…</span>}
           </div>
           {validationPreview && (
             <div className="validation-summary">
-              <strong>{validationPreview.blocking_count}</strong> blocking ·{" "}
-              <strong>{validationPreview.warning_count}</strong> warning
+              <strong>{validationPreview.blocking_count}</strong> 项阻断 ·{" "}
+              <strong>{validationPreview.warning_count}</strong> 项警告
             </div>
           )}
           {validationError && (
@@ -420,26 +423,26 @@ export function ReviewDocumentPage({
             >
               <strong>{issue.rule_code}</strong>
               <span>{issue.field_path}</span>
-              <p>{issue.message}</p>
+              <p>{systemMessage(issue.message)}</p>
               {issue.measured_difference && (
-                <small>Difference: {issue.measured_difference}</small>
+                <small>差值： {issue.measured_difference}</small>
               )}
             </article>
           ))}
           {!displayedIssues.length && !validationBusy && (
-            <div className="success-banner">All current checks passed.</div>
+            <div className="success-banner">当前所有校验均已通过。</div>
           )}
         </aside>
       </div>
       {message && <div className="error-banner">{message}</div>}
-      <footer className="action-bar">
-        <button disabled={busy} onClick={save}>Save as new version</button>
+      {!readOnly && <footer className="action-bar">
+        <button disabled={busy} onClick={save}>保存为新版本</button>
         <button
           className="danger"
           disabled={busy || detail.data.version.status !== "draft"}
           onClick={() => decide("reject")}
         >
-          Reject
+          驳回
         </button>
         <button
           className="primary"
@@ -456,9 +459,9 @@ export function ReviewDocumentPage({
           }
           onClick={() => decide("approve")}
         >
-          Approve
+          批准
         </button>
-      </footer>
+      </footer>}
     </section>
   );
 }

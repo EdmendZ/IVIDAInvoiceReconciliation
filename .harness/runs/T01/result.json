@@ -1,0 +1,89 @@
+{
+  "task_id": "T01",
+  "spec_version": "IR-SIMPLE-1.0.1",
+  "base_commit": "5d712ea095e688289ccaaa932d0b48af333c24f4",
+  "enforcement": "diff-gate-only",
+  "status": "passed",
+  "changed_files": [
+    "app/domain/workspace.py",
+    "app/services/workspace_ports.py",
+    "tests/test_workspace_contracts.py",
+    ".harness/runs/T01/result.json"
+  ],
+  "acceptance_ids": [
+    "A25",
+    "A29"
+  ],
+  "acceptance_evidence": {
+    "A25": "English supplier/item/evidence/note preservation, Decimal JSON precision and enum wire values tested.",
+    "A29": "DTO-level source acknowledgement, duplicate dimensions and required resolution note tested. Preview-dependent acknowledgement equality and blocked-preview rejection require future Service/Repository tasks."
+  },
+  "limitations": [
+    "No database, API, service, worker or business-rule implementation is part of T01.",
+    "Coordinator clarified RevisionView eligibility: repository supplies scope-filtered ready non-voided snapshots; matcher derives source_kind from origin (upstream -> taptouch, extracted/manual -> upload). No DTO fields added.",
+    "Cross-record selection eligibility, exact preview acknowledgement equality, immutable persistence and confirmation state semantics must be enforced by subsequent service/repository tasks.",
+    "Existing Invoice/ReceiveNote, FieldEvidence, ValidationIssue and ExtractionTask contracts are reused unchanged; extra=forbid applies to newly defined workspace DTOs."
+  ],
+  "commands": [
+    {
+      "argv": [
+        ".venv/Scripts/python.exe",
+        "-m",
+        "pytest",
+        "tests/test_workspace_contracts.py",
+        "-q"
+      ],
+      "exit_code": 0,
+      "log_sha256": "369c47fbf4e04af873402a8568be38208bebabff8b6f81e2c7207438907bd4e4",
+      "output": "....................................                                     [100%]\r\n"
+    },
+    {
+      "argv": [
+        ".venv/Scripts/python.exe",
+        "tools/check_spec_contract.py",
+        "--spec-root",
+        "spec"
+      ],
+      "exit_code": 0,
+      "log_sha256": "cc7a933120f37ac5a8ef91a7cc5ba7d2f3c53cb459f7f59f08d6c0a24760a2a3",
+      "output": "Spec contract check passed (static references only).\r\n"
+    },
+    {
+      "argv": [
+        ".venv/Scripts/python.exe",
+        "tools/check_task_scope.py",
+        "--task",
+        "T01",
+        "--base",
+        "5d712ea095e688289ccaaa932d0b48af333c24f4",
+        "--spec-root",
+        "spec",
+        "--evidence",
+        ".git/ir-harness/freeze.json"
+      ],
+      "exit_code": 0,
+      "log_sha256": "2f9305d99deadbba6e1029c0bb26dbd9442f13c98c25fb6eb7271aa2e6365ddf",
+      "output": "{\"enforcement\": \"diff-gate-only\", \"changed_files\": [\".harness/runs/T01/result.json\", \"app/domain/workspace.py\", \"app/services/workspace_ports.py\", \"tests/test_workspace_contracts.py\"]}\r\n"
+    },
+    {
+      "argv": [
+        "git",
+        "diff",
+        "--check",
+        "5d712ea095e688289ccaaa932d0b48af333c24f4"
+      ],
+      "exit_code": 0,
+      "log_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "output": ""
+    }
+  ],
+  "coordinator_acceptance": false,
+  "spec_sha256": "83a71801452100220f177b0a480d441854bdb37ca7829b632245847eb6682300",
+  "candidate_commit": null,
+  "known_limits": [
+    "No database, API, service, worker or business-rule implementation is part of T01.",
+    "Coordinator clarified RevisionView eligibility: repository supplies scope-filtered ready non-voided snapshots; matcher derives source_kind from origin (upstream -> taptouch, extracted/manual -> upload). No DTO fields added.",
+    "Cross-record selection eligibility, exact preview acknowledgement equality, immutable persistence and confirmation state semantics must be enforced by subsequent service/repository tasks.",
+    "Existing Invoice/ReceiveNote, FieldEvidence, ValidationIssue and ExtractionTask contracts are reused unchanged; extra=forbid applies to newly defined workspace DTOs."
+  ]
+}

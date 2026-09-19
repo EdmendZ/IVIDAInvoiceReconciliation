@@ -26,7 +26,7 @@ def test_worker_change_requires_extraction_document_update() -> None:
     covered = missing_document_updates(
         {
             "app/workers/extraction_worker.py",
-            "docs/ai/04-extraction-pipeline.md",
+            "docs/ai.md",
         },
         _groups(),
     )

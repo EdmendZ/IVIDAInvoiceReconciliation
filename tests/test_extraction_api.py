@@ -1,6 +1,5 @@
 from decimal import Decimal
 
-from fastapi.testclient import TestClient
 
 from app.api.dependencies import get_document_upload_service, get_extraction_service
 from app.domain.documents import BusinessDocument

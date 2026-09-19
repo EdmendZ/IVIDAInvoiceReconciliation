@@ -7,7 +7,10 @@ from app.core.config import get_settings
 from app.domain.reconciliation import ReconciliationRequest, ReconciliationResult
 from app.services.reconciliation_service import reconcile
 from app.api.auth_dependencies import require_reviewer
-from app.api.dependencies import get_reconciliation_application_service
+from app.api.dependencies import (
+    get_reconciliation_application_service,
+    require_legacy_mutation_available,
+)
 from app.domain.admin_users import AuthenticatedUser
 from app.services.reconciliation_application_service import (
     DocumentNotApproved,
@@ -112,7 +115,10 @@ def list_reconciliation_candidates(
         raise HTTPException(status_code=409, detail=str(exc)) from exc
 
 
-@router.post("/reconciliations")
+@router.post(
+    "/reconciliations",
+    dependencies=[Depends(require_legacy_mutation_available)],
+)
 def create_reconciliation(
     request: ApprovedReconciliationRequest,
     service: ReconciliationApplicationService = Depends(

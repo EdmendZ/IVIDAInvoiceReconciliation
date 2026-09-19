@@ -1,0 +1,1886 @@
+{
+  "spec_version": "IR-SIMPLE-1.0.19",
+  "execution": "strictly_sequential_fresh_sessions",
+  "path_base": "repository_root",
+  "deletes_allowed": false,
+  "renames_allowed": false,
+  "common_readonly": [
+    "spec/"
+  ],
+  "universal_checks": [
+    [
+      "python",
+      "tools/check_task_scope.py",
+      "--task",
+      "${TASK_ID}",
+      "--base",
+      "${TASK_BASE}",
+      "--spec-root",
+      "spec",
+      "--evidence",
+      "${FREEZE_RECORD}"
+    ]
+  ],
+  "harness_acceptance": {
+    "H01": "reject out-of-scope tracked/untracked/delete/rename paths",
+    "H02": "reject traversal, symlink, junction and external path",
+    "H03": "reject modified Spec, manifest or frozen checker",
+    "H04": "failed candidate not merged; subsequent task not dispatched",
+    "H05": "fresh session receives no predecessor conversation context",
+    "H06": "diff-only mode explicitly declared; no Docker or filesystem isolation prerequisite"
+  },
+  "tasks": [
+    {
+      "id": "T00",
+      "name": "Harness guard",
+      "depends_on": [],
+      "modify": [
+        ".github/workflows/ci.yml",
+        "docs/code-document-map.json"
+      ],
+      "create": [
+        "AGENTS.md",
+        "tools/check_task_scope.py",
+        "tools/check_spec_contract.py",
+        "tests/test_harness_guards.py",
+        ".harness/runs/T00/result.json"
+      ],
+      "provides": [
+        "scope checker CLI",
+        "spec checker CLI",
+        "frozen execution instructions"
+      ],
+      "consumes": [],
+      "acceptance_ids": [
+        "H01",
+        "H02",
+        "H03"
+      ],
+      "commands": [
+        [
+          "python",
+          "-m",
+          "pytest",
+          "tests/test_harness_guards.py",
+          "-q"
+        ]
+      ],
+      "status": "not_started",
+      "read_inputs": [
+        "spec/README.md",
+        "spec/01-product.md",
+        "spec/02-architecture.md",
+        "spec/03-contracts.md",
+        "spec/04-rules.md",
+        "spec/05-tasks.md",
+        "spec/06-harness.md",
+        "spec/07-acceptance.md",
+        "spec/tasks.json",
+        "spec/contracts.json"
+      ]
+    },
+    {
+      "id": "T01",
+      "name": "Workspace contracts",
+      "depends_on": [
+        "T00"
+      ],
+      "modify": [],
+      "create": [
+        "app/domain/workspace.py",
+        "app/services/workspace_ports.py",
+        "tests/test_workspace_contracts.py",
+        ".harness/runs/T01/result.json"
+      ],
+      "provides": [
+        "all DTO and Protocol in 03"
+      ],
+      "consumes": [
+        "T00 accepted baseline",
+        "spec/03-contracts.md"
+      ],
+      "acceptance_ids": [
+        "A25",
+        "A29"
+      ],
+      "commands": [
+        [
+          "python",
+          "-m",
+          "pytest",
+          "tests/test_workspace_contracts.py",
+          "-q"
+        ]
+      ],
+      "status": "not_started",
+      "read_inputs": [
+        "spec/README.md",
+        "spec/01-product.md",
+        "spec/02-architecture.md",
+        "spec/03-contracts.md",
+        "spec/04-rules.md",
+        "spec/05-tasks.md",
+        "spec/06-harness.md",
+        "spec/07-acceptance.md",
+        "spec/tasks.json",
+        "spec/contracts.json"
+      ]
+    },
+    {
+      "id": "T02",
+      "name": "Pure rules",
+      "depends_on": [
+        "T01"
+      ],
+      "modify": [
+        "app/services/validation_service.py",
+        "tests/test_validation_service.py"
+      ],
+      "create": [
+        "app/services/workspace_matching.py",
+        "app/services/workspace_comparison.py",
+        "tests/test_workspace_matching.py",
+        "tests/test_workspace_comparison.py",
+        ".harness/runs/T02/result.json"
+      ],
+      "provides": [
+        "normalize_identity",
+        "select_candidates",
+        "compare_workspace"
+      ],
+      "consumes": [
+        "T01 accepted baseline",
+        "spec/03-contracts.md"
+      ],
+      "acceptance_ids": [
+        "A03",
+        "A04",
+        "A05",
+        "A06",
+        "A07",
+        "A08",
+        "A23",
+        "A24"
+      ],
+      "commands": [
+        [
+          "python",
+          "-m",
+          "pytest",
+          "tests/test_workspace_matching.py",
+          "tests/test_workspace_comparison.py",
+          "tests/test_validation_service.py",
+          "-q"
+        ]
+      ],
+      "status": "not_started",
+      "read_inputs": [
+        "spec/README.md",
+        "spec/01-product.md",
+        "spec/02-architecture.md",
+        "spec/03-contracts.md",
+        "spec/04-rules.md",
+        "spec/05-tasks.md",
+        "spec/06-harness.md",
+        "spec/07-acceptance.md",
+        "spec/tasks.json",
+        "spec/contracts.json"
+      ]
+    },
+    {
+      "id": "T03",
+      "name": "Atomic repository",
+      "depends_on": [
+        "T02"
+      ],
+      "modify": [
+        "app/infra/database_models.py",
+        "app/infra/postgres_taptouch_receiving_repository.py",
+        "app/domain/workspace.py",
+        "tests/test_workspace_contracts.py",
+        "docs/architecture.md"
+      ],
+      "create": [
+        "app/infra/postgres_workspace_repository.py",
+        "migrations/versions/20260916_15_workspace.py",
+        "tests/test_postgres_workspace_repository.py",
+        ".harness/runs/T03/result.json"
+      ],
+      "provides": [
+        "WorkspaceRepository all methods",
+        "8 tables and migration",
+        "shared upstream advisory lock"
+      ],
+      "consumes": [
+        "T02 accepted baseline",
+        "spec/03-contracts.md"
+      ],
+      "acceptance_ids": [
+        "A13",
+        "A14",
+        "A15",
+        "A16",
+        "A17",
+        "A19",
+        "A21",
+        "A22"
+      ],
+      "commands": [
+        [
+          "python",
+          "-m",
+          "pytest",
+          "tests/test_postgres_workspace_repository.py",
+          "tests/test_workspace_contracts.py",
+          "-q"
+        ]
+      ],
+      "status": "not_started",
+      "read_inputs": [
+        "spec/README.md",
+        "spec/01-product.md",
+        "spec/02-architecture.md",
+        "spec/03-contracts.md",
+        "spec/04-rules.md",
+        "spec/05-tasks.md",
+        "spec/06-harness.md",
+        "spec/07-acceptance.md",
+        "spec/tasks.json",
+        "spec/contracts.json"
+      ]
+    },
+    {
+      "id": "T04",
+      "name": "Automatic worker",
+      "depends_on": [
+        "T03"
+      ],
+      "modify": [
+        "app/core/config.py",
+        ".env.example",
+        ".env.compose.example",
+        "compose.yaml",
+        "compose.release.yaml",
+        "start_local_demo.ps1",
+        "stop_local_demo.ps1",
+        "scripts/local_demo_common.ps1",
+        "tests/test_delivery_configuration.py"
+      ],
+      "create": [
+        "app/workers/workspace_worker.py",
+        "run_workspace_worker.py",
+        "tests/test_workspace_worker.py",
+        ".harness/runs/T04/result.json"
+      ],
+      "provides": [
+        "WorkspaceWorker.tick/run_forever",
+        "workspace-worker process",
+        "settings"
+      ],
+      "consumes": [
+        "T03 accepted baseline",
+        "spec/03-contracts.md"
+      ],
+      "acceptance_ids": [
+        "A01",
+        "A02",
+        "A10",
+        "A12",
+        "A18",
+        "A28"
+      ],
+      "commands": [
+        [
+          "python",
+          "-m",
+          "pytest",
+          "tests/test_workspace_worker.py",
+          "tests/test_delivery_configuration.py",
+          "-q"
+        ]
+      ],
+      "status": "not_started",
+      "read_inputs": [
+        "spec/README.md",
+        "spec/01-product.md",
+        "spec/02-architecture.md",
+        "spec/03-contracts.md",
+        "spec/04-rules.md",
+        "spec/05-tasks.md",
+        "spec/06-harness.md",
+        "spec/07-acceptance.md",
+        "spec/tasks.json",
+        "spec/contracts.json"
+      ]
+    },
+    {
+      "id": "T05",
+      "name": "Workspace use cases",
+      "depends_on": [
+        "T04"
+      ],
+      "modify": [
+        "app/services/document_upload_service.py",
+        "tests/test_document_upload_service.py"
+      ],
+      "create": [
+        "app/services/workspace_service.py",
+        "tests/test_workspace_service.py",
+        ".harness/runs/T05/result.json"
+      ],
+      "provides": [
+        "WorkspaceService full signatures",
+        "prepare_upload",
+        "source and CSV"
+      ],
+      "consumes": [
+        "T04 accepted baseline",
+        "spec/03-contracts.md"
+      ],
+      "acceptance_ids": [
+        "A09",
+        "A11",
+        "A19",
+        "A27",
+        "A29",
+        "A30"
+      ],
+      "commands": [
+        [
+          "python",
+          "-m",
+          "pytest",
+          "tests/test_workspace_service.py",
+          "tests/test_document_upload_service.py",
+          "-q"
+        ]
+      ],
+      "status": "not_started",
+      "read_inputs": [
+        "spec/README.md",
+        "spec/01-product.md",
+        "spec/02-architecture.md",
+        "spec/03-contracts.md",
+        "spec/04-rules.md",
+        "spec/05-tasks.md",
+        "spec/06-harness.md",
+        "spec/07-acceptance.md",
+        "spec/tasks.json",
+        "spec/contracts.json"
+      ]
+    },
+    {
+      "id": "T06",
+      "name": "HTTP integration",
+      "depends_on": [
+        "T05"
+      ],
+      "modify": [
+        "app/main.py",
+        "app/api/dependencies.py",
+        "app/api/routes.py",
+        "app/api/review_routes.py",
+        "app/api/reconciliation_case_routes.py",
+        "app/api/upload_routes.py",
+        "app/api/extraction_routes.py"
+      ],
+      "create": [
+        "app/api/workspace_routes.py",
+        "tests/test_workspace_api.py",
+        "tests/test_workspace_legacy_gate.py",
+        ".harness/runs/T06/result.json"
+      ],
+      "provides": [
+        "all /api/workspace endpoints",
+        "legacy mutation gates"
+      ],
+      "consumes": [
+        "T05 accepted baseline",
+        "spec/03-contracts.md"
+      ],
+      "acceptance_ids": [
+        "A15",
+        "A16",
+        "A20",
+        "A26",
+        "A29"
+      ],
+      "commands": [
+        [
+          "python",
+          "-m",
+          "pytest",
+          "tests/test_workspace_api.py",
+          "tests/test_workspace_legacy_gate.py",
+          "tests/test_auth_api.py",
+          "-q"
+        ]
+      ],
+      "status": "not_started",
+      "read_inputs": [
+        "spec/README.md",
+        "spec/01-product.md",
+        "spec/02-architecture.md",
+        "spec/03-contracts.md",
+        "spec/04-rules.md",
+        "spec/05-tasks.md",
+        "spec/06-harness.md",
+        "spec/07-acceptance.md",
+        "spec/tasks.json",
+        "spec/contracts.json"
+      ]
+    },
+    {
+      "id": "T07",
+      "name": "Frontend contracts",
+      "depends_on": [
+        "T06"
+      ],
+      "modify": [
+        "frontend/src/api/client.ts",
+        "frontend/src/i18n.ts"
+      ],
+      "create": [
+        "frontend/src/workspace/workspaceTypes.ts",
+        "frontend/src/workspace/workspaceClient.ts",
+        "frontend/src/workspace/workspacePresentation.ts",
+        "frontend/src/workspace/workspacePresentation.test.ts",
+        "frontend/src/workspace/workspaceClient.test.ts",
+        ".harness/runs/T07/result.json"
+      ],
+      "provides": [
+        "all workspaceClient methods",
+        "all workspacePresentation functions"
+      ],
+      "consumes": [
+        "T06 accepted baseline",
+        "spec/03-contracts.md"
+      ],
+      "acceptance_ids": [
+        "A15",
+        "A16",
+        "A25",
+        "A29"
+      ],
+      "commands": [
+        [
+          "npm",
+          "--prefix",
+          "frontend",
+          "test",
+          "--",
+          "--run",
+          "src/workspace/workspacePresentation.test.ts",
+          "src/workspace/workspaceClient.test.ts"
+        ],
+        [
+          "npm",
+          "--prefix",
+          "frontend",
+          "run",
+          "typecheck"
+        ]
+      ],
+      "status": "not_started",
+      "read_inputs": [
+        "spec/README.md",
+        "spec/01-product.md",
+        "spec/02-architecture.md",
+        "spec/03-contracts.md",
+        "spec/04-rules.md",
+        "spec/05-tasks.md",
+        "spec/06-harness.md",
+        "spec/07-acceptance.md",
+        "spec/tasks.json",
+        "spec/contracts.json"
+      ]
+    },
+    {
+      "id": "T08",
+      "name": "Single page UX",
+      "depends_on": [
+        "T07"
+      ],
+      "modify": [
+        "frontend/src/app/App.tsx",
+        "frontend/src/styles.css",
+        "frontend/src/review/StructuredDocumentEditor.tsx",
+        "frontend/src/review/ReviewDocumentPage.tsx",
+        "frontend/src/review/ReviewQueuePage.tsx",
+        "frontend/src/reconcile/ReconciliationPage.tsx",
+        "frontend/src/cases/CaseDetailPage.tsx",
+        "frontend/src/cases/CaseQueuePage.tsx",
+        "frontend/src/cases/CaseDetailPage.test.tsx",
+        "frontend/src/experiments/ExperimentLabPage.test.tsx"
+      ],
+      "create": [
+        "frontend/src/workspace/WorkspacePage.tsx",
+        "frontend/src/workspace/DocumentPage.tsx",
+        "frontend/src/workspace/WorkspacePage.test.tsx",
+        "frontend/src/workspace/DocumentPage.test.tsx",
+        ".harness/runs/T08/result.json"
+      ],
+      "provides": [
+        "WorkspacePage",
+        "DocumentPage",
+        "runtime feature routing",
+        "read-only legacy UI"
+      ],
+      "consumes": [
+        "T07 accepted baseline",
+        "spec/03-contracts.md"
+      ],
+      "acceptance_ids": [
+        "A01",
+        "A02",
+        "A06",
+        "A09",
+        "A12",
+        "A25",
+        "A26",
+        "A28"
+      ],
+      "commands": [
+        [
+          "npm",
+          "--prefix",
+          "frontend",
+          "test",
+          "--",
+          "--run"
+        ],
+        [
+          "npm",
+          "--prefix",
+          "frontend",
+          "run",
+          "build"
+        ]
+      ],
+      "status": "not_started",
+      "read_inputs": [
+        "spec/README.md",
+        "spec/01-product.md",
+        "spec/02-architecture.md",
+        "spec/03-contracts.md",
+        "spec/04-rules.md",
+        "spec/05-tasks.md",
+        "spec/06-harness.md",
+        "spec/07-acceptance.md",
+        "spec/tasks.json",
+        "spec/contracts.json"
+      ]
+    },
+    {
+      "id": "T09",
+      "name": "Integration and docs",
+      "depends_on": [
+        "T08"
+      ],
+      "modify": [
+        "docs/README.md",
+        "README.md",
+        "docs/product.md",
+        "docs/architecture.md",
+        "docs/development.md",
+        ".github/workflows/ci.yml"
+      ],
+      "create": [
+        "tests/test_workspace_acceptance.py",
+        "tests/fixtures/workspace_scenarios.json",
+        ".harness/runs/T09/result.json"
+      ],
+      "provides": [
+        "end to end acceptance",
+        "updated operating documentation"
+      ],
+      "consumes": [
+        "T08 accepted baseline",
+        "spec/03-contracts.md"
+      ],
+      "acceptance_ids": [
+        "A01",
+        "A02",
+        "A03",
+        "A04",
+        "A05",
+        "A06",
+        "A07",
+        "A08",
+        "A09",
+        "A10",
+        "A11",
+        "A12",
+        "A13",
+        "A14",
+        "A15",
+        "A16",
+        "A17",
+        "A18",
+        "A19",
+        "A20",
+        "A21",
+        "A22",
+        "A23",
+        "A24",
+        "A25",
+        "A26",
+        "A27",
+        "A28",
+        "A29",
+        "A30"
+      ],
+      "commands": [
+        [
+          "python",
+          "-m",
+          "pytest",
+          "tests/test_workspace_acceptance.py",
+          "-q"
+        ],
+        [
+          "python",
+          "tools/check_documentation_sync.py",
+          "--base-ref",
+          "${RELEASE_BASE}"
+        ]
+      ],
+      "status": "not_started",
+      "read_inputs": [
+        "spec/README.md",
+        "spec/01-product.md",
+        "spec/02-architecture.md",
+        "spec/03-contracts.md",
+        "spec/04-rules.md",
+        "spec/05-tasks.md",
+        "spec/06-harness.md",
+        "spec/07-acceptance.md",
+        "spec/tasks.json",
+        "spec/contracts.json"
+      ]
+    },
+    {
+      "id": "T10",
+      "name": "Adversarial harness validation",
+      "depends_on": [
+        "T09"
+      ],
+      "modify": [],
+      "create": [
+        "tests/test_workspace_harness_acceptance.py",
+        ".harness/runs/T10/result.json"
+      ],
+      "provides": [
+        "independent violation tests"
+      ],
+      "consumes": [
+        "T09 accepted baseline",
+        "spec/03-contracts.md"
+      ],
+      "acceptance_ids": [
+        "H01",
+        "H02",
+        "H03",
+        "H04",
+        "H05",
+        "H06"
+      ],
+      "commands": [
+        [
+          "python",
+          "-m",
+          "pytest",
+          "tests/test_harness_guards.py",
+          "tests/test_workspace_harness_acceptance.py",
+          "-q"
+        ]
+      ],
+      "status": "not_started",
+      "read_inputs": [
+        "spec/README.md",
+        "spec/01-product.md",
+        "spec/02-architecture.md",
+        "spec/03-contracts.md",
+        "spec/04-rules.md",
+        "spec/05-tasks.md",
+        "spec/06-harness.md",
+        "spec/07-acceptance.md",
+        "spec/tasks.json",
+        "spec/contracts.json"
+      ]
+    },
+    {
+      "id": "T11",
+      "name": "Release candidate verification",
+      "depends_on": [
+        "T10"
+      ],
+      "modify": [],
+      "create": [
+        ".harness/runs/T11/result.json"
+      ],
+      "provides": [
+        "external acceptance evidence only"
+      ],
+      "consumes": [
+        "T10 accepted baseline",
+        "spec/03-contracts.md"
+      ],
+      "acceptance_ids": [
+        "A01",
+        "A02",
+        "A03",
+        "A04",
+        "A05",
+        "A06",
+        "A07",
+        "A08",
+        "A09",
+        "A10",
+        "A11",
+        "A12",
+        "A13",
+        "A14",
+        "A15",
+        "A16",
+        "A17",
+        "A18",
+        "A19",
+        "A20",
+        "A21",
+        "A22",
+        "A23",
+        "A24",
+        "A25",
+        "A26",
+        "A27",
+        "A28",
+        "A29",
+        "A30",
+        "H01",
+        "H02",
+        "H03",
+        "H04",
+        "H05",
+        "H06"
+      ],
+      "commands": [
+        [
+          "python",
+          "-m",
+          "pytest",
+          "-q"
+        ],
+        [
+          "npm",
+          "--prefix",
+          "frontend",
+          "test",
+          "--",
+          "--run"
+        ],
+        [
+          "npm",
+          "--prefix",
+          "frontend",
+          "run",
+          "build"
+        ],
+        [
+          "python",
+          "tools/check_spec_contract.py",
+          "--spec-root",
+          "spec"
+        ],
+        [
+          "python",
+          "tools/check_documentation_sync.py",
+          "--base-ref",
+          "${RELEASE_BASE}"
+        ],
+        [
+          "git",
+          "diff",
+          "--check",
+          "${TASK_BASE}"
+        ]
+      ],
+      "status": "not_started",
+      "read_inputs": [
+        "spec/README.md",
+        "spec/01-product.md",
+        "spec/02-architecture.md",
+        "spec/03-contracts.md",
+        "spec/04-rules.md",
+        "spec/05-tasks.md",
+        "spec/06-harness.md",
+        "spec/07-acceptance.md",
+        "spec/tasks.json",
+        "spec/contracts.json"
+      ],
+      "code_changes_allowed": false
+    },
+    {
+      "id": "T12",
+      "name": "Development entrypoints and reference boundary",
+      "depends_on": [
+        "T11"
+      ],
+      "modify": [
+        "README.md",
+        "docs/development.md",
+        "docs/product.md",
+        "docs/code-document-map.json"
+      ],
+      "create": [
+        "setup_dev_admin.py",
+        "run_local_demo.py",
+        "tests/test_dev_entrypoints.py",
+        ".harness/runs/T12/result.json"
+      ],
+      "provides": [
+        "development-only idempotent admin bootstrap",
+        "Python local demo launcher delegating to the accepted PowerShell launcher",
+        "documented external reference boundary"
+      ],
+      "consumes": [
+        "T11 accepted baseline",
+        "existing admin/session schema",
+        "start_local_demo.ps1"
+      ],
+      "acceptance_ids": [
+        "D01",
+        "D02",
+        "D03"
+      ],
+      "commands": [
+        [
+          "python",
+          "-m",
+          "pytest",
+          "-q",
+          "tests/test_dev_entrypoints.py"
+        ],
+        [
+          "python",
+          "tools/check_spec_contract.py",
+          "--spec-root",
+          "spec"
+        ],
+        [
+          "git",
+          "diff",
+          "--check",
+          "${TASK_BASE}"
+        ]
+      ],
+      "status": "not_started",
+      "read_inputs": [
+        "spec/README.md",
+        "spec/05-tasks.md",
+        "spec/07-acceptance.md",
+        "spec/tasks.json",
+        "app/core/config.py",
+        "app/infra/database.py",
+        "app/infra/database_models.py",
+        "start_local_demo.ps1"
+      ],
+      "code_changes_allowed": true
+    },
+    {
+      "id": "T13",
+      "name": "Deterministic development demo data",
+      "depends_on": [
+        "T12"
+      ],
+      "modify": [
+        "README.md",
+        "docs/development.md",
+        "docs/code-document-map.json"
+      ],
+      "create": [
+        "setup_demo_data.py",
+        "tests/test_demo_data_entrypoint.py",
+        ".harness/runs/T13/result.json"
+      ],
+      "provides": [
+        "development-only idempotent English demo dataset",
+        "four visible workspace outcomes without external OCR or model calls",
+        "valid local PDF originals for each demo document"
+      ],
+      "consumes": [
+        "T12 accepted baseline",
+        "existing WorkspaceService and WorkspaceWorker",
+        "existing development administrator and configured workspace scope"
+      ],
+      "acceptance_ids": [
+        "D04",
+        "D05",
+        "D06",
+        "D07"
+      ],
+      "commands": [
+        [
+          "python",
+          "-m",
+          "pytest",
+          "-q",
+          "tests/test_demo_data_entrypoint.py"
+        ],
+        [
+          "python",
+          "tools/check_spec_contract.py",
+          "--spec-root",
+          "spec"
+        ],
+        [
+          "python",
+          "tools/check_documentation_sync.py",
+          "--base-ref",
+          "${TASK_BASE}"
+        ],
+        [
+          "git",
+          "diff",
+          "--check",
+          "${TASK_BASE}"
+        ]
+      ],
+      "status": "not_started",
+      "read_inputs": [
+        "spec/README.md",
+        "spec/01-product.md",
+        "spec/02-architecture.md",
+        "spec/03-contracts.md",
+        "spec/04-rules.md",
+        "spec/05-tasks.md",
+        "spec/06-harness.md",
+        "spec/07-acceptance.md",
+        "spec/tasks.json",
+        "app/core/config.py",
+        "app/domain/workspace.py",
+        "app/infra/database.py",
+        "app/infra/database_models.py",
+        "app/infra/postgres_workspace_repository.py",
+        "app/services/document_upload_service.py",
+        "app/services/workspace_service.py",
+        "app/workers/workspace_worker.py",
+        "setup_dev_admin.py"
+      ],
+      "code_changes_allowed": true
+    },
+    {
+      "id": "T14",
+      "name": "Truthful partial supplier identity",
+      "depends_on": [
+        "T13"
+      ],
+      "modify": [
+        "app/domain/documents.py",
+        "app/infra/postgres_workspace_repository.py",
+        "app/resources/prompts/normalize_document_system.txt",
+        "app/services/validation_service.py",
+        "app/services/workspace_matching.py",
+        "docs/ai.md",
+        "docs/architecture.md",
+        "frontend/src/workspace/workspaceTypes.ts",
+        "tests/test_normalization_provider.py",
+        "tests/test_validation_service.py",
+        "tests/test_workspace_matching.py"
+      ],
+      "create": [
+        ".harness/runs/T14/result.json"
+      ],
+      "provides": [
+        "nullable supplier name with retained evidenced ABN/address",
+        "generic document-title supplier warning",
+        "normalization instructions for truthful partial supplier identity"
+      ],
+      "consumes": [
+        "T13 accepted baseline",
+        "existing Party and ValidationService contracts",
+        "existing deterministic ABN-first workspace matching"
+      ],
+      "acceptance_ids": [
+        "D08",
+        "D09",
+        "D10",
+        "D11"
+      ],
+      "commands": [
+        [
+          "python",
+          "-m",
+          "pytest",
+          "-q",
+          "tests/test_normalization_provider.py",
+          "tests/test_validation_service.py",
+          "tests/test_workspace_matching.py"
+        ],
+        [
+          "npm",
+          "--prefix",
+          "frontend",
+          "test",
+          "--",
+          "--run"
+        ],
+        [
+          "python",
+          "tools/check_spec_contract.py",
+          "--spec-root",
+          "spec"
+        ],
+        [
+          "python",
+          "tools/check_documentation_sync.py",
+          "--base-ref",
+          "${TASK_BASE}"
+        ],
+        [
+          "git",
+          "diff",
+          "--check",
+          "${TASK_BASE}"
+        ]
+      ],
+      "status": "not_started",
+      "read_inputs": [
+        "spec/README.md",
+        "spec/02-architecture.md",
+        "spec/04-rules.md",
+        "spec/05-tasks.md",
+        "spec/07-acceptance.md",
+        "spec/tasks.json",
+        "app/domain/documents.py",
+        "app/infra/openai_normalization_provider.py",
+        "app/infra/postgres_workspace_repository.py",
+        "app/services/validation_service.py",
+        "app/services/workspace_matching.py",
+        "frontend/src/workspace/workspaceTypes.ts"
+      ],
+      "code_changes_allowed": true
+    },
+    {
+      "id": "T15",
+      "name": "Reliable Windows local demo shutdown",
+      "depends_on": [
+        "T14"
+      ],
+      "modify": [
+        "docs/development.md",
+        "scripts/local_demo_common.ps1",
+        "tests/test_dev_entrypoints.py"
+      ],
+      "create": [
+        ".harness/runs/T15/result.json"
+      ],
+      "provides": [
+        "culture-safe launcher ownership timestamp validation",
+        "owned Python shim descendant shutdown",
+        "verified reusable local start and stop cycle"
+      ],
+      "consumes": [
+        "T14 accepted baseline",
+        "existing PowerShell launcher state format",
+        "existing process ownership guard"
+      ],
+      "acceptance_ids": [
+        "D12",
+        "D13",
+        "D14"
+      ],
+      "commands": [
+        [
+          "python",
+          "-m",
+          "pytest",
+          "-q",
+          "tests/test_dev_entrypoints.py"
+        ],
+        [
+          "python",
+          "tools/check_spec_contract.py",
+          "--spec-root",
+          "spec"
+        ],
+        [
+          "python",
+          "tools/check_documentation_sync.py",
+          "--base-ref",
+          "${TASK_BASE}"
+        ],
+        [
+          "git",
+          "diff",
+          "--check",
+          "${TASK_BASE}"
+        ]
+      ],
+      "status": "not_started",
+      "read_inputs": [
+        "spec/README.md",
+        "spec/05-tasks.md",
+        "spec/06-harness.md",
+        "spec/07-acceptance.md",
+        "spec/tasks.json",
+        "scripts/local_demo_common.ps1",
+        "start_local_demo.ps1",
+        "stop_local_demo.ps1",
+        "tests/test_dev_entrypoints.py"
+      ],
+      "code_changes_allowed": true
+    },
+    {
+      "id": "T16",
+      "name": "Order-independent navigation and paired source review",
+      "depends_on": [
+        "T15"
+      ],
+      "modify": [
+        "app/domain/workspace.py",
+        "app/infra/postgres_workspace_repository.py",
+        "docs/architecture.md",
+        "docs/product.md",
+        "frontend/src/app/App.tsx",
+        "frontend/src/styles.css",
+        "frontend/src/workspace/DocumentPage.test.tsx",
+        "frontend/src/workspace/DocumentPage.tsx",
+        "frontend/src/workspace/WorkspacePage.test.tsx",
+        "frontend/src/workspace/WorkspacePage.tsx",
+        "frontend/src/workspace/workspacePresentation.test.ts",
+        "frontend/src/workspace/workspaceTypes.ts",
+        "tests/test_postgres_workspace_repository.py",
+        "tests/test_workspace_contracts.py"
+      ],
+      "create": [
+        ".harness/runs/T16/result.json"
+      ],
+      "provides": [
+        "receive-note reverse relation projection",
+        "unique post-upload navigation to invoice review",
+        "side-by-side invoice and selected receiving source review"
+      ],
+      "consumes": [
+        "T15 accepted baseline",
+        "existing deterministic selection and immutable confirmation model",
+        "existing per-document authorized source endpoint"
+      ],
+      "acceptance_ids": [
+        "D15",
+        "D16",
+        "D17",
+        "D18"
+      ],
+      "commands": [
+        [
+          "python",
+          "-m",
+          "pytest",
+          "-q",
+          "tests/test_workspace_contracts.py",
+          "tests/test_workspace_api.py",
+          "tests/test_postgres_workspace_repository.py"
+        ],
+        [
+          "npm",
+          "--prefix",
+          "frontend",
+          "test",
+          "--",
+          "--run",
+          "src/workspace/WorkspacePage.test.tsx",
+          "src/workspace/DocumentPage.test.tsx"
+        ],
+        [
+          "npm",
+          "--prefix",
+          "frontend",
+          "run",
+          "build"
+        ],
+        [
+          "python",
+          "tools/check_spec_contract.py",
+          "--spec-root",
+          "spec"
+        ],
+        [
+          "python",
+          "tools/check_documentation_sync.py",
+          "--base-ref",
+          "${TASK_BASE}"
+        ],
+        [
+          "git",
+          "diff",
+          "--check",
+          "${TASK_BASE}"
+        ]
+      ],
+      "status": "not_started",
+      "read_inputs": [
+        "spec/README.md",
+        "spec/01-product.md",
+        "spec/02-architecture.md",
+        "spec/03-contracts.md",
+        "spec/04-rules.md",
+        "spec/05-tasks.md",
+        "spec/06-harness.md",
+        "spec/07-acceptance.md",
+        "spec/tasks.json",
+        "app/domain/workspace.py",
+        "app/infra/postgres_workspace_repository.py",
+        "frontend/src/app/App.tsx",
+        "frontend/src/styles.css",
+        "frontend/src/workspace/DocumentPage.tsx",
+        "frontend/src/workspace/WorkspacePage.tsx",
+        "frontend/src/workspace/workspaceTypes.ts"
+      ],
+      "code_changes_allowed": true
+    },
+    {
+      "id": "T17",
+      "name": "Workspace confirmation history",
+      "depends_on": [
+        "T16"
+      ],
+      "modify": [
+        "app/api/workspace_routes.py",
+        "app/domain/workspace.py",
+        "app/infra/postgres_workspace_repository.py",
+        "app/services/workspace_ports.py",
+        "app/services/workspace_service.py",
+        "docs/architecture.md",
+        "docs/product.md",
+        "frontend/src/app/App.tsx",
+        "frontend/src/styles.css",
+        "frontend/src/workspace/workspaceClient.ts",
+        "frontend/src/workspace/workspaceTypes.ts",
+        "tests/test_postgres_workspace_repository.py",
+        "tests/test_workspace_api.py",
+        "tests/test_workspace_contracts.py",
+        "tests/test_workspace_service.py"
+      ],
+      "create": [
+        ".harness/runs/T17/result.json",
+        "frontend/src/history/HistoryPage.test.tsx",
+        "frontend/src/history/HistoryPage.tsx"
+      ],
+      "provides": [
+        "scope-filtered immutable confirmation history",
+        "searchable confirmation history HTTP contract",
+        "new workspace history list and snapshot detail UI"
+      ],
+      "consumes": [
+        "T16 accepted baseline",
+        "existing ws_confirmations and immutable revision storage",
+        "existing confirmation detail and CSV export endpoints",
+        "legacy read-only Case pages"
+      ],
+      "acceptance_ids": [
+        "D19",
+        "D20",
+        "D21",
+        "D22"
+      ],
+      "commands": [
+        [
+          "python",
+          "-m",
+          "pytest",
+          "-q",
+          "tests/test_workspace_contracts.py",
+          "tests/test_workspace_service.py",
+          "tests/test_workspace_api.py",
+          "tests/test_postgres_workspace_repository.py"
+        ],
+        [
+          "npm",
+          "--prefix",
+          "frontend",
+          "test",
+          "--",
+          "--run",
+          "src/history/HistoryPage.test.tsx"
+        ],
+        [
+          "npm",
+          "--prefix",
+          "frontend",
+          "run",
+          "build"
+        ],
+        [
+          "python",
+          "tools/check_spec_contract.py",
+          "--spec-root",
+          "spec"
+        ],
+        [
+          "python",
+          "tools/check_documentation_sync.py",
+          "--base-ref",
+          "${TASK_BASE}"
+        ],
+        [
+          "git",
+          "diff",
+          "--check",
+          "${TASK_BASE}"
+        ]
+      ],
+      "status": "not_started",
+      "read_inputs": [
+        "spec/README.md",
+        "spec/01-product.md",
+        "spec/02-architecture.md",
+        "spec/03-contracts.md",
+        "spec/04-rules.md",
+        "spec/05-tasks.md",
+        "spec/06-harness.md",
+        "spec/07-acceptance.md",
+        "spec/tasks.json",
+        "app/api/workspace_routes.py",
+        "app/domain/workspace.py",
+        "app/infra/postgres_workspace_repository.py",
+        "app/services/workspace_ports.py",
+        "app/services/workspace_service.py",
+        "frontend/src/app/App.tsx",
+        "frontend/src/workspace/workspaceClient.ts",
+        "frontend/src/workspace/workspaceTypes.ts",
+        "frontend/src/cases/CaseQueuePage.tsx"
+      ],
+      "code_changes_allowed": true
+    },
+    {
+      "id": "T18",
+      "name": "Windows launcher health-check compatibility",
+      "depends_on": [
+        "T17"
+      ],
+      "modify": [
+        "docs/development.md",
+        "scripts/local_demo_common.ps1",
+        "tests/test_dev_entrypoints.py"
+      ],
+      "create": [
+        ".harness/runs/T18/result.json"
+      ],
+      "provides": [
+        "Windows PowerShell 5.1 basic HTTP health probing",
+        "reliable current-code local demo restart"
+      ],
+      "consumes": [
+        "T17 accepted baseline",
+        "existing safe launcher process ownership",
+        "existing local demo health endpoints"
+      ],
+      "acceptance_ids": [
+        "D23",
+        "D24"
+      ],
+      "commands": [
+        [
+          "python",
+          "-m",
+          "pytest",
+          "-q",
+          "tests/test_dev_entrypoints.py"
+        ],
+        [
+          "python",
+          "tools/check_spec_contract.py",
+          "--spec-root",
+          "spec"
+        ],
+        [
+          "python",
+          "tools/check_documentation_sync.py",
+          "--base-ref",
+          "${TASK_BASE}"
+        ],
+        [
+          "git",
+          "diff",
+          "--check",
+          "${TASK_BASE}"
+        ]
+      ],
+      "status": "not_started",
+      "read_inputs": [
+        "spec/README.md",
+        "spec/05-tasks.md",
+        "spec/06-harness.md",
+        "spec/07-acceptance.md",
+        "spec/tasks.json",
+        "run_local_demo.py",
+        "start_local_demo.ps1",
+        "stop_local_demo.ps1",
+        "scripts/local_demo_common.ps1",
+        "tests/test_dev_entrypoints.py"
+      ],
+      "code_changes_allowed": true
+    },
+    {
+      "id": "T19",
+      "name": "Explain unverified dimensions, blockers, and differences",
+      "depends_on": [
+        "T18"
+      ],
+      "modify": [
+        "docs/architecture.md",
+        "docs/product.md",
+        "frontend/src/history/HistoryPage.test.tsx",
+        "frontend/src/history/HistoryPage.tsx",
+        "frontend/src/styles.css",
+        "frontend/src/workspace/DocumentPage.test.tsx",
+        "frontend/src/workspace/DocumentPage.tsx",
+        "frontend/src/workspace/workspacePresentation.test.ts",
+        "frontend/src/workspace/workspacePresentation.ts"
+      ],
+      "create": [
+        ".harness/runs/T19/result.json"
+      ],
+      "provides": [
+        "plain-language unverified dimension explanations",
+        "visually distinct blocker and difference guidance",
+        "shared current-review and immutable-history explanation rules"
+      ],
+      "consumes": [
+        "T18 accepted baseline",
+        "existing PreviewResult and immutable result_snapshot",
+        "existing single acknowledgement and difference-note rules"
+      ],
+      "acceptance_ids": [
+        "D25",
+        "D26",
+        "D27",
+        "D28"
+      ],
+      "commands": [
+        [
+          "npm",
+          "--prefix",
+          "frontend",
+          "test",
+          "--",
+          "--run",
+          "src/workspace/workspacePresentation.test.ts",
+          "src/workspace/DocumentPage.test.tsx",
+          "src/history/HistoryPage.test.tsx"
+        ],
+        [
+          "npm",
+          "--prefix",
+          "frontend",
+          "run",
+          "build"
+        ],
+        [
+          "python",
+          "tools/check_spec_contract.py",
+          "--spec-root",
+          "spec"
+        ],
+        [
+          "python",
+          "tools/check_documentation_sync.py",
+          "--base-ref",
+          "${TASK_BASE}"
+        ],
+        [
+          "git",
+          "diff",
+          "--check",
+          "${TASK_BASE}"
+        ]
+      ],
+      "status": "not_started",
+      "read_inputs": [
+        "spec/README.md",
+        "spec/01-product.md",
+        "spec/04-rules.md",
+        "spec/05-tasks.md",
+        "spec/06-harness.md",
+        "spec/07-acceptance.md",
+        "spec/tasks.json",
+        "frontend/src/history/HistoryPage.tsx",
+        "frontend/src/styles.css",
+        "frontend/src/workspace/DocumentPage.tsx",
+        "frontend/src/workspace/workspacePresentation.ts",
+        "frontend/src/workspace/workspaceTypes.ts"
+      ],
+      "code_changes_allowed": true
+    },
+    {
+      "id": "T20",
+      "name": "Real PostgreSQL workspace integration verification",
+      "depends_on": [
+        "T19"
+      ],
+      "modify": [
+        "docs/development.md"
+      ],
+      "create": [
+        ".harness/runs/T20/result.json"
+      ],
+      "provides": [
+        "zero-skip PostgreSQL workspace integration evidence",
+        "correct dedicated database environment documentation"
+      ],
+      "consumes": [
+        "T19 accepted baseline",
+        "existing CI PostgreSQL service definition",
+        "existing isolated-schema repository and acceptance tests"
+      ],
+      "acceptance_ids": [
+        "D29",
+        "D30",
+        "D31"
+      ],
+      "commands": [
+        [
+          "python",
+          "-m",
+          "pytest",
+          "-q",
+          "tests/test_postgres_workspace_repository.py",
+          "tests/test_workspace_acceptance.py"
+        ],
+        [
+          "python",
+          "tools/check_spec_contract.py",
+          "--spec-root",
+          "spec"
+        ],
+        [
+          "python",
+          "tools/check_documentation_sync.py",
+          "--base-ref",
+          "${TASK_BASE}"
+        ],
+        [
+          "git",
+          "diff",
+          "--check",
+          "${TASK_BASE}"
+        ]
+      ],
+      "status": "not_started",
+      "read_inputs": [
+        "spec/README.md",
+        "spec/05-tasks.md",
+        "spec/06-harness.md",
+        "spec/07-acceptance.md",
+        "spec/tasks.json",
+        "docs/development.md",
+        "tests/test_postgres_workspace_repository.py",
+        "tests/test_workspace_acceptance.py",
+        ".github/workflows/ci.yml"
+      ],
+      "code_changes_allowed": true
+    },
+    {
+      "id": "T21",
+      "name": "Visualize supplier matching basis",
+      "depends_on": [
+        "T20"
+      ],
+      "modify": [
+        "docs/product.md",
+        "frontend/src/styles.css",
+        "frontend/src/workspace/DocumentPage.test.tsx",
+        "frontend/src/workspace/DocumentPage.tsx",
+        "frontend/src/workspace/workspacePresentation.test.ts",
+        "frontend/src/workspace/workspacePresentation.ts"
+      ],
+      "create": [
+        ".harness/runs/T21/result.json"
+      ],
+      "provides": [
+        "visible supplier identity matching basis",
+        "display-only evidence for conservative supplier matching"
+      ],
+      "consumes": [
+        "T20 accepted baseline",
+        "existing RevisionView supplier payloads",
+        "existing PreviewResult.subject comparison"
+      ],
+      "acceptance_ids": [
+        "D32",
+        "D33"
+      ],
+      "commands": [
+        [
+          "npm",
+          "--prefix",
+          "frontend",
+          "test",
+          "--",
+          "run"
+        ],
+        [
+          "npm",
+          "--prefix",
+          "frontend",
+          "run",
+          "build"
+        ],
+        [
+          "python",
+          "tools/check_spec_contract.py",
+          "--spec-root",
+          "spec"
+        ],
+        [
+          "git",
+          "diff",
+          "--check",
+          "${TASK_BASE}"
+        ]
+      ],
+      "status": "not_started",
+      "read_inputs": [
+        "spec/README.md",
+        "spec/02-architecture.md",
+        "spec/04-rules.md",
+        "spec/05-tasks.md",
+        "spec/06-harness.md",
+        "spec/07-acceptance.md",
+        "spec/tasks.json",
+        "frontend/src/workspace/DocumentPage.tsx",
+        "frontend/src/workspace/DocumentPage.test.tsx",
+        "frontend/src/workspace/workspacePresentation.ts",
+        "frontend/src/workspace/workspacePresentation.test.ts",
+        "frontend/src/workspace/workspaceTypes.ts",
+        "frontend/src/styles.css"
+      ],
+      "code_changes_allowed": true
+    },
+    {
+      "id": "T22",
+      "name": "TapTouch source identity consistency",
+      "depends_on": [
+        "T21"
+      ],
+      "modify": [
+        "app/infra/postgres_taptouch_receiving_repository.py",
+        "docs/product.md",
+        "tests/test_taptouch_receiving_import.py"
+      ],
+      "create": [
+        ".harness/runs/T22/result.json"
+      ],
+      "provides": [
+        "stable TapTouch supplier source lineage",
+        "supplier identity drift protection"
+      ],
+      "consumes": [
+        "T21 accepted baseline",
+        "existing TapTouch receiving version repository",
+        "existing external version conflict semantics"
+      ],
+      "acceptance_ids": [
+        "D34",
+        "D35"
+      ],
+      "commands": [
+        [
+          "python",
+          "-m",
+          "pytest",
+          "tests/test_taptouch_receiving_import.py",
+          "tests/test_taptouch_integration_api.py",
+          "-q"
+        ],
+        [
+          "python",
+          "tools/check_spec_contract.py",
+          "--spec-root",
+          "spec"
+        ],
+        [
+          "git",
+          "diff",
+          "--check",
+          "${TASK_BASE}"
+        ]
+      ],
+      "status": "not_started",
+      "read_inputs": [
+        "spec/README.md",
+        "spec/02-architecture.md",
+        "spec/03-contracts.md",
+        "spec/04-rules.md",
+        "spec/05-tasks.md",
+        "spec/06-harness.md",
+        "spec/07-acceptance.md",
+        "spec/tasks.json",
+        "app/infra/postgres_taptouch_receiving_repository.py",
+        "app/services/taptouch_receiving_import_service.py",
+        "app/domain/taptouch_receiving.py",
+        "tests/test_taptouch_receiving_import.py",
+        "tests/test_taptouch_integration_api.py",
+        "docs/product.md"
+      ],
+      "code_changes_allowed": true
+    },
+    {
+      "id": "T23",
+      "name": "Evaluation dataset workspace acceptance",
+      "depends_on": [
+        "T22"
+      ],
+      "modify": [
+        "docs/development.md"
+      ],
+      "create": [
+        "tests/test_workspace_evaluation_dataset.py",
+        ".harness/runs/T23/result.json"
+      ],
+      "provides": [
+        "dataset-driven workspace matching and comparison acceptance"
+      ],
+      "consumes": [
+        "T22 accepted baseline",
+        "evaluation_data manifest and Gold JSON when present locally",
+        "existing dataset PDF validator"
+      ],
+      "acceptance_ids": [
+        "D36",
+        "D37",
+        "D38"
+      ],
+      "commands": [
+        [
+          "python",
+          "tools/validate_evaluation_dataset.py"
+        ],
+        [
+          "python",
+          "-m",
+          "pytest",
+          "tests/test_workspace_evaluation_dataset.py",
+          "-q"
+        ],
+        [
+          "uv",
+          "run",
+          "ruff",
+          "check",
+          "tests/test_workspace_evaluation_dataset.py"
+        ],
+        [
+          "git",
+          "diff",
+          "--check",
+          "${TASK_BASE}"
+        ]
+      ],
+      "status": "not_started",
+      "read_inputs": [
+        "spec/README.md",
+        "spec/02-architecture.md",
+        "spec/03-contracts.md",
+        "spec/04-rules.md",
+        "spec/05-tasks.md",
+        "spec/06-harness.md",
+        "spec/07-acceptance.md",
+        "spec/tasks.json",
+        "app/domain/workspace.py",
+        "app/services/workspace_matching.py",
+        "app/services/workspace_comparison.py",
+        "tools/validate_evaluation_dataset.py"
+      ],
+      "code_changes_allowed": true
+    },
+    {
+      "id": "T24",
+      "name": "Evaluation dataset web import",
+      "depends_on": [
+        "T23"
+      ],
+      "modify": [
+        "README.md",
+        "docs/development.md",
+        "docs/code-document-map.json"
+      ],
+      "create": [
+        "setup_evaluation_data.py",
+        "tests/test_evaluation_data_entrypoint.py",
+        ".harness/runs/T24/result.json"
+      ],
+      "provides": [
+        "development-only idempotent web import for the local evaluation set"
+      ],
+      "consumes": [
+        "T23 accepted dataset rules",
+        "existing WorkspaceService upload flow",
+        "existing WorkspaceWorker and development runtime boundary"
+      ],
+      "acceptance_ids": [
+        "D39",
+        "D40",
+        "D41",
+        "D42"
+      ],
+      "commands": [
+        [
+          "uv",
+          "run",
+          "pytest",
+          "tests/test_evaluation_data_entrypoint.py",
+          "-q"
+        ],
+        [
+          "uv",
+          "run",
+          "ruff",
+          "check",
+          "setup_evaluation_data.py",
+          "tests/test_evaluation_data_entrypoint.py"
+        ],
+        [
+          "uv",
+          "run",
+          "python",
+          "tools/check_spec_contract.py",
+          "--spec-root",
+          "spec"
+        ],
+        [
+          "git",
+          "diff",
+          "--check",
+          "${TASK_BASE}"
+        ]
+      ],
+      "status": "not_started",
+      "read_inputs": [
+        "spec/README.md",
+        "spec/02-architecture.md",
+        "spec/03-contracts.md",
+        "spec/04-rules.md",
+        "spec/05-tasks.md",
+        "spec/06-harness.md",
+        "spec/07-acceptance.md",
+        "spec/tasks.json",
+        "app/core/config.py",
+        "app/domain/admin_users.py",
+        "app/domain/workspace.py",
+        "app/infra/database.py",
+        "app/infra/database_models.py",
+        "app/infra/minio_storage.py",
+        "app/infra/postgres_task_repository.py",
+        "app/infra/postgres_workspace_repository.py",
+        "app/services/document_upload_service.py",
+        "app/services/workspace_service.py",
+        "app/workers/workspace_worker.py",
+        "setup_demo_data.py",
+        "tests/test_demo_data_entrypoint.py"
+      ],
+      "code_changes_allowed": true
+    }
+  ]
+}

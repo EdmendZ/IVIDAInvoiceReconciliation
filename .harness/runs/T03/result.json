@@ -1,0 +1,167 @@
+{
+  "task_id": "T03",
+  "spec_version": "IR-SIMPLE-1.0.3",
+  "spec_sha256": "ba317333be98598676430d8262dd84ecadb143a6030458d3de7587b32c604c9b",
+  "base_commit": "8f902b4c92901dab30e9f124d4ead2fcc8ff2508",
+  "candidate_commit": null,
+  "status": "passed",
+  "acceptance_ids": [
+    "A13",
+    "A14",
+    "A15",
+    "A16",
+    "A17",
+    "A19",
+    "A21",
+    "A22"
+  ],
+  "changed_files": [
+    ".harness/runs/T03/result.json",
+    "app/domain/workspace.py",
+    "app/infra/database_models.py",
+    "app/infra/postgres_taptouch_receiving_repository.py",
+    "app/infra/postgres_workspace_repository.py",
+    "docs/reference/12-database-dictionary.md",
+    "migrations/versions/20260916_15_workspace.py",
+    "tests/test_postgres_workspace_repository.py",
+    "tests/test_workspace_contracts.py"
+  ],
+  "commands": [
+    {
+      "argv": [
+        "E:\\ZephyrLLM\\Projects\\IVIDAInvoiceReconciliation\\.venv\\Scripts\\python.exe",
+        ".git/ir-harness/run_test_db.py",
+        "tests/test_postgres_workspace_repository.py",
+        "tests/test_workspace_contracts.py",
+        "-q"
+      ],
+      "exit_code": 0,
+      "log_sha256": "5a49f7818b06d6d18fbfa7a45891d644e6962481f7f9ea3d86fa5f66ea71b2a0",
+      "log": ".........................................................                [100%]\r\n"
+    },
+    {
+      "argv": [
+        "E:\\ZephyrLLM\\Projects\\IVIDAInvoiceReconciliation\\.venv\\Scripts\\python.exe",
+        "-m",
+        "pytest",
+        "tests/test_taptouch_receiving_import.py",
+        "-q"
+      ],
+      "exit_code": 0,
+      "log_sha256": "c7e4112ee00157f6cd73b78553233801e1ebd66836f258ef8f46fb8e60480444",
+      "log": ".....                                                                    [100%]\r\n"
+    },
+    {
+      "argv": [
+        "E:\\ZephyrLLM\\Projects\\IVIDAInvoiceReconciliation\\.venv\\Scripts\\python.exe",
+        "-m",
+        "pytest",
+        "tests/test_reference_documentation.py",
+        "-q"
+      ],
+      "exit_code": 0,
+      "log_sha256": "b3f363fc61420f83576b0b639aab5a098ce98c454c3e4a81afd953f4bc98ad23",
+      "log": "........                                                                 [100%]\r\n"
+    },
+    {
+      "argv": [
+        "E:\\ZephyrLLM\\Projects\\IVIDAInvoiceReconciliation\\.venv\\Scripts\\python.exe",
+        "tools/check_spec_contract.py",
+        "--spec-root",
+        "spec"
+      ],
+      "exit_code": 0,
+      "log_sha256": "cc7a933120f37ac5a8ef91a7cc5ba7d2f3c53cb459f7f59f08d6c0a24760a2a3",
+      "log": "Spec contract check passed (static references only).\r\n"
+    },
+    {
+      "argv": [
+        "E:\\ZephyrLLM\\Projects\\IVIDAInvoiceReconciliation\\.venv\\Scripts\\python.exe",
+        "tools/check_task_scope.py",
+        "--task",
+        "T03",
+        "--base",
+        "8f902b4c92901dab30e9f124d4ead2fcc8ff2508",
+        "--spec-root",
+        "spec",
+        "--evidence",
+        ".git/ir-harness/freeze.json"
+      ],
+      "exit_code": 0,
+      "log_sha256": "760740d279f3111f91fd5e797dbc8a46334da429a11c0f499153d8fe428707a5",
+      "log": "{\"enforcement\": \"diff-gate-only\", \"changed_files\": [\".harness/runs/T03/result.json\", \"app/domain/workspace.py\", \"app/infra/database_models.py\", \"app/infra/postgres_taptouch_receiving_repository.py\", \"app/infra/postgres_workspace_repository.py\", \"docs/reference/12-database-dictionary.md\", \"migrations/versions/20260916_15_workspace.py\", \"tests/test_postgres_workspace_repository.py\", \"tests/test_workspace_contracts.py\"]}\r\n"
+    },
+    {
+      "argv": [
+        "git",
+        "diff",
+        "--check",
+        "8f902b4c92901dab30e9f124d4ead2fcc8ff2508"
+      ],
+      "exit_code": 0,
+      "log_sha256": "246bd3cdc030d6f5079f0144a0cbe9cc0a01832db5e96667104bad756328a608",
+      "log": "warning: in the working copy of 'app/domain/workspace.py', LF will be replaced by CRLF the next time Git touches it\nwarning: in the working copy of 'app/infra/postgres_taptouch_receiving_repository.py', LF will be replaced by CRLF the next time Git touches it\nwarning: in the working copy of 'docs/reference/12-database-dictionary.md', LF will be replaced by CRLF the next time Git touches it\nwarning: in the working copy of 'tests/test_workspace_contracts.py', LF will be replaced by CRLF the next time Git touches it\n"
+    }
+  ],
+  "known_limits": [
+    "No external OCR/model/object storage calls; service/API/worker integration belongs to subsequent tasks.",
+    "The coordinator independently verified the public disposable database legacy history fingerprints and alembic check.",
+    "Initial pre-fix PostgreSQL suite failed concurrent receiving error precedence; fixed before this final run."
+  ],
+  "superseded_commands": [
+    {
+      "argv": [
+        "E:\\ZephyrLLM\\Projects\\IVIDAInvoiceReconciliation\\.venv\\Scripts\\python.exe",
+        "tools/check_spec_contract.py",
+        "--spec-root",
+        "spec"
+      ],
+      "exit_code": 0,
+      "log_sha256": "cc7a933120f37ac5a8ef91a7cc5ba7d2f3c53cb459f7f59f08d6c0a24760a2a3",
+      "log": "Spec contract check passed (static references only).\r\n"
+    },
+    {
+      "argv": [
+        "E:\\ZephyrLLM\\Projects\\IVIDAInvoiceReconciliation\\.venv\\Scripts\\python.exe",
+        "tools/check_task_scope.py",
+        "--task",
+        "T03",
+        "--base",
+        "2b320bec94b03c83e7bfd59ac8c21d1c44eae9ec",
+        "--spec-root",
+        "spec",
+        "--evidence",
+        ".git/ir-harness/freeze.json"
+      ],
+      "exit_code": 1,
+      "log_sha256": "10d90b554a44d18a952a0ee36fb39c2e2ad5dc93426c87e22ae4aa27daad62bc",
+      "log": "Task scope rejected: Command '['git', 'merge-base', '--is-ancestor', '8f902b4c92901dab30e9f124d4ead2fcc8ff2508', '2b320bec94b03c83e7bfd59ac8c21d1c44eae9ec']' returned non-zero exit status 1.\r\n"
+    },
+    {
+      "argv": [
+        "git",
+        "diff",
+        "--check",
+        "2b320bec94b03c83e7bfd59ac8c21d1c44eae9ec"
+      ],
+      "exit_code": 0,
+      "log_sha256": "246bd3cdc030d6f5079f0144a0cbe9cc0a01832db5e96667104bad756328a608",
+      "log": "warning: in the working copy of 'app/domain/workspace.py', LF will be replaced by CRLF the next time Git touches it\nwarning: in the working copy of 'app/infra/postgres_taptouch_receiving_repository.py', LF will be replaced by CRLF the next time Git touches it\nwarning: in the working copy of 'docs/reference/12-database-dictionary.md', LF will be replaced by CRLF the next time Git touches it\nwarning: in the working copy of 'tests/test_workspace_contracts.py', LF will be replaced by CRLF the next time Git touches it\n"
+    }
+  ],
+  "superseded_reason": "Coordinator refroze IR-SIMPLE-1.0.3 on a Spec-only commit while the settled PostgreSQL suite was running. Old-base scope rejection is superseded by current-base evidence; implementation unchanged.",
+  "test_results": {
+    "assigned_suite": {
+      "passed": 57,
+      "skipped": 0
+    },
+    "legacy_upstream_regression": {
+      "passed": 5,
+      "skipped": 0
+    },
+    "reference_documentation": {
+      "passed": 8,
+      "skipped": 0
+    }
+  }
+}

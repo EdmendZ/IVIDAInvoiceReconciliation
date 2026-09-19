@@ -81,6 +81,7 @@ def test_valid_payload_maps_and_replays_idempotently() -> None:
     assert replay.version.version_id == first.version.version_id
     assert first.version.document_json["document_date"] == "2026-08-07"
     assert first.version.document_json["currency"] == "AUD"
+    assert first.version.external_supplier_id == "supplier-1"
     assert first.version.integration_principal == "connector-a"
     assert replay.version.integration_principal == "connector-a"
 
@@ -110,6 +111,20 @@ def test_same_version_with_changed_content_conflicts() -> None:
             _payload(document_number="GRN-CHANGED"),
             integration_principal="test-connector",
         )
+
+
+def test_newer_version_cannot_change_supplier_identity() -> None:
+    service, factory = _service()
+    service.import_record(_payload(), integration_principal="test-connector")
+
+    with pytest.raises(ReceivingIdentityConflict, match="supplier identity"):
+        service.import_record(
+            _payload(external_version=2, external_supplier_id="supplier-2"),
+            integration_principal="test-connector",
+        )
+
+    with factory() as session:
+        assert session.scalar(select(func.count()).select_from(DocumentVersionRow)) == 1
 
 
 def test_import_creates_no_extraction_or_review_lineage() -> None:

@@ -6,7 +6,7 @@
 
 1. 阅读 [文档中心](docs/README.md)；
 2. 根据 [代码—文档映射](docs/code-document-map.json) 更新对应说明；
-3. 遵守 [文档维护规范](docs/documentation-policy.md)；
+3. 遵守 [开发与文档规范](docs/development.md)；
 4. 运行：
 
 ```powershell

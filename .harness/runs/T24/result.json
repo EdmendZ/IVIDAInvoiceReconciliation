@@ -1,0 +1,104 @@
+{
+  "task_id": "T24",
+  "spec_version": "IR-SIMPLE-1.0.19",
+  "spec_sha256": "e681e2e76150f184472c9a2d8364f51d9401689cc3ffcbbf3385e66abeb0fa4f",
+  "base_commit": "e095f29ce5453e04d41ef6056e4f9be11137a1ad",
+  "candidate_commit": "88c0e2fda1c98a75cbdfdea598f3562d1de3387e",
+    "changed_files": [
+        ".harness/runs/T24/result.json",
+        "docs/development.md",
+    "setup_evaluation_data.py",
+    "tests/test_evaluation_data_entrypoint.py"
+  ],
+  "commands": [
+    {
+      "argv": [
+        "uv",
+        "run",
+        "pytest",
+        "tests/test_evaluation_data_entrypoint.py",
+        "-q"
+      ],
+      "exit_code": 0,
+      "log_sha256": "a1ff7b18c450107a2b647ba9a8ab650d70cebe1a13a13684583ac4450ea9425a"
+    },
+    {
+      "argv": [
+        "uv",
+        "run",
+        "ruff",
+        "check",
+        "setup_evaluation_data.py",
+        "tests/test_evaluation_data_entrypoint.py"
+      ],
+      "exit_code": 0,
+      "log_sha256": "a4443afdcfb6d7363adb285762515ccf7cf50473b1a05c20c1a50f6bed4d26b0"
+    },
+    {
+      "argv": [
+        "uv",
+        "run",
+        "python",
+        "tools/check_spec_contract.py",
+        "--spec-root",
+        "spec"
+      ],
+      "exit_code": 0,
+      "log_sha256": "cc7a933120f37ac5a8ef91a7cc5ba7d2f3c53cb459f7f59f08d6c0a24760a2a3"
+    },
+    {
+      "argv": [
+        "uv",
+        "run",
+        "python",
+        "tools/check_documentation_sync.py",
+        "--base-ref",
+        "e095f29ce5453e04d41ef6056e4f9be11137a1ad"
+      ],
+      "exit_code": 0,
+      "log_sha256": "7ae650ea9e974497bea80eb403f32832205b50953e897105d2da85189d83f9ad"
+    },
+    {
+      "argv": [
+        "uv",
+        "run",
+        "pytest",
+        "-q"
+      ],
+      "exit_code": 0,
+      "log_sha256": "f8551c0432c77be4754cc7d8e3fad7473eb673188caac37242af8c0ed4d13f22"
+    },
+    {
+      "argv": [
+        "git",
+        "diff",
+        "--check",
+        "e095f29ce5453e04d41ef6056e4f9be11137a1ad"
+      ],
+      "exit_code": 0,
+      "log_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    }
+  ],
+  "acceptance_ids": [
+    "D39",
+    "D40",
+    "D41",
+    "D42"
+  ],
+  "test_results": {
+    "entrypoint_isolated_runtime": {
+      "passed": 3,
+      "skipped": 0
+    },
+    "full_backend_regression": {
+      "exit_code": 0
+    }
+  },
+  "known_limits": [
+    "The live import attempt could not reach the configured PostgreSQL service; the server closed the connection during startup/version negotiation and later attempts timed out. No live records were claimed or reported as imported.",
+    "MinIO/PostgreSQL availability must be restored before the web page can show the imported records; API /health only confirms the API process is online.",
+    "evaluation_data is intentionally ignored by Git; a checkout without the local set is rejected by the importer rather than generating substitute data.",
+    "Gold JSON is trusted extracted input; this task does not measure OCR/model accuracy and does not connect TapTouch."
+  ],
+  "status": "passed"
+}

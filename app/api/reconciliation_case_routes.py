@@ -10,6 +10,7 @@ from app.api.auth_dependencies import require_reviewer
 from app.api.dependencies import (
     get_admin_repository,
     get_reconciliation_case_service,
+    require_legacy_mutation_available,
 )
 from app.domain.admin_users import AdminRole, AuthenticatedUser
 from app.domain.reconciliation_cases import (
@@ -164,7 +165,11 @@ def get_case_detail(
     return _case_call(lambda: service.get_detail(case_id))
 
 
-@router.post("/{case_id}/claim", response_model=CaseDetail)
+@router.post(
+    "/{case_id}/claim",
+    response_model=CaseDetail,
+    dependencies=[Depends(require_legacy_mutation_available)],
+)
 def claim_case(
     case_id: str,
     request: RevisionRequest,
@@ -182,7 +187,11 @@ def claim_case(
     )
 
 
-@router.post("/{case_id}/reassign", response_model=CaseDetail)
+@router.post(
+    "/{case_id}/reassign",
+    response_model=CaseDetail,
+    dependencies=[Depends(require_legacy_mutation_available)],
+)
 def reassign_case(
     case_id: str,
     request: ReassignRequest,
@@ -202,7 +211,11 @@ def reassign_case(
     )
 
 
-@router.put("/{case_id}/items/{item_id}/resolution", response_model=CaseDetail)
+@router.put(
+    "/{case_id}/items/{item_id}/resolution",
+    response_model=CaseDetail,
+    dependencies=[Depends(require_legacy_mutation_available)],
+)
 def update_resolution(
     case_id: str,
     item_id: str,
@@ -224,7 +237,11 @@ def update_resolution(
     )
 
 
-@router.post("/{case_id}/submit-approval", response_model=CaseDetail)
+@router.post(
+    "/{case_id}/submit-approval",
+    response_model=CaseDetail,
+    dependencies=[Depends(require_legacy_mutation_available)],
+)
 def submit_approval(
     case_id: str,
     request: RevisionRequest,
@@ -242,7 +259,11 @@ def submit_approval(
     )
 
 
-@router.post("/{case_id}/submit-void", response_model=CaseDetail)
+@router.post(
+    "/{case_id}/submit-void",
+    response_model=CaseDetail,
+    dependencies=[Depends(require_legacy_mutation_available)],
+)
 def submit_void(
     case_id: str,
     request: RevisionRequest,
@@ -260,7 +281,11 @@ def submit_void(
     )
 
 
-@router.post("/{case_id}/approve", response_model=CaseDetail)
+@router.post(
+    "/{case_id}/approve",
+    response_model=CaseDetail,
+    dependencies=[Depends(require_legacy_mutation_available)],
+)
 def approve_case(
     case_id: str,
     request: RevisionRequest,
@@ -278,7 +303,11 @@ def approve_case(
     )
 
 
-@router.post("/{case_id}/return", response_model=CaseDetail)
+@router.post(
+    "/{case_id}/return",
+    response_model=CaseDetail,
+    dependencies=[Depends(require_legacy_mutation_available)],
+)
 def return_case(
     case_id: str,
     request: ReturnRequest,
@@ -297,7 +326,11 @@ def return_case(
     )
 
 
-@router.post("/{case_id}/void", response_model=CaseDetail)
+@router.post(
+    "/{case_id}/void",
+    response_model=CaseDetail,
+    dependencies=[Depends(require_legacy_mutation_available)],
+)
 def void_case(
     case_id: str,
     request: RevisionRequest,

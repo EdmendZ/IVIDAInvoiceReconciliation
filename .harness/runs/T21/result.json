@@ -1,0 +1,46 @@
+{
+  "task_id": "T21",
+  "spec_version": "IR-SIMPLE-1.0.16",
+  "spec_sha256": "56e8a85d70589deaa5d1d20809c11daa1541fadc0f368b5d4157dd21b8376886",
+  "base_commit": "7f66466",
+  "candidate_commit": null,
+  "changed_files": [
+    ".harness/runs/T21/result.json",
+    "docs/product.md",
+    "frontend/src/styles.css",
+    "frontend/src/workspace/DocumentPage.test.tsx",
+    "frontend/src/workspace/DocumentPage.tsx",
+    "frontend/src/workspace/workspacePresentation.test.ts",
+    "frontend/src/workspace/workspacePresentation.ts"
+  ],
+  "commands": [
+    {
+      "argv": ["npm", "--prefix", "frontend", "test", "--", "run"],
+      "exit_code": 0,
+      "log_sha256": "28f05c1254d2ce65468377cff6878aedff6dbc7e3aa27f1ed8a3f64426c90f53"
+    },
+    {
+      "argv": ["npm", "--prefix", "frontend", "run", "build"],
+      "exit_code": 0,
+      "log_sha256": "905194ed790158f536bc1989ae6789df40b51e060b4361a59b6e0c5c2b7813c8"
+    },
+    {
+      "argv": [".venv\\Scripts\\python.exe", "tools/check_spec_contract.py", "--spec-root", "spec"],
+      "exit_code": 0,
+      "log_sha256": "cc7a933120f37ac5a8ef91a7cc5ba7d2f3c53cb459f7f59f08d6c0a24760a2a3"
+    },
+    {
+      "argv": ["git", "diff", "--check", "7f66466"],
+      "exit_code": 0,
+      "log_sha256": "061194e8fc2e6cf8f2866e004a09a114f833fb0b6bd66a2ef6a9ac1059e5c929"
+    },
+    {
+      "argv": [".venv\\Scripts\\python.exe", "tools/check_task_scope.py", "--task", "T21", "--base", "7f66466", "--spec-root", "spec", "--evidence", ".git/ir-harness/freeze.json"],
+      "exit_code": 0,
+      "log_sha256": "3e3df67f3798e2602e9fc2d629750bbee3eaf9a6073d42bf772d63ce3f276f6d"
+    }
+  ],
+  "acceptance_ids": ["D32", "D33"],
+  "known_limits": [],
+  "status": "passed"
+}

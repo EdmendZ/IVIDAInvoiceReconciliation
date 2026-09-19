@@ -1,6 +1,5 @@
 from datetime import UTC, datetime
 
-from fastapi.testclient import TestClient
 
 from app.api.dependencies import (
     get_draft_repository,

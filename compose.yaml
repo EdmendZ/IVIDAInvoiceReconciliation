@@ -48,6 +48,10 @@ services:
       MINERU_API_TOKEN: ${MINERU_API_TOKEN:-disabled-local-demo}
       NORMALIZATION_API_KEY: ${NORMALIZATION_API_KEY:-disabled-local-demo}
       NORMALIZATION_MODEL: ${NORMALIZATION_MODEL:-disabled-local-demo}
+      WORKSPACE_ENABLED: ${WORKSPACE_ENABLED:-false}
+      WORKSPACE_TENANT_ID: ${WORKSPACE_TENANT_ID:-}
+      WORKSPACE_STORE_ID: ${WORKSPACE_STORE_ID:-}
+      WORKSPACE_POLL_SECONDS: "3"
     depends_on:
       postgres:
         condition: service_healthy
@@ -75,6 +79,16 @@ services:
         condition: service_completed_successfully
       minio:
         condition: service_healthy
+
+  workspace-worker:
+    build:
+      context: .
+      target: api
+    command: [".venv/bin/python", "run_workspace_worker.py"]
+    environment: *backend-env
+    depends_on:
+      migrate:
+        condition: service_completed_successfully
 
   frontend:
     build:

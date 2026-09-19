@@ -56,6 +56,7 @@ export function UploadPage({
   const [purchaseOrder, setPurchaseOrder] = useState("");
   const [file, setFile] = useState<File | null>(null);
   const [message, setMessage] = useState("");
+  const [messageSuccess, setMessageSuccess] = useState(false);
 
   const tasks = useQuery({
     queryKey: ["extraction-tasks"],
@@ -77,7 +78,8 @@ export function UploadPage({
       await queryClient.invalidateQueries({ queryKey: ["extraction-tasks"] });
     },
     onError: (problem) => {
-      setMessage(problem instanceof Error ? problem.message : "Unable to start");
+      setMessageSuccess(false);
+      setMessage(problem instanceof Error ? problem.message : "无法启动");
     },
   });
   const cancelExtraction = useMutation({
@@ -86,6 +88,7 @@ export function UploadPage({
         method: "POST",
       }),
     onSuccess: async (run) => {
+      setMessageSuccess(true);
       await queryClient.invalidateQueries({ queryKey: ["extraction-tasks"] });
       setMessage(
         run.status === "cancelled"
@@ -94,6 +97,7 @@ export function UploadPage({
       );
     },
     onError: (problem) => {
+      setMessageSuccess(false);
       setMessage(problem instanceof Error ? problem.message : "取消失败");
     },
   });
@@ -117,9 +121,11 @@ export function UploadPage({
       setPurchaseOrder("");
       const input = document.getElementById("document-file") as HTMLInputElement;
       if (input) input.value = "";
-      setMessage(`${task.original_filename} uploaded and queued.`);
+      setMessageSuccess(true);
+      setMessage(`${task.original_filename} 已上传并进入处理队列。`);
     } catch (problem) {
-      setMessage(problem instanceof Error ? problem.message : "Upload failed");
+      setMessageSuccess(false);
+      setMessage(problem instanceof Error ? problem.message : "上传失败");
     }
   }
 
@@ -127,11 +133,10 @@ export function UploadPage({
     <section className="page">
       <div className="page-heading">
         <div>
-          <span className="eyebrow">DOCUMENT INTAKE</span>
-          <h2>Upload procurement documents</h2>
+          <span className="eyebrow">单据录入</span>
+          <h2>上传采购单据</h2>
           <p>
-            Upload supplier invoices or external Receive Notes. Taptouch
-            Receiving records sync automatically and do not need file upload.
+            上传供应商发票或外部收货单；通过集成接口导入的 TapTouch 收货记录无需上传文件。
           </p>
         </div>
       </div>
@@ -155,37 +160,37 @@ export function UploadPage({
 
       <div className="intake-layout">
         <form className="upload-card" onSubmit={submit}>
-          <div className="segmented-control" aria-label="Document type">
+          <div className="segmented-control" aria-label="单据类型">
             <button
               type="button"
               className={documentType === "invoice" ? "selected" : ""}
               onClick={() => setDocumentType("invoice")}
             >
-              Invoice
+              发票
             </button>
             <button
               type="button"
               className={documentType === "receive_note" ? "selected" : ""}
               onClick={() => setDocumentType("receive_note")}
             >
-              Receive Note
+              收货单
             </button>
           </div>
           <label>
-            Purchase order hint
+            采购订单号线索
             <input
               name="purchase_order_hint"
-              placeholder="Optional, e.g. PO-7788"
+              placeholder="选填，例如 PO-7788"
               value={purchaseOrder}
               onChange={(event) => setPurchaseOrder(event.target.value)}
             />
           </label>
           <label className="file-drop">
-            <span>{file ? file.name : "Choose a PDF or image"}</span>
+            <span>{file ? file.name : "选择 PDF 或图片"}</span>
             <small>
               {file
                 ? `${(file.size / 1024 / 1024).toFixed(2)} MB`
-                : "The original is stored privately in MinIO"}
+                : "原件将安全保存，仅供授权访问"}
             </small>
             <input
               id="document-file"
@@ -200,12 +205,12 @@ export function UploadPage({
             className="primary"
             disabled={!file || startExtraction.isPending}
           >
-            {startExtraction.isPending ? "Uploading…" : "Upload and process"}
+            {startExtraction.isPending ? "正在上传…" : "上传并处理"}
           </button>
           {message && (
             <div
               className={
-                message.includes("queued") ? "success-banner" : "error-banner"
+                messageSuccess ? "success-banner" : "error-banner"
               }
             >
               {message}
@@ -214,24 +219,24 @@ export function UploadPage({
         </form>
 
         <aside className="pipeline-card">
-          <span className="eyebrow">PIPELINE</span>
-          <h3>What happens next</h3>
+          <span className="eyebrow">处理流程</span>
+          <h3>后续处理步骤</h3>
           <ol className="pipeline-steps">
-            <li><strong>Store</strong><span>Original file → MinIO</span></li>
-            <li><strong>Parse</strong><span>MinerU → Markdown and tables</span></li>
-            <li><strong>Normalize</strong><span>Text model → business fields</span></li>
-            <li><strong>Validate</strong><span>GST and arithmetic rules</span></li>
-            <li><strong>Review</strong><span>Human approval is mandatory</span></li>
+            <li><strong>保存</strong><span>安全保存原始文件</span></li>
+            <li><strong>解析</strong><span>识别文字与表格</span></li>
+            <li><strong>提取</strong><span>提取结构化业务字段</span></li>
+            <li><strong>校验</strong><span>核验 GST 与金额计算</span></li>
+            <li><strong>单据审核</strong><span>人工审核后方可对账</span></li>
           </ol>
         </aside>
       </div>
 
       <div className="section-heading">
         <div>
-          <span className="eyebrow">RECENT ACTIVITY</span>
-          <h3>Processing tasks</h3>
+          <span className="eyebrow">近期记录</span>
+          <h3>单据处理任务</h3>
         </div>
-        <button onClick={() => tasks.refetch()}>Refresh</button>
+        <button onClick={() => tasks.refetch()}>刷新</button>
       </div>
       {tasks.error && (
         <div className="error-banner">{(tasks.error as Error).message}</div>
@@ -246,12 +251,12 @@ export function UploadPage({
           return (
             <article className="task-row" key={task.task_id}>
               <div className={`task-icon ${task.document_type}`}>
-                {task.document_type === "invoice" ? "INV" : "RN"}
+                {task.document_type === "invoice" ? "发票" : "收货"}
               </div>
               <div className="task-main">
                 <strong>{task.original_filename}</strong>
                 <span>
-                  {task.purchase_order_hint || "No PO hint"} ·{" "}
+                  {task.purchase_order_hint || "未提供订单号"} ·{" "}
                   {(task.size_bytes / 1024).toFixed(0)} KB
                 </span>
               </div>
@@ -264,7 +269,7 @@ export function UploadPage({
                 )}
                 {failed && (
                   <small>
-                    {run?.phase_error_code || task.error_message || "Failed"}
+                    {run?.phase_error_code || task.error_message || "失败"}
                   </small>
                 )}
               </div>
@@ -274,12 +279,12 @@ export function UploadPage({
                     disabled={startExtraction.isPending}
                     onClick={() => startExtraction.mutate(task.task_id)}
                   >
-                    {failed ? "Retry" : "Start"}
+                    {failed ? "重试" : "开始处理"}
                   </button>
                 )}
                 {task.status === "ready_for_review" && (
                   <button className="primary" onClick={() => onNavigate("/")}>
-                    Review
+                    单据审核
                   </button>
                 )}
                 {run && canCancelRun(run.status) && (
@@ -305,7 +310,7 @@ export function UploadPage({
         })}
       </div>
       {!tasks.isLoading && tasks.data?.length === 0 && (
-        <div className="empty-state">No documents have been uploaded yet.</div>
+        <div className="empty-state">尚未上传单据。</div>
       )}
     </section>
   );

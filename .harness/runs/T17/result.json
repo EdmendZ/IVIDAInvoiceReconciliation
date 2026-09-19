@@ -1,0 +1,157 @@
+{
+  "task_id": "T17",
+  "spec_version": "IR-SIMPLE-1.0.10",
+  "spec_sha256": "ad5a1d623c78f365e1fbeb0eadcbb42901b240af213ef3a7a73abcd7f961a16c",
+  "base_commit": "12ff983513900bb27e833ffd339dd40fe0dc0201",
+  "candidate_commit": null,
+  "changed_files": [
+    ".harness/runs/T17/result.json",
+    "app/api/workspace_routes.py",
+    "app/domain/workspace.py",
+    "app/infra/postgres_workspace_repository.py",
+    "app/services/workspace_ports.py",
+    "app/services/workspace_service.py",
+    "docs/architecture.md",
+    "docs/product.md",
+    "frontend/src/app/App.tsx",
+    "frontend/src/history/HistoryPage.test.tsx",
+    "frontend/src/history/HistoryPage.tsx",
+    "frontend/src/styles.css",
+    "frontend/src/workspace/workspaceClient.ts",
+    "frontend/src/workspace/workspaceTypes.ts",
+    "tests/test_postgres_workspace_repository.py",
+    "tests/test_workspace_api.py",
+    "tests/test_workspace_contracts.py",
+    "tests/test_workspace_service.py"
+  ],
+  "commands": [
+    {
+      "argv": [
+        ".venv/Scripts/python.exe",
+        "-m",
+        "pytest",
+        "-q",
+        "tests/test_workspace_contracts.py",
+        "tests/test_workspace_service.py",
+        "tests/test_workspace_api.py",
+        "tests/test_postgres_workspace_repository.py"
+      ],
+      "exit_code": 0,
+      "log_sha256": "42273eb66f26f1f1c4ec523a7457ad56fb8998d83e88525bb11653b24ca3ae3c"
+    },
+    {
+      "argv": [
+        "npm.cmd",
+        "--prefix",
+        "frontend",
+        "test",
+        "--",
+        "--run",
+        "src/history/HistoryPage.test.tsx"
+      ],
+      "exit_code": 0,
+      "log_sha256": "6ab78c93b04820c687eff9187a2d3172dc010a8193a5e2e75d2598d84e68a003"
+    },
+    {
+      "argv": [
+        ".venv/Scripts/python.exe",
+        "-m",
+        "pytest",
+        "-q"
+      ],
+      "exit_code": 0,
+      "log_sha256": "95dfef1e7b5e0ab33369ca69887a5ecdbdc2e8bab78348feff0df79e1b2a549e"
+    },
+    {
+      "argv": [
+        "npm.cmd",
+        "--prefix",
+        "frontend",
+        "test",
+        "--",
+        "--run"
+      ],
+      "exit_code": 0,
+      "log_sha256": "712f48db6ce6e2ba66f8070f5696eeb1069511ce4fb38160b11e082a47811452"
+    },
+    {
+      "argv": [
+        "npm.cmd",
+        "--prefix",
+        "frontend",
+        "run",
+        "build"
+      ],
+      "exit_code": 0,
+      "log_sha256": "072d41becc2840ebace14025f668b6d6c8342ca235249200773630e256cbf325"
+    },
+    {
+      "argv": [
+        "uv",
+        "run",
+        "ruff",
+        "check",
+        "."
+      ],
+      "exit_code": 0,
+      "log_sha256": "82b3e6a6c090a57601d22943bd23fca9218d1031dbe5a7b754092f9a156b4f18"
+    },
+    {
+      "argv": [
+        ".venv/Scripts/python.exe",
+        "tools/check_spec_contract.py",
+        "--spec-root",
+        "spec"
+      ],
+      "exit_code": 0,
+      "log_sha256": "cc7a933120f37ac5a8ef91a7cc5ba7d2f3c53cb459f7f59f08d6c0a24760a2a3"
+    },
+    {
+      "argv": [
+        ".venv/Scripts/python.exe",
+        "tools/check_task_scope.py",
+        "--task",
+        "T17",
+        "--base",
+        "12ff983513900bb27e833ffd339dd40fe0dc0201",
+        "--spec-root",
+        "spec",
+        "--evidence",
+        ".git/ir-harness/freeze.json"
+      ],
+      "exit_code": 0,
+      "log_sha256": "383371a228a1af0fcb779d247404f013c6d8668f5078b3bb389b015870c3b376"
+    },
+    {
+      "argv": [
+        ".venv/Scripts/python.exe",
+        "tools/check_documentation_sync.py",
+        "--base-ref",
+        "12ff983513900bb27e833ffd339dd40fe0dc0201"
+      ],
+      "exit_code": 0,
+      "log_sha256": "7ae650ea9e974497bea80eb403f32832205b50953e897105d2da85189d83f9ad"
+    },
+    {
+      "argv": [
+        "git",
+        "diff",
+        "--check",
+        "12ff983513900bb27e833ffd339dd40fe0dc0201"
+      ],
+      "exit_code": 0,
+      "log_sha256": "a235af183d210c7454e59566aa05f318ee15b52504b319084a514f1f04a30405"
+    }
+  ],
+  "acceptance_ids": [
+    "D19",
+    "D20",
+    "D21",
+    "D22"
+  ],
+  "known_limits": [
+    "The 21 real PostgreSQL repository cases were skipped because WORKSPACE_TEST_DATABASE_URL was not configured; history persistence, scope isolation and stable pagination are covered by those conditional cases and by non-database contract/API tests.",
+    "The authenticated browser loaded the new history route and controls, but the existing API process was started outside the project launcher and still served the T16 code. Automatic command review rejected terminating that external process, so the live list/detail round trip was not claimed; API and frontend tests passed independently."
+  ],
+  "status": "passed"
+}

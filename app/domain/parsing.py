@@ -1,6 +1,6 @@
-from __future__ import annotations
-
 """异步文档 Parser 的供应商无关领域契约。"""
+
+from __future__ import annotations
 
 from enum import StrEnum
 from typing import Protocol

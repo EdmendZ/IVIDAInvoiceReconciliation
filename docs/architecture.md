@@ -1,0 +1,91 @@
+# 架构
+
+![IVIDA 发票与收货单核对系统架构](assets/architecture.svg)
+
+这张图只展示当前日常工作台主链路。旧审核、旧核对和 Case 代码仍用于历史只读与迁移兼容，
+不再作为新单据的主写入流程。TapTouch Adapter 是受保护的输入边界，图中的虚线表示接口
+已经存在但尚未连接真实生产 API。
+
+## 分层
+
+```text
+frontend/                 中文工作台与历史查询
+app/api/                  HTTP、认证、范围和错误映射
+app/services/             用例编排与事务边界
+app/domain/               状态、DTO 和确定性规则
+app/infra/                PostgreSQL、MinIO、MinerU、模型适配器
+app/workers/              抽取与工作台后台轮询
+migrations/               数据库结构的唯一演进记录
+spec/                     简化工作台的冻结契约
+```
+
+API 不保存进程内业务状态。PostgreSQL 是任务、修订、预览、确认和审计记录的事实源；
+MinIO 保存原件与解析产物。Worker 可独立重启，通过租约、fencing、幂等键和数据库锁
+避免重复提交或过期进程覆盖新结果。
+
+## 模块交互
+
+| 场景 | 入口与编排 | 唯一持久化事实 | 约束 |
+|---|---|---|---|
+| 上传原件 | Workspace API → 上传服务 → Extraction Task | MinIO 原件、PostgreSQL 任务 | 文件头、大小、Hash、门店范围和幂等键先校验 |
+| 抽取修订 | Extraction Worker → MinerU → Normalizer → 校验 | Parse Result、Draft、Revision | 模型只能形成草稿，未知值不能补零 |
+| 自动关联 | Workspace Worker → matching/comparison 纯规则 | Selection、Preview | 同门店、主体和币种先过门禁；一对多只选完整收货单 |
+| 人工确认 | Workspace API → WorkspaceService | Confirmation 与 Action | 事务内重读当前修订、占用和 scope generation |
+| 历史查询 | Workspace API → Repository 读模型 | 固定 revision 与 result snapshot | 后续编辑不改写历史，下载仍需当前授权 |
+
+API、Service、Repository 和 Worker 通过领域 DTO 与 Port 交互。前端不拼接对象存储地址，
+Worker 不绕过 Service 规则写正式确认，模型 Provider 不直接决定候选或核对结论。
+
+## 两条输入路径
+
+- 上传文件：原件 → Extraction Task/Run → MinerU → 结构化模型 → 确定性校验 → 修订。
+- TapTouch Receiving：带范围的机器凭据 → 单调版本和幂等导入 → 权威修订。
+
+两条路径进入同一工作台，但信任来源保持可见。模型输出不是财务事实；正式结果只由
+当前输入、确定性规则和用户确认共同产生。
+
+结构化供应商允许名称未知但保留有证据的 ABN 和地址。通用单据标题不会充当供应商
+名称；身份匹配仍优先使用双方 ABN，缺少可靠身份时保持未核验并交给用户校正。
+
+## 工作台数据
+
+核心表族包括：抽取任务与运行、草稿与证据、不可变版本、旧核对/Case、实验评测，
+以及 `ws_scope_state`、`ws_documents`、`ws_revisions`、`ws_previews`、
+`ws_confirmations`、`ws_claims`、`ws_actions`、`ws_idempotency`。字段和约束以
+`database_models.py` 与 Alembic migration 为准。
+
+工作台使用独立 `ws_` 表，不改写旧批准版本和旧核对快照。确认、重开、作废和来源
+变化都留下追加式 Action。预览可以失效和重算，Confirmation 不可覆盖。
+
+历史列表不建立汇总表。Repository 在 tenant/store 范围内读取 `ws_confirmations`，使用每条
+记录固定的 invoice_revision_id、receive_revision_ids 和 result_snapshot 生成摘要，再进行
+字面搜索、结果筛选和稳定分页。单条详情与 CSV 继续复用既有 Confirmation 读取路径；旧 Case
+历史保持独立只读入口，新结果不复制进旧审批状态机。
+
+未核验、阻断和差异说明只在前端从当前 `PreviewResult` 或历史 `result_snapshot`
+确定性推导；说明不写回快照，不增加 API 状态，也不改变服务端确认校验。
+
+双原件审查不新增关系表或文件接口。Invoice 仍是核对聚合根；详情读取所选收货修订与
+可用上传原件 ID，Receive Note 详情从同 scope 当前选择反向投影关联发票。前端继续逐个
+调用受授权的 `/documents/{id}/source`，多张收货只加载当前标签，避免复制文件或暴露
+对象存储地址。自动跳转只使用该读取投影，不改变 provisional selection 或正式 claim。
+
+## 接口与权限
+
+日常工作台使用 `/api/workspace`；旧上传、审核、核对和 Case 接口在工作台启用后只读。
+浏览器继续使用 HttpOnly Session，写请求保留 CSRF/Origin 门禁；对象按配置的
+tenant/store 范围查询，范围外返回 404。TapTouch 机器接口使用独立 Bearer 凭据。
+
+完整请求响应查看运行中的 `/docs` 和 [冻结契约](../spec/03-contracts.md)，避免在这里
+维护第二份全量 API 清单。
+
+## 一致性边界
+
+- 上传对象写入失败会补偿，避免数据库或对象存储留下单边记录。
+- 确认会重新读取当前修订、候选占用和 scope generation，不信任浏览器旧预览。
+- `expected_revision`、幂等键和事务锁共同处理双击、重试和并发操作。
+- 未知值不会用零代替；异常不会被“成功”状态掩盖。
+- 原件和 CSV 下载必须先通过当前用户与工作区授权。
+
+这些边界比框架名称更重要。当前 Python/FastAPI/PostgreSQL 结构已经满足需求，不因
+外部 .NET 示例仓库而重构技术栈。

@@ -1,0 +1,54 @@
+{
+  "task_id": "T07",
+  "spec_version": "IR-SIMPLE-1.0.3",
+  "spec_sha256": "ba317333be98598676430d8262dd84ecadb143a6030458d3de7587b32c604c9b",
+  "base_commit": "a5cb242acd86845abc0a11a0fa3b6ec189e6da65",
+  "current_metadata": {
+    "head": "a5cb242acd86845abc0a11a0fa3b6ec189e6da65",
+    "enforcement": "diff-gate-only"
+  },
+  "candidate_commit": null,
+  "changed_files": [
+    ".harness/runs/T07/result.json",
+    "frontend/src/api/client.ts",
+    "frontend/src/i18n.ts",
+    "frontend/src/workspace/workspaceClient.test.ts",
+    "frontend/src/workspace/workspaceClient.ts",
+    "frontend/src/workspace/workspacePresentation.test.ts",
+    "frontend/src/workspace/workspacePresentation.ts",
+    "frontend/src/workspace/workspaceTypes.ts"
+  ],
+  "commands": [
+    {
+      "argv": ["npm", "--prefix", "frontend", "test", "--", "--run", "src/workspace/workspacePresentation.test.ts", "src/workspace/workspaceClient.test.ts"],
+      "exit_code": 0,
+      "log_sha256": "708688a58ae64eb2a9bf5b98511fd36f5f29ec74e946f6fbec1db32be1647d89"
+    },
+    {
+      "argv": ["npm", "--prefix", "frontend", "run", "typecheck"],
+      "exit_code": 0,
+      "log_sha256": "3eb6d02453e37f52d5ed5c33caccbaa882ca8288754ec089556606f423e76780"
+    },
+    {
+      "argv": [".venv/Scripts/python.exe", "tools/check_spec_contract.py", "--spec-root", "spec"],
+      "exit_code": 0,
+      "log_sha256": "cc7a933120f37ac5a8ef91a7cc5ba7d2f3c53cb459f7f59f08d6c0a24760a2a3"
+    },
+    {
+      "argv": [".venv/Scripts/python.exe", "tools/check_task_scope.py", "--task", "T07", "--base", "a5cb242acd86845abc0a11a0fa3b6ec189e6da65", "--spec-root", "spec", "--evidence", ".git/ir-harness/freeze.json"],
+      "exit_code": 0,
+      "log_sha256": "649abb7c5ca7825f4feba81b39857e792487e2a7f134727354f922c6f2d7fbe0"
+    },
+    {
+      "argv": ["git", "diff", "--check", "a5cb242acd86845abc0a11a0fa3b6ec189e6da65"],
+      "exit_code": 0,
+      "log_sha256": "3f4ac7ca3b9dbe7b536d0572c8e4e02817002b51045815f67534e7e825aafd77"
+    }
+  ],
+  "acceptance_ids": ["A15", "A16", "A25", "A29"],
+  "known_limits": [
+    "Workspace page and document page integration remains assigned to T08.",
+    "No concrete Spec or interface gap requiring redesign was found."
+  ],
+  "status": "passed"
+}

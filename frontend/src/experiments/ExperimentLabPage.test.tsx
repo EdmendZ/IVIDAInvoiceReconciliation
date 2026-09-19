@@ -40,14 +40,17 @@ describe("ExperimentLabPage", () => {
       if (String(input) === "/api/auth/me") {
         return response({ user_id: "reviewer-1", username: "reviewer", role: "reviewer" });
       }
+      if (String(input) === "/api/workspace/runtime") {
+        return response({ enabled: true, worker_online: true, last_sync_at: null, preview_lag_seconds: 0 });
+      }
       throw new Error(`Unexpected request: ${String(input)}`);
     });
     vi.stubGlobal("fetch", fetchMock);
     render(<App />);
 
-    expect(await screen.findByText("Admin access required.")).toBeTruthy();
-    expect(screen.queryByRole("button", { name: "Quality Lab" })).toBeNull();
-    expect(fetchMock).toHaveBeenCalledTimes(1);
+    expect(await screen.findByText("需要管理员权限。")).toBeTruthy();
+    expect(screen.queryByRole("button", { name: "质量评测" })).toBeNull();
+    expect(fetchMock).toHaveBeenCalledTimes(2);
   });
 
   it("compares only completed runs and refreshes governed feedback", async () => {
@@ -67,21 +70,21 @@ describe("ExperimentLabPage", () => {
     vi.stubGlobal("fetch", fetchMock);
     renderPage();
 
-    const baseline = await screen.findByLabelText("Baseline");
-    const candidate = screen.getByLabelText("Candidate");
+    const baseline = await screen.findByLabelText("基线");
+    const candidate = screen.getByLabelText("候选方案");
     expect(screen.queryByRole("option", { name: "run-incomplete" })).toBeNull();
     fireEvent.change(baseline, { target: { value: "run-a" } });
     fireEvent.change(candidate, { target: { value: "run-b" } });
-    expect(screen.getAllByText("Not configured").length).toBeGreaterThan(0);
+    expect(screen.getAllByText("未配置").length).toBeGreaterThan(0);
 
-    fireEvent.click(screen.getByRole("button", { name: "Compare completed runs" }));
-    expect(await screen.findByText("schema_valid_rate (hard)")).toBeTruthy();
-    expect(screen.getByText("business_scenario: short delivery")).toBeTruthy();
+    fireEvent.click(screen.getByRole("button", { name: "比较已完成的评测" }));
+    expect(await screen.findByText("结构校验通过率（硬性要求）")).toBeTruthy();
+    expect(screen.getByText("业务场景: short delivery")).toBeTruthy();
 
-    const classification = screen.getByLabelText("Classification");
+    const classification = screen.getByLabelText("分类");
     fireEvent.change(classification, { target: { value: "acceptable_variant" } });
-    expect((screen.getByLabelText("Include in Gold") as HTMLInputElement).disabled).toBe(true);
-    fireEvent.click(screen.getByRole("button", { name: "Confirm" }));
+    expect((screen.getByLabelText("纳入标准答案集") as HTMLInputElement).disabled).toBe(true);
+    fireEvent.click(screen.getByRole("button", { name: "确认" }));
     await waitFor(() => expect(feedbackReads).toBeGreaterThan(1));
   });
 });

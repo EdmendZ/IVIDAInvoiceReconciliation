@@ -7,6 +7,7 @@ from app.api.dependencies import (
     get_draft_repository,
     get_extraction_service,
     get_parse_repository,
+    require_legacy_mutation_available,
 )
 from app.domain.admin_users import AuthenticatedUser
 from app.domain.extraction_runs import ExtractionRun
@@ -25,6 +26,7 @@ router = APIRouter(prefix="/api", tags=["document extraction"])
     "/extraction-tasks/{task_id}/extract",
     response_model=ExtractionRun,
     status_code=status.HTTP_202_ACCEPTED,
+    dependencies=[Depends(require_legacy_mutation_available)],
 )
 def start_extraction(
     task_id: str,
@@ -109,7 +111,11 @@ def get_extraction_result(
     }
 
 
-@router.post("/extraction-runs/{run_id}/cancel", response_model=ExtractionRun)
+@router.post(
+    "/extraction-runs/{run_id}/cancel",
+    response_model=ExtractionRun,
+    dependencies=[Depends(require_legacy_mutation_available)],
+)
 def cancel_extraction_run(
     run_id: str,
     service: ExtractionService = Depends(get_extraction_service),

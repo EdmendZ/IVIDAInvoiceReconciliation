@@ -1,3 +1,4 @@
+import { label } from "../i18n";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { api } from "../api/client";
 
@@ -16,8 +17,10 @@ type QueueItem = {
 
 export function ReviewQueuePage({
   onNavigate,
+  readOnly = false,
 }: {
   onNavigate: (path: string) => void;
+  readOnly?: boolean;
 }) {
   const queryClient = useQueryClient();
   const queue = useQuery({
@@ -27,6 +30,7 @@ export function ReviewQueuePage({
 
   async function open(item: QueueItem) {
     let versionId = item.version_id;
+    if (readOnly && !versionId) return;
     if (!versionId) {
       const version = await api<{ version_id: string }>(
         `/api/review/tasks/${item.task_id}/start`,
@@ -42,13 +46,13 @@ export function ReviewQueuePage({
     <section className="page">
       <div className="page-heading">
         <div>
-          <span className="eyebrow">CONTROL QUEUE</span>
-          <h2>Documents awaiting review</h2>
-          <p>Approve only after checking source evidence and validation flags.</p>
+          <span className="eyebrow">审核工作区</span>
+          <h2>待审核单据</h2>
+          <p>请核对原文证据及校验提示后再批准。</p>
         </div>
-        <button onClick={() => queue.refetch()}>Refresh</button>
+        <button onClick={() => queue.refetch()}>刷新</button>
       </div>
-      {queue.isLoading && <div className="empty-state">Loading queue…</div>}
+      {queue.isLoading && <div className="empty-state">正在加载审核列表…</div>}
       {queue.error && (
         <div className="error-banner">{(queue.error as Error).message}</div>
       )}
@@ -56,28 +60,29 @@ export function ReviewQueuePage({
         {queue.data?.map((item) => (
           <button
             className="queue-card"
+            disabled={readOnly && !item.version_id}
             key={item.task_id}
             onClick={() => open(item)}
           >
             <div className="queue-card-top">
               <span className={`document-type ${item.document_type}`}>
-                {item.document_type.replace("_", " ")}
+                {label(item.document_type)}
               </span>
-              <span className={`status ${item.status}`}>{item.status}</span>
+              <span className={`status ${label(item.status)}`}>{label(item.status)}</span>
             </div>
-            <h3>{item.document_number || "Document number not extracted"}</h3>
-            <p>{item.supplier || "Supplier not extracted"}</p>
+            <h3>{item.document_number || "未提取单据编号"}</h3>
+            <p>{item.supplier || "未提取供应商"}</p>
             <div className="issue-counts">
               <span className={item.blocking_count ? "blocking" : ""}>
-                {item.blocking_count} blocking
+                {item.blocking_count} 项阻断
               </span>
-              <span>{item.warning_count} warnings</span>
+              <span>{item.warning_count} 项警告</span>
             </div>
           </button>
         ))}
       </div>
       {!queue.isLoading && queue.data?.length === 0 && (
-        <div className="empty-state">No documents are waiting for review.</div>
+        <div className="empty-state">暂无待审核单据。</div>
       )}
     </section>
   );

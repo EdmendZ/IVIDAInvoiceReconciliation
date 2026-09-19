@@ -1,198 +1,174 @@
 # IVIDA Invoice Reconciliation
 
-IVIDA 发票（Invoice）与收货单（Receive Note）比对原型。该项目与客服知识库项目完全分离，只复用同一套基础设施服务。
+[![CI](https://github.com/EdmendZ/IVIDAInvoiceReconciliation/actions/workflows/ci.yml/badge.svg)](https://github.com/EdmendZ/IVIDAInvoiceReconciliation/actions/workflows/ci.yml)
+[![CodeQL](https://github.com/EdmendZ/IVIDAInvoiceReconciliation/actions/workflows/codeql.yml/badge.svg)](https://github.com/EdmendZ/IVIDAInvoiceReconciliation/actions/workflows/codeql.yml)
 
-第一次阅读项目请从 [文档中心](docs/README.md) 开始。业务、架构、AI 抽取、
-人工审核、一对多核对、运行排障和面试复习均有独立说明。修改代码时必须遵守
-[文档维护规范](docs/documentation-policy.md)，并同步更新对应文档。
+面向澳洲餐饮门店的 Invoice / Receive Note 自动核对工作台。单据可以任意顺序到达；
+系统自动提取、关联并生成逐行差异，用户查看原件后只确认一次。界面使用中文，供应商、
+商品、编号和金额等业务原值保持英文。
 
-## 当前阶段
+> 当前为本地 Pilot。TapTouch 适配接口已经预留，但尚未连接真实生产 API；系统不包含
+> 合同、完整采购订单、付款、总账或库存主数据模块。
 
-阶段 1 已建立：
+## 产品界面
 
-- 独立 FastAPI 服务，默认端口 `8200`
-- Invoice / Receive Note 标准 JSON 数据模型
-- Taptouch Receiving 结构化、幂等、带版本导入（绕过 OCR 和虚假人工审核）
-- 支持“一张发票对应多张收货单”的确定性行项目比对
-- 数量、单价、金额容差与差异分类
-- PDF、PNG、JPEG 原件上传与安全格式校验
-- MinIO 原件存储与 PostgreSQL 抽取任务持久化
-- 异步抽取运行记录和 `ready_for_review` 状态流
-- 模型 Provider 统一接口、耗时、Token 和成本字段
-- 异常 Reconciliation 与差异 Case 的同事务创建，清洁结果不制造人工待办
-- Reviewer 认领、逐项处置和提交，Admin 退回、重新分派、批准或作废
-- `expected_revision` 乐观并发保护与追加式 Case Action 审计历史
-- PostgreSQL、MinIO 和模型供应商的独立配置命名
-- 健康检查、示例接口和自动化测试
+![单据工作台：上传、状态筛选与英文业务数据](docs/assets/screenshots/workspace.jpg)
 
-当前已接通 MinerU 文档解析和 OpenAI-compatible 结构化模型，并保留
-`MODEL_PROVIDER=disabled` 作为未配置环境的安全默认值。模型只生成审核草稿；
-最终比对只接受人工批准的上传版本，或当前有效的 Taptouch 上游权威版本。
+![核对详情：自动关联、供应商依据与逐行差异](docs/assets/screenshots/document-detail.jpg)
 
-## 启动
+截图来自当前 React 前端和项目内的确定性 demo fixture，用于展示界面与业务状态；它们
+不代表已经导入生产数据，也不用于证明 MinerU、模型或 TapTouch 的真实准确率。
 
-### 推荐：一键启动本机演示
+## 核心流程
+
+1. 用户上传 Invoice 或 Receive Note；另一侧可以稍后到达。
+2. Extraction Worker 异步解析原件并生成可审核修订，用户无需点击“开始提取”。
+3. Workspace Worker 在同一门店范围内自动寻找候选；一张 Invoice 可以关联多张完整
+   Receive Notes。
+4. 用户在同一详情页查看双方原件、英文业务字段、匹配依据和逐行结果。
+5. 一致结果和差异结果都只确认一次；真正差异需要处理说明，缺少可比数据则显示“未核验”。
+6. 确认结果保存为不可变快照；后续更正通过重开形成新修订，旧记录不会被覆盖。
+
+重复文件通过 SHA-256 复用原记录；同店同编号发票在确认前阻断。一张收货单进入正式
+结果后不能同时用于另一张发票。候选分数只用于排序和解释，不表示概率，也不替代人工确认。
+
+## 系统架构
+
+![IVIDA 发票与收货单核对系统架构](docs/assets/architecture.svg)
+
+关键设计边界：
+
+- **确定性规则拥有最终判断权**：模型只生成结构化草稿，匹配、容差和差异由领域规则计算。
+- **PostgreSQL 是事实源**：任务、修订、预览、确认和追加式审计均持久化，不依赖进程内状态。
+- **MinIO 保存原件**：浏览器通过受授权接口读取文件，不接触对象存储地址或凭据。
+- **Worker 可恢复**：数据库租约、fencing、幂等键和事务锁避免重复提交及过期进程覆盖结果。
+- **权限按门店收窄**：HttpOnly Session、CSRF/Origin 校验和 tenant/store 范围共同保护数据。
+
+模块职责、写入边界和历史快照设计见 [架构说明](docs/architecture.md)。
+
+## 技术栈
+
+| 层 | 实现 |
+|---|---|
+| 前端 | React 19、TypeScript、Vite、TanStack Query |
+| API | FastAPI、Pydantic、HttpOnly Session |
+| 后台任务 | Extraction Worker、Workspace Worker、数据库租约 |
+| 数据 | PostgreSQL、SQLAlchemy、Alembic、MinIO |
+| 文档抽取 | MinerU + OpenAI-compatible Normalizer，可关闭 |
+| 验证 | Pytest、Vitest、Ruff、GitHub Actions |
+
+## 本地启动
+
+需要 Python 3.11 或 3.12、`uv`、Node.js 22、可访问的 PostgreSQL 和 MinIO。
+Docker Compose 只是可选的交付演示，不是日常开发前置条件。
 
 ```powershell
-cd E:\ZephyrLLM\Projects\IVIDAInvoiceReconciliation
+git clone https://github.com/EdmendZ/IVIDAInvoiceReconciliation.git
+cd IVIDAInvoiceReconciliation
+Copy-Item .env.example .env
+uv sync
+npm --prefix frontend ci
+uv run python init_database.py
+```
+
+编辑 `.env`，至少填写独立的 PostgreSQL database 和 MinIO bucket。启用简化工作台时还要设置：
+
+```dotenv
+APP_ENV=dev
+WORKSPACE_ENABLED=true
+WORKSPACE_TENANT_ID=demo-tenant
+WORKSPACE_STORE_ID=demo-store
+```
+
+创建或重置开发管理员：
+
+```powershell
+uv run python setup_dev_admin.py
+```
+
+脚本会输出 `adminuser` 的一次性临时密码，并注销该账号的旧 Session；不要把密码写入
+README、日志或 Git。随后启动完整本地链路：
+
+```powershell
 .\start_local_demo.ps1
 ```
 
-脚本会启动 API、Extraction Worker 和前端，验证 `8200`、`5274`
-端口及健康检查，然后打开 <http://127.0.0.1:5274>。日志保存在
-`logs/local-demo/`。
-
-停止时运行：
+启动器运行 API、两个 Worker 和前端，验证 `8200`、`5274` 端口后打开工作台。停止时运行：
 
 ```powershell
 .\stop_local_demo.ps1
 ```
 
-停止脚本只处理启动器记录且可验证属于本项目的进程，不会按端口盲目结束其他应用。
+常用入口：
 
-### 分别启动组件
+- 工作台：<http://127.0.0.1:5274>
+- API 文档：<http://127.0.0.1:8200/docs>
+- 健康检查：<http://127.0.0.1:8200/api/health>
+- Extraction Quality Lab：<http://127.0.0.1:5274/lab>
 
-```powershell
-cd E:\ZephyrLLM\Projects\IVIDAInvoiceReconciliation
-Copy-Item .env.example .env
-uv sync
-uv run uvicorn app.main:app --host 0.0.0.0 --port 8200 --reload
-```
+`/api/health` 只说明 API 进程在线。数据库、MinIO 和 Worker 状态仍应在工作台或
+`/api/runtime/status` 中单独检查。
 
-在 PyCharm 中也可以直接右键根目录下的 `run_api.py`，选择 **Run 'run_api'**。
+## 演示与评测数据
 
-首次运行前，在 PyCharm 中右键 `init_database.py`，选择 **Run 'init_database'**。脚本会在 PostgreSQL 中创建独立数据库（如果尚不存在），然后执行 Alembic 表结构迁移。
-
-打开：
-
-- API 文档：<http://localhost:8200/docs>
-- 健康检查：<http://localhost:8200/api/health>
-- 输入示例：<http://localhost:8200/api/reconciliations/example>
-
-## 上传测试
-
-打开 <http://localhost:8200/docs>：
-
-1. 展开 `POST /api/documents/upload`。
-2. 点击 **Try it out**。
-3. `document_type` 选择 `invoice` 或 `receive_note`。
-4. 选择 PDF、PNG、JPG 或 JPEG 文件。
-5. 点击 **Execute**。
-6. 成功时返回 `task_id`、MinIO 对象路径以及 `uploaded` 状态。
-7. 将 `task_id` 填入 `GET /api/extraction-tasks/{task_id}` 可再次查询。
-
-抽取框架接口：
-
-- `POST /api/extraction-tasks/{task_id}/extract`：创建 PostgreSQL 持久化抽取任务。
-- `GET /api/extraction-runs/{run_id}`：查询执行阶段、耗时和成本。
-- `GET /api/extraction-runs/{run_id}/result`：查询草稿、证据和校验问题。
-
-API 不再使用进程内 `BackgroundTasks`。必须单独运行
-`run_extraction_worker.py`；API 或 Worker 重启不会丢失排队任务。在真实模型
-尚未配置时，Worker 会以稳定错误码结束任务，不会产生虚假的财务结果。
-
-真实上传前，需要复制 `.env.example` 为 `.env`，填写 PostgreSQL 连接和当前 MinIO 的有效账号。可以复用项目2的 MinIO 服务器参数，但必须保留：
-
-```dotenv
-DATABASE_URL=postgresql+psycopg://postgres:YOUR_PASSWORD@YOUR_HOST:5432/ivida_invoice_reconciliation
-MINIO_BUCKET_NAME=ivida-invoice-documents
-TAPTOUCH_INTEGRATION_TOKEN=YOUR_RANDOM_LOCAL_TOKEN
-```
-
-多门店集成应使用 `TAPTOUCH_INTEGRATION_CREDENTIALS_JSON` 为每个调用方限制允许的
-tenant/store；单 Token 只适合本地演示。
-
-这样两个项目可以共用 MinIO 服务进程，但不会共用业务数据。
-
-运行测试：
+创建六份固定英文 PDF 和四类工作台状态：
 
 ```powershell
-uv run pytest
+uv run python setup_demo_data.py
 ```
 
-## 基础设施隔离
+如果本机已经有被 Git 忽略的 `evaluation_data/`，可将 8 个案例、17 份 PDF 导入网页：
 
-| 资源 | 当前项目 |
+```powershell
+uv run python tools/validate_evaluation_dataset.py
+uv run python setup_evaluation_data.py
+```
+
+两个入口都使用明确标记的 fixture Draft，以便稳定演示现有匹配和核对规则。它们绕过
+真实 OCR 和结构化模型，不能作为抽取准确率证据。真实模型比较方法见
+[AI 抽取与评测](docs/ai.md)。
+
+真实模型实验只通过 `app.cli.create_experiment` 和 `app.cli.run_experiment` 创建及执行；
+`/lab` 读取已保存结果。评测建议和 Promotion Decision 不会自动修改生产模型配置。
+
+## 验证
+
+```powershell
+uv run pytest -q
+uv run ruff check .
+npm --prefix frontend test -- --run
+npm --prefix frontend run build
+uv run python tools/check_spec_contract.py --spec-root spec
+uv run python tools/check_documentation_sync.py
+```
+
+需要 PostgreSQL 的工作台集成测试只接受名称以 `_workspace_test` 结尾的隔离数据库；
+缺少外部服务时只跳过对应集成验证，不会把跳过描述成通过。
+
+## 仓库结构
+
+```text
+app/api/          HTTP、认证、权限范围和错误映射
+app/services/     用例编排与事务边界
+app/domain/       状态、DTO、匹配和逐行核对规则
+app/infra/        PostgreSQL、MinIO、MinerU、模型适配器
+app/workers/      抽取与工作台后台任务
+frontend/src/     中文 React 工作台
+migrations/       数据库结构唯一演进记录
+spec/             冻结接口、状态机、规则和任务边界
+docs/             少量长期维护文档与图片资产
+```
+
+## 文档入口
+
+| 文档 | 适合回答的问题 |
 |---|---|
-| 后端端口 | `8200` |
-| 预留前端端口 | `5274` |
-| PostgreSQL database | `ivida_invoice_reconciliation` |
-| MinIO bucket | `ivida-invoice-documents` |
-| Milvus | 阶段 1 不使用 |
+| [产品与流程](docs/product.md) | 业务解决什么问题，为什么这样操作？ |
+| [架构](docs/architecture.md) | 模块如何交互，数据和安全边界在哪里？ |
+| [AI 抽取与评测](docs/ai.md) | MinerU、模型、证据和指标如何工作？ |
+| [开发与运行](docs/development.md) | 如何配置、启动、测试、排障和交付？ |
+| [演示与源码导读](docs/demo.md) | 如何演示，以及先读哪些源码？ |
+| [冻结 Spec](spec/README.md) | 当前接口、状态机和任务文件范围是什么？ |
 
-PostgreSQL 和 MinIO 可以使用现有服务器；database 与 bucket 必须使用上表中的独立名称。当前项目不再依赖 MongoDB。
-
-## 评测数据
-
-项目本地包含一套澳洲披萨门店采购合成评测集，位于 `evaluation_data/`，并已被 Git 忽略。生成器、场景说明和校验方式见 [docs/evaluation-dataset.md](docs/evaluation-dataset.md)。
-
-评测命令会缓存 MinerU 解析结果，再计算结构化字段准确率、行项目 F1、
-证据覆盖率、延迟和估算成本：
-
-```powershell
-.\.venv\Scripts\python.exe -m app.cli.evaluate_extraction `
-  --variant baseline `
-  --max-documents 1
-```
-
-使用 `app.cli.compare_evaluations` 可以比较不同 Prompt 或模型的
-`summary.json`，而不重复调用 MinerU。
-
-Admin 可在 <http://127.0.0.1:5274/lab> 使用 Extraction Quality Lab 查看不可变实验
-定义、完整运行指标、错误切片、Promotion Gate 和待确认 Feedback Candidate。真实模型
-实验只由 `app.cli.create_experiment` / `app.cli.run_experiment` 执行；Web API 不调用
-外部模型。推荐结论不会自动切换生产配置，只有 Admin 确认的 `model_error` 才有 Gold
-资格。详细命令与 5–8 分钟演示顺序见
-[API、UI 与本地运行](docs/operations/08-api-ui-and-local-run.md)。
-
-模型选择不是写死的：先用同一份 MinerU 缓存分别评测 Max、Plus 或 Flash，
-再按 Schema 通过率、字段准确率、行项目 F1、证据覆盖率、延迟和成本选择。
-当前单文档结果只是链路冒烟测试，不作为生产模型结论。具体依据见
-[docs/interview/model-selection.md](docs/interview/model-selection.md)。
-
-## 人工审核与对账
-
-- 审核前端：<http://127.0.0.1:5274>
-- `Upload`：上传 Invoice/Receive Note、启动处理并查看 Worker 阶段。
-- `Review`：查看证据与校验问题、保存新版本、批准或驳回。
-- `Reconcile`：选择已批准 Invoice 和一个或多个 Receive Note，展示逐行差异。
-- `Cases`：查看公共待办和本人 Case；负责人逐项填写结论，Admin 处理审批或作废决定。
-- 账号创建：`python -m app.cli.create_admin --username reviewer --role reviewer`
-- 只有人工批准的上传版本或当前有效的 Taptouch 权威版本可以调用生产对账接口。
-- 编辑会创建新版本；批准版本与审核记录由 PostgreSQL 触发器保护。
-
-Reconciliation 是不可覆盖的规则计算快照；Case 只保存可变的人工处理状态和审计
-轨迹。`approved`、`voided` Case 不能恢复或继续编辑，需要纠正单据时应基于新的批准
-版本创建新的 Reconciliation。本仓库当前仍是本机 Pilot，不包含 Case 补充材料附件
-上传、通知、SLA/分析报表或生产部署能力。
-
-完整启动顺序、恢复和备份说明见
-[docs/operations/review-workflow.md](docs/operations/review-workflow.md)。
-
-## CI/CD 与容器演示
-
-[![CI](https://github.com/EdmendZ/IVIDAInvoiceReconciliation/actions/workflows/ci.yml/badge.svg)](https://github.com/EdmendZ/IVIDAInvoiceReconciliation/actions/workflows/ci.yml)
-[![CodeQL](https://github.com/EdmendZ/IVIDAInvoiceReconciliation/actions/workflows/codeql.yml/badge.svg)](https://github.com/EdmendZ/IVIDAInvoiceReconciliation/actions/workflows/codeql.yml)
-
-复制 `.env.compose.example` 为 `.env.compose` 后，可运行
-`docker compose --env-file .env.compose up --build -d` 启动完整本地演示栈。
-`v*` Tag 会在完整 CI、Compose Smoke 和镜像扫描通过后发布三个 GHCR 镜像及
-GitHub Release。该流程用于模拟企业交付，不代表已经部署到生产服务器。命令、
-回滚边界和仓库设置见
-[CI/CD、容器发布与回滚](docs/operations/20-ci-cd-and-release.md)。
-
-## 不连接外部服务学习业务规则
-
-在 PyCharm 中直接右键运行根目录的 `demo_business_flow.py`，可以观察一张
-Invoice 与两张分批 Receive Notes 的候选匹配和一对多核对。该脚本不读取
-`.env`，不连接 PostgreSQL、MinIO、MinerU 或模型 API。
-
-断点位置和变量观察顺序见
-[PyCharm 断点调试业务流程](docs/tutorial/19-pycharm-debug-walkthrough.md)。
-
-## 面试材料
-
-- [项目故事](docs/interview/project-story.md)
-- [五分钟演示脚本](docs/interview/demo-script.md)
-- [架构与责任边界](docs/interview/architecture.md)
-- [模型选择记录](docs/interview/model-selection.md)
+权威顺序为 **冻结 Spec → 代码与迁移 → 主题文档**。贡献前阅读
+[CONTRIBUTING.md](CONTRIBUTING.md)，业务或接口变化必须同步最相关的文档。

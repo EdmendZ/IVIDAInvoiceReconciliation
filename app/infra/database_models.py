@@ -947,3 +947,171 @@ class PromotionDecisionRow(Base):
         ),
         Index("ix_promotion_decisions_candidate", "candidate_run_id", "decided_at"),
     )
+
+
+# Workspace tables share the existing metadata. JSON remains portable for legacy
+# SQLite tests; PostgreSQL always receives JSONB.
+_WS_JSON = JSON().with_variant(JSONB(), "postgresql")
+
+
+def _ws_fk(target, *, deferred=False):
+    return ForeignKey(target, ondelete="RESTRICT", deferrable=True if deferred else None,
+                      initially="DEFERRED" if deferred else None, use_alter=deferred,
+                      name=("fk_ws_documents_current_" + {"ws_revisions": "revision", "ws_previews": "preview",
+                            "ws_confirmations": "confirmation"}[target.split(".")[0]] + "_id") if deferred else None)
+
+
+class WorkspaceDocumentRow(Base):
+    __tablename__ = "ws_documents"
+    document_id: Mapped[str] = mapped_column(Text, primary_key=True)
+    tenant_id: Mapped[str] = mapped_column(Text)
+    store_id: Mapped[str] = mapped_column(Text)
+    document_type: Mapped[str] = mapped_column(Text)
+    source_kind: Mapped[str] = mapped_column(Text)
+    task_id: Mapped[str | None] = mapped_column(Text, _ws_fk("extraction_tasks.task_id"), unique=True)
+    upstream_identity: Mapped[str | None] = mapped_column(Text)
+    current_revision_id: Mapped[str | None] = mapped_column(Text, _ws_fk("ws_revisions.revision_id", deferred=True))
+    revision: Mapped[int] = mapped_column(Integer)
+    processing_status: Mapped[str] = mapped_column(Text)
+    review_status: Mapped[str | None] = mapped_column(Text)
+    selected_document_ids: Mapped[list] = mapped_column(_WS_JSON)
+    selection_origin: Mapped[str | None] = mapped_column(Text)
+    selection_note: Mapped[str | None] = mapped_column(Text)
+    match_status: Mapped[str] = mapped_column(Text)
+    current_preview_id: Mapped[str | None] = mapped_column(Text, _ws_fk("ws_previews.preview_id", deferred=True))
+    preview_stale: Mapped[bool] = mapped_column(Boolean)
+    current_confirmation_id: Mapped[str | None] = mapped_column(Text, _ws_fk("ws_confirmations.confirmation_id", deferred=True))
+    source_changed: Mapped[bool] = mapped_column(Boolean)
+    error_code: Mapped[str | None] = mapped_column(Text)
+    created_by: Mapped[str | None] = mapped_column(Text, _ws_fk("admin_users.user_id"))
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True))
+    updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True))
+    __table_args__ = (
+        CheckConstraint("document_type IN ('invoice','receive_note')", name="ck_ws_documents_type"),
+        CheckConstraint("source_kind IN ('upload','taptouch')", name="ck_ws_documents_source"),
+        CheckConstraint("processing_status IN ('processing','ready','failed','cancelled','voided')", name="ck_ws_documents_processing"),
+        CheckConstraint("review_status IN ('open','investigating','completed')", name="ck_ws_documents_review"),
+        CheckConstraint("selection_origin IN ('automatic','manual')", name="ck_ws_documents_selection"),
+        CheckConstraint("match_status IN ('waiting_counterpart','needs_selection','selected')", name="ck_ws_documents_match"),
+        CheckConstraint("revision >= 1", name="ck_ws_documents_revision"),
+        CheckConstraint("(document_type = 'invoice' AND review_status IS NOT NULL) OR (document_type = 'receive_note' AND review_status IS NULL)", name="ck_ws_documents_review_shape"),
+        CheckConstraint("(source_kind = 'upload' AND task_id IS NOT NULL) OR (source_kind = 'taptouch' AND upstream_identity IS NOT NULL)", name="ck_ws_documents_source_shape"),
+        CheckConstraint("processing_status <> 'ready' OR current_revision_id IS NOT NULL", name="ck_ws_documents_ready"),
+        Index("ix_ws_documents_scope_type_status_updated", "tenant_id", "store_id", "document_type", "processing_status", "updated_at", "document_id"),
+        Index("uq_ws_documents_upstream", "tenant_id", "store_id", "upstream_identity", unique=True,
+              postgresql_where=text("upstream_identity IS NOT NULL"), sqlite_where=text("upstream_identity IS NOT NULL")),
+    )
+
+
+class WorkspaceRevisionRow(Base):
+    __tablename__ = "ws_revisions"
+    revision_id: Mapped[str] = mapped_column(Text, primary_key=True)
+    document_id: Mapped[str] = mapped_column(Text, _ws_fk("ws_documents.document_id"))
+    sequence: Mapped[int] = mapped_column(Integer)
+    source_draft_id: Mapped[str | None] = mapped_column(Text, _ws_fk("document_drafts.draft_id"))
+    source_version_id: Mapped[str | None] = mapped_column(Text, _ws_fk("document_versions.version_id"))
+    payload: Mapped[dict] = mapped_column(_WS_JSON)
+    evidence: Mapped[list] = mapped_column(_WS_JSON)
+    validation_issues: Mapped[list] = mapped_column(_WS_JSON)
+    content_sha256: Mapped[str] = mapped_column(Text)
+    origin: Mapped[str] = mapped_column(Text)
+    actor_id: Mapped[str | None] = mapped_column(Text, _ws_fk("admin_users.user_id"))
+    reason: Mapped[str | None] = mapped_column(Text)
+    evidence_origin_revision_id: Mapped[str | None] = mapped_column(Text, _ws_fk("ws_revisions.revision_id"))
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True))
+    __table_args__ = (
+        UniqueConstraint("document_id", "sequence", name="uq_ws_revisions_sequence"),
+        CheckConstraint("sequence >= 1", name="ck_ws_revisions_sequence"),
+        CheckConstraint("origin IN ('extracted','manual','upstream')", name="ck_ws_revisions_origin"),
+        CheckConstraint("source_draft_id IS NULL OR source_version_id IS NULL", name="ck_ws_revisions_source"),
+    )
+
+
+class WorkspacePreviewRow(Base):
+    __tablename__ = "ws_previews"
+    preview_id: Mapped[str] = mapped_column(Text, primary_key=True)
+    invoice_document_id: Mapped[str] = mapped_column(Text, _ws_fk("ws_documents.document_id"))
+    input_revision_ids: Mapped[list] = mapped_column(_WS_JSON)
+    scope_generation: Mapped[int] = mapped_column(BigInteger)
+    selection_origin: Mapped[str] = mapped_column(Text)
+    rule_version: Mapped[str] = mapped_column(Text)
+    tolerances: Mapped[dict] = mapped_column(_WS_JSON)
+    input_sha256: Mapped[str] = mapped_column(Text)
+    result: Mapped[dict] = mapped_column(_WS_JSON)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True))
+    __table_args__ = (
+        UniqueConstraint("invoice_document_id", "input_sha256", "rule_version", name="uq_ws_previews_input"),
+        CheckConstraint("selection_origin IN ('automatic','manual')", name="ck_ws_previews_selection"),
+        CheckConstraint("rule_version = 'ir-simple-rules-1'", name="ck_ws_previews_rule"),
+        CheckConstraint("scope_generation >= 0", name="ck_ws_previews_generation"),
+        Index("ix_ws_previews_invoice_created", "invoice_document_id", "created_at"),
+    )
+
+
+class WorkspaceConfirmationRow(Base):
+    __tablename__ = "ws_confirmations"
+    confirmation_id: Mapped[str] = mapped_column(Text, primary_key=True)
+    invoice_document_id: Mapped[str] = mapped_column(Text, _ws_fk("ws_documents.document_id"))
+    preview_id: Mapped[str] = mapped_column(Text, _ws_fk("ws_previews.preview_id"))
+    invoice_revision_id: Mapped[str] = mapped_column(Text, _ws_fk("ws_revisions.revision_id"))
+    receive_revision_ids: Mapped[list] = mapped_column(_WS_JSON)
+    result_snapshot: Mapped[dict] = mapped_column(_WS_JSON)
+    rule_version: Mapped[str] = mapped_column(Text)
+    tolerances: Mapped[dict] = mapped_column(_WS_JSON)
+    input_sha256: Mapped[str] = mapped_column(Text)
+    actor_id: Mapped[str] = mapped_column(Text, _ws_fk("admin_users.user_id"))
+    resolution: Mapped[str] = mapped_column(Text)
+    note: Mapped[str | None] = mapped_column(Text)
+    acknowledged_unverified_dimensions: Mapped[list] = mapped_column(_WS_JSON)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True))
+    __table_args__ = (
+        CheckConstraint("resolution IN ('matched','resolved_with_note')", name="ck_ws_confirmations_resolution"),
+        CheckConstraint("rule_version = 'ir-simple-rules-1'", name="ck_ws_confirmations_rule"),
+    )
+
+
+class WorkspaceClaimRow(Base):
+    __tablename__ = "ws_claims"
+    receive_document_id: Mapped[str] = mapped_column(Text, _ws_fk("ws_documents.document_id"), primary_key=True)
+    invoice_document_id: Mapped[str] = mapped_column(Text, _ws_fk("ws_documents.document_id"))
+    confirmation_id: Mapped[str] = mapped_column(Text, _ws_fk("ws_confirmations.confirmation_id"))
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True))
+
+
+class WorkspaceActionRow(Base):
+    __tablename__ = "ws_actions"
+    action_id: Mapped[str] = mapped_column(Text, primary_key=True)
+    document_id: Mapped[str] = mapped_column(Text, _ws_fk("ws_documents.document_id"))
+    actor_id: Mapped[str | None] = mapped_column(Text, _ws_fk("admin_users.user_id"))
+    action: Mapped[str] = mapped_column(Text)
+    reason: Mapped[str | None] = mapped_column(Text)
+    old_revision: Mapped[int | None] = mapped_column(Integer)
+    new_revision: Mapped[int] = mapped_column(Integer)
+    confirmation_id: Mapped[str | None] = mapped_column(Text, _ws_fk("ws_confirmations.confirmation_id"))
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True))
+    __table_args__ = (
+        CheckConstraint("action IN ('uploaded','extracted','edited','selection_changed','investigating','confirmed','reopened','voided','source_updated','retry_requested')", name="ck_ws_actions_action"),
+        CheckConstraint("new_revision >= 1 AND (old_revision IS NULL OR old_revision >= 1)", name="ck_ws_actions_revision"),
+        Index("ix_ws_actions_document_created", "document_id", "created_at", "action_id"),
+    )
+
+
+class WorkspaceScopeRow(Base):
+    __tablename__ = "ws_scopes"
+    scope_id: Mapped[str] = mapped_column(Text, primary_key=True)
+    generation: Mapped[int] = mapped_column(BigInteger)
+    last_sync_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    last_error_code: Mapped[str | None] = mapped_column(Text)
+    updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True))
+    __table_args__ = (CheckConstraint("generation >= 0", name="ck_ws_scopes_generation"),)
+
+
+class WorkspaceRequestRow(Base):
+    __tablename__ = "ws_requests"
+    scope_id: Mapped[str] = mapped_column(Text, _ws_fk("ws_scopes.scope_id"), primary_key=True)
+    actor_id: Mapped[str] = mapped_column(Text, _ws_fk("admin_users.user_id"), primary_key=True)
+    idempotency_key: Mapped[str] = mapped_column(Text, primary_key=True)
+    request_hash: Mapped[str] = mapped_column(Text)
+    response_status: Mapped[int] = mapped_column(Integer)
+    response_json: Mapped[dict] = mapped_column(_WS_JSON)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True))

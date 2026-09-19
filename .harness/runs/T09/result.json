@@ -1,0 +1,141 @@
+{
+  "task_id": "T09",
+  "spec_version": "IR-SIMPLE-1.0.3",
+  "spec_sha256": "ba317333be98598676430d8262dd84ecadb143a6030458d3de7587b32c604c9b",
+  "base_commit": "5ceea0fbc60338ef8b1cd2139c362ef08bd67acd",
+  "candidate_commit": null,
+  "enforcement": "diff-gate-only",
+  "report_author": "coordinator; stopped execution context after independently completing verification",
+  "changed_files": [
+    "docs/README.md",
+    "README.md",
+    "docs/business/00-product-positioning.md",
+    "docs/business/03-document-lifecycle.md",
+    "docs/business/05-review-and-versioning.md",
+    "docs/business/06-reconciliation-rules.md",
+    "docs/architecture/02-architecture-and-code-map.md",
+    "docs/reference/11-api-contracts.md",
+    "docs/reference/12-database-dictionary.md",
+    "docs/operations/08-api-ui-and-local-run.md",
+    "docs/operations/20-ci-cd-and-release.md",
+    ".github/workflows/ci.yml",
+    "tests/test_workspace_acceptance.py",
+    "tests/fixtures/workspace_scenarios.json",
+    ".harness/runs/T09/result.json"
+  ],
+  "commands": [
+    {
+      "argv": [
+        ".venv/Scripts/python.exe",
+        ".git/ir-harness/run_test_db.py",
+        "tests/test_workspace_acceptance.py",
+        "-q",
+        "--junitxml=.git/ir-harness/t09-independent.xml"
+      ],
+      "exit_code": 0,
+      "log_sha256": "d924e894a17120e4138ea1ebd569cafce1e2f131f9f2dfd1558795038d493a7f",
+      "evidence_path": ".git/ir-harness/t09-independent.xml",
+      "log_format": "JUnit XML captured from independent run"
+    },
+    {
+      "argv": [
+        ".venv/Scripts/python.exe",
+        "tools/check_spec_contract.py",
+        "--spec-root",
+        "spec"
+      ],
+      "exit_code": 0,
+      "log_sha256": "cc7a933120f37ac5a8ef91a7cc5ba7d2f3c53cb459f7f59f08d6c0a24760a2a3",
+      "evidence_path": ".git/ir-harness/t09-coordinator-spec.log"
+    },
+    {
+      "argv": [
+        ".venv/Scripts/python.exe",
+        "tools/check_documentation_sync.py",
+        "--base-ref",
+        "8f902b4c92901dab30e9f124d4ead2fcc8ff2508"
+      ],
+      "exit_code": 0,
+      "log_sha256": "7ae650ea9e974497bea80eb403f32832205b50953e897105d2da85189d83f9ad",
+      "evidence_path": ".git/ir-harness/t09-coordinator-docs.log"
+    },
+    {
+      "argv": [
+        ".venv/Scripts/python.exe",
+        "tools/check_task_scope.py",
+        "--task",
+        "T09",
+        "--base",
+        "5ceea0fbc60338ef8b1cd2139c362ef08bd67acd",
+        "--spec-root",
+        "spec",
+        "--evidence",
+        ".git/ir-harness/freeze.json"
+      ],
+      "exit_code": 0,
+      "log_sha256": "3743fa53f14bdd083fbbe5a867582879c18ec4c2de0fb8f8145760f53e6130c0",
+      "evidence_path": ".git/ir-harness/t09-coordinator-scope.log"
+    },
+    {
+      "argv": [
+        "git",
+        "-c",
+        "core.safecrlf=false",
+        "diff",
+        "--check",
+        "5ceea0fbc60338ef8b1cd2139c362ef08bd67acd"
+      ],
+      "exit_code": 0,
+      "log_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "evidence_path": ".git/ir-harness/t09-coordinator-diff.log"
+    }
+  ],
+  "acceptance_ids": [
+    "A01",
+    "A02",
+    "A03",
+    "A04",
+    "A05",
+    "A06",
+    "A07",
+    "A08",
+    "A09",
+    "A10",
+    "A11",
+    "A12",
+    "A13",
+    "A14",
+    "A15",
+    "A16",
+    "A17",
+    "A18",
+    "A19",
+    "A20",
+    "A21",
+    "A22",
+    "A23",
+    "A24",
+    "A25",
+    "A26",
+    "A27",
+    "A28",
+    "A29",
+    "A30"
+  ],
+  "test_results": {
+    "new_integration": {
+      "passed": 7,
+      "skipped": 0
+    },
+    "existing_backend_regression": {
+      "passed": 475,
+      "skipped": 1,
+      "skip_reason": "Windows native symlink privilege; PostgreSQL tests zero skips"
+    }
+  },
+  "limitations": [
+    "Parser/normalizer/storage are test doubles; one test runs the real extraction worker, other scenarios inject ready drafts before the real workspace worker. No external-model accuracy claim.",
+    "A01-A30 evidence is distributed across the mapped accepted test suites; the 7 integration tests alone do not cover every acceptance item.",
+    "CI workflow edited and reviewed locally; hosted GitHub Actions not run or pushed."
+  ]
+}

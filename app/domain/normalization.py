@@ -1,6 +1,6 @@
-from __future__ import annotations
-
 """Parser 输出到业务 Document 的归一化契约。"""
+
+from __future__ import annotations
 
 from decimal import Decimal
 from typing import Protocol

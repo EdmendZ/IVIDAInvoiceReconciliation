@@ -11,8 +11,8 @@ from pypdf import PdfReader
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
 
-from app.domain.reconciliation import ReconciliationRequest
-from app.services.reconciliation_service import reconcile
+from app.domain.reconciliation import ReconciliationRequest  # noqa: E402
+from app.services.reconciliation_service import reconcile  # noqa: E402
 
 
 DATASET_ROOT = ROOT / "evaluation_data"

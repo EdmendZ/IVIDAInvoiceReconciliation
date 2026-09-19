@@ -1,0 +1,89 @@
+{
+  "task_id": "T18",
+  "spec_version": "IR-SIMPLE-1.0.12",
+  "spec_sha256": "715d25930d51c5a105bf59bff74933be97580c73580492f57ed06436a286c9fe",
+  "base_commit": "1fa8ac61f39525bb4d93e84adf36f0904903ecd4",
+  "candidate_commit": null,
+  "changed_files": [
+    ".harness/runs/T18/result.json",
+    "docs/development.md",
+    "scripts/local_demo_common.ps1",
+    "tests/test_dev_entrypoints.py"
+  ],
+  "commands": [
+    {
+      "argv": [
+        ".venv/Scripts/python.exe",
+        "-m",
+        "pytest",
+        "-q",
+        "tests/test_dev_entrypoints.py"
+      ],
+      "exit_code": 0,
+      "log_sha256": "c7e4112ee00157f6cd73b78553233801e1ebd66836f258ef8f46fb8e60480444"
+    },
+    {
+      "argv": [
+        "uv",
+        "run",
+        "ruff",
+        "check",
+        "tests/test_dev_entrypoints.py"
+      ],
+      "exit_code": 0,
+      "log_sha256": "82b3e6a6c090a57601d22943bd23fca9218d1031dbe5a7b754092f9a156b4f18"
+    },
+    {
+      "argv": [
+        ".venv/Scripts/python.exe",
+        "tools/check_spec_contract.py",
+        "--spec-root",
+        "spec"
+      ],
+      "exit_code": 0,
+      "log_sha256": "cc7a933120f37ac5a8ef91a7cc5ba7d2f3c53cb459f7f59f08d6c0a24760a2a3"
+    },
+    {
+      "argv": [
+        ".venv/Scripts/python.exe",
+        "tools/check_task_scope.py",
+        "--task",
+        "T18",
+        "--base",
+        "1fa8ac61f39525bb4d93e84adf36f0904903ecd4",
+        "--spec-root",
+        "spec",
+        "--evidence",
+        ".git/ir-harness/freeze.json"
+      ],
+      "exit_code": 0,
+      "log_sha256": "fe9e7fb81a1cea967ccc94d7fb4baeb42de94d95768a72e68f69ce913aa1ef4a"
+    },
+    {
+      "argv": [
+        ".venv/Scripts/python.exe",
+        "tools/check_documentation_sync.py",
+        "--base-ref",
+        "1fa8ac61f39525bb4d93e84adf36f0904903ecd4"
+      ],
+      "exit_code": 0,
+      "log_sha256": "7ae650ea9e974497bea80eb403f32832205b50953e897105d2da85189d83f9ad"
+    },
+    {
+      "argv": [
+        "git",
+        "diff",
+        "--check",
+        "1fa8ac61f39525bb4d93e84adf36f0904903ecd4"
+      ],
+      "exit_code": 0,
+      "log_sha256": "d310317551c21e22924ff835c629582b6be6a225a9d951cf0514f7d61c5308d4"
+    }
+  ],
+  "acceptance_ids": [
+    "D23",
+    "D24"
+  ],
+  "known_limits": [],
+  "status": "passed"
+}

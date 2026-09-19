@@ -15,6 +15,18 @@ function Get-IvidaProcessCommandLine {
     return [string]$item.CommandLine
 }
 
+function Convert-IvidaUtcDateTime {
+    param([Parameter(Mandatory = $true)]$Value)
+    if ($Value -is [datetime]) {
+        return ([datetime]$Value).ToUniversalTime()
+    }
+    return [datetime]::Parse(
+        [string]$Value,
+        [System.Globalization.CultureInfo]::InvariantCulture,
+        [System.Globalization.DateTimeStyles]::RoundtripKind
+    ).ToUniversalTime()
+}
+
 function Test-IvidaOwnedProcess {
     param(
         [Parameter(Mandatory = $true)]$Record,
@@ -27,7 +39,7 @@ function Test-IvidaOwnedProcess {
     if ($null -eq $process) {
         return $false
     }
-    $recordedStart = [datetime]::Parse([string]$Record.started_at).ToUniversalTime()
+    $recordedStart = Convert-IvidaUtcDateTime -Value $Record.started_at
     $actualStart = $process.StartTime.ToUniversalTime()
     if ([math]::Abs(($actualStart - $recordedStart).TotalSeconds) -gt 2) {
         return $false
@@ -37,6 +49,32 @@ function Test-IvidaOwnedProcess {
         return $false
     }
     return $commandLine.Contains([string]$Record.command_signature)
+}
+
+function Get-IvidaDescendantProcessIds {
+    param([Parameter(Mandatory = $true)][int]$ProcessId)
+    $processes = @(Get-CimInstance Win32_Process | Select-Object ProcessId, ParentProcessId)
+    $children = @{}
+    foreach ($process in $processes) {
+        $parent = [int]$process.ParentProcessId
+        if (-not $children.ContainsKey($parent)) {
+            $children[$parent] = [System.Collections.Generic.List[int]]::new()
+        }
+        $children[$parent].Add([int]$process.ProcessId)
+    }
+    $result = [System.Collections.Generic.List[int]]::new()
+    function Add-IvidaDescendants {
+        param([int]$ParentId)
+        if (-not $children.ContainsKey($ParentId)) {
+            return
+        }
+        foreach ($childId in $children[$ParentId]) {
+            Add-IvidaDescendants -ParentId $childId
+            $result.Add($childId)
+        }
+    }
+    Add-IvidaDescendants -ParentId $ProcessId
+    return $result.ToArray()
 }
 
 function Get-IvidaListeningProcessId {
@@ -60,7 +98,7 @@ function Wait-IvidaHttp {
     $deadline = (Get-Date).AddSeconds($TimeoutSeconds)
     while ((Get-Date) -lt $deadline) {
         try {
-            $response = Invoke-WebRequest -Uri $Uri -TimeoutSec 2
+            $response = Invoke-WebRequest -UseBasicParsing -Uri $Uri -TimeoutSec 2
             if ($response.StatusCode -ge 200 -and $response.StatusCode -lt 500) {
                 return
             }
@@ -81,5 +119,11 @@ function Stop-IvidaRecord {
         Write-Warning "Skipped PID $($Record.pid): ownership could not be verified."
         return
     }
-    Stop-Process -Id ([int]$Record.pid) -ErrorAction Stop
+    $processId = [int]$Record.pid
+    foreach ($descendantId in @(Get-IvidaDescendantProcessIds -ProcessId $processId)) {
+        Stop-Process -Id $descendantId -ErrorAction SilentlyContinue
+        Wait-Process -Id $descendantId -Timeout 10 -ErrorAction SilentlyContinue
+    }
+    Stop-Process -Id $processId -ErrorAction SilentlyContinue
+    Wait-Process -Id $processId -Timeout 10 -ErrorAction SilentlyContinue
 }

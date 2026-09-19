@@ -1,0 +1,152 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 680" role="img" aria-labelledby="ivida-architecture-title ivida-architecture-desc">
+  <title id="ivida-architecture-title">IVIDA 发票与收货单核对系统架构</title>
+  <desc id="ivida-architecture-desc">Invoice、Receive Note 和可选 TapTouch 输入进入中文工作台与 FastAPI，由应用服务、抽取 Worker 和核对 Worker 编排，PostgreSQL 保存业务状态与审计，MinIO 保存原件，MinerU 与结构化模型仅生成可审核草稿。</desc>
+  <defs>
+    <style>
+      @import url('https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600&amp;family=Geist+Mono:wght@400;500;600&amp;display=swap');
+      .name { font-family: Geist, "Microsoft YaHei", sans-serif; fill: #17211d; font-size: 15px; font-weight: 600; }
+      .sub { font-family: Geist, "Microsoft YaHei", sans-serif; fill: #66736e; font-size: 11px; }
+      .mono { font-family: "Geist Mono", Consolas, monospace; fill: #66736e; font-size: 9px; }
+      .zone { font-family: "Geist Mono", Consolas, monospace; fill: #527068; font-size: 9px; font-weight: 600; letter-spacing: .14em; }
+      .label { font-family: "Geist Mono", Consolas, monospace; fill: #66736e; font-size: 9px; font-weight: 500; letter-spacing: .06em; }
+    </style>
+    <marker id="ivida-arrow" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto">
+      <polygon points="0 0,8 3,0 6" fill="#66736e"/>
+    </marker>
+    <marker id="ivida-arrow-accent" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto">
+      <polygon points="0 0,8 3,0 6" fill="#0f705d"/>
+    </marker>
+    <marker id="ivida-arrow-link" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto">
+      <polygon points="0 0,8 3,0 6" fill="#257d67"/>
+    </marker>
+  </defs>
+
+  <rect width="1200" height="680" fill="#f4f7f5"/>
+  <text x="32" y="36" class="zone" fill="#257d67">SYSTEM OVERVIEW</text>
+  <text x="32" y="72" font-family="Georgia, serif" font-size="30" font-weight="600" fill="#17211d">Invoice / Receive Note 自动核对</text>
+  <text x="32" y="96" class="sub">模型负责生成草稿，确定性规则负责匹配与差异，用户负责一次最终确认。</text>
+
+  <!-- Zones -->
+  <rect x="32" y="120" width="220" height="500" rx="8" fill="#17211d" fill-opacity=".02" stroke="#17211d" stroke-opacity=".12"/>
+  <rect x="48" y="124" width="64" height="16" rx="2" fill="#f4f7f5"/>
+  <text x="80" y="136" class="zone" text-anchor="middle">INPUT</text>
+
+  <rect x="280" y="120" width="560" height="500" rx="8" fill="#17211d" fill-opacity=".02" stroke="#17211d" stroke-opacity=".12"/>
+  <rect x="296" y="124" width="96" height="16" rx="2" fill="#f4f7f5"/>
+  <text x="344" y="136" class="zone" text-anchor="middle">APPLICATION</text>
+
+  <rect x="868" y="120" width="300" height="500" rx="8" fill="#17211d" fill-opacity=".02" stroke="#17211d" stroke-opacity=".12"/>
+  <rect x="884" y="124" width="64" height="16" rx="2" fill="#f4f7f5"/>
+  <text x="916" y="136" class="zone" text-anchor="middle">DATA</text>
+
+  <!-- Connectors: inputs to API -->
+  <path d="M228 212 H260 Q268 212 268 220 V300 Q268 308 276 308 H320" fill="none" stroke="#257d67" stroke-width="1.2" marker-end="url(#ivida-arrow-link)"/>
+  <path d="M228 328 H252 Q260 328 260 336 V332 Q260 340 268 340 H320" fill="none" stroke="#257d67" stroke-width="1.2" marker-end="url(#ivida-arrow-link)"/>
+  <path d="M228 492 H244 Q252 492 252 484 V364 Q252 356 260 356 H320" fill="none" stroke="#66736e" stroke-width="1" stroke-dasharray="5 4" marker-end="url(#ivida-arrow)"/>
+
+  <!-- Application and storage connectors -->
+  <line x1="430" y1="232" x2="430" y2="280" stroke="#0f705d" stroke-width="1.2" marker-end="url(#ivida-arrow-accent)"/>
+  <line x1="540" y1="324" x2="584" y2="324" stroke="#0f705d" stroke-width="1.2" marker-end="url(#ivida-arrow-accent)"/>
+  <line x1="430" y1="368" x2="430" y2="432" stroke="#66736e" stroke-width="1.2" marker-end="url(#ivida-arrow)"/>
+  <line x1="696" y1="368" x2="696" y2="432" stroke="#66736e" stroke-width="1.2" marker-end="url(#ivida-arrow)"/>
+  <path d="M804 308 H836 Q844 308 844 300 V244 Q844 236 852 236 H900" fill="none" stroke="#66736e" stroke-width="1.2" marker-end="url(#ivida-arrow)"/>
+  <path d="M804 344 H844 Q852 344 852 352 V384 Q852 392 860 392 H900" fill="none" stroke="#66736e" stroke-width="1.2" marker-end="url(#ivida-arrow)"/>
+  <line x1="430" y1="516" x2="430" y2="552" stroke="#66736e" stroke-width="1" stroke-dasharray="5 4" marker-end="url(#ivida-arrow)"/>
+
+  <!-- Arrow labels with masks -->
+  <rect x="276" y="288" width="36" height="12" rx="2" fill="#f4f7f5"/>
+  <text x="294" y="297" class="label" text-anchor="middle">UPLOAD</text>
+  <rect x="388" y="244" width="84" height="12" rx="2" fill="#f4f7f5"/>
+  <text x="430" y="253" class="label" text-anchor="middle">HTTPS + SESSION</text>
+  <rect x="548" y="304" width="28" height="12" rx="2" fill="#f4f7f5"/>
+  <text x="562" y="313" class="label" text-anchor="middle">CALL</text>
+  <rect x="396" y="396" width="68" height="12" rx="2" fill="#f4f7f5"/>
+  <text x="430" y="405" class="label" text-anchor="middle">ASYNC TASK</text>
+  <rect x="660" y="396" width="72" height="12" rx="2" fill="#f4f7f5"/>
+  <text x="696" y="405" class="label" text-anchor="middle">AUTO MATCH</text>
+
+  <!-- Input nodes -->
+  <rect x="56" y="172" width="172" height="80" rx="6" fill="#f4f7f5"/>
+  <rect x="56" y="172" width="172" height="80" rx="6" fill="#edf3f0" stroke="#7a8681"/>
+  <text x="72" y="196" class="zone">UPLOAD</text>
+  <text x="72" y="220" class="name">Invoice</text>
+  <text x="72" y="240" class="sub">PDF / PNG / JPEG</text>
+
+  <rect x="56" y="288" width="172" height="80" rx="6" fill="#f4f7f5"/>
+  <rect x="56" y="288" width="172" height="80" rx="6" fill="#edf3f0" stroke="#7a8681"/>
+  <text x="72" y="312" class="zone">UPLOAD</text>
+  <text x="72" y="336" class="name">Receive Note</text>
+  <text x="72" y="356" class="sub">可先于发票到达</text>
+
+  <rect x="56" y="452" width="172" height="80" rx="6" fill="#f4f7f5"/>
+  <rect x="56" y="452" width="172" height="80" rx="6" fill="#17211d" fill-opacity=".02" stroke="#17211d" stroke-opacity=".28" stroke-dasharray="5 4"/>
+  <text x="72" y="476" class="zone">OPTIONAL</text>
+  <text x="72" y="500" class="name">TapTouch Adapter</text>
+  <text x="72" y="520" class="sub">接口已预留，未接生产</text>
+
+  <!-- Application nodes -->
+  <rect x="320" y="160" width="220" height="72" rx="6" fill="#f4f7f5"/>
+  <rect x="320" y="160" width="220" height="72" rx="6" fill="#ffffff" stroke="#17211d"/>
+  <text x="336" y="184" class="zone">REACT</text>
+  <text x="336" y="208" class="name">中文核对工作台</text>
+  <text x="336" y="224" class="mono">127.0.0.1:5274</text>
+
+  <rect x="320" y="280" width="220" height="88" rx="6" fill="#f4f7f5"/>
+  <rect x="320" y="280" width="220" height="88" rx="6" fill="#e6f4ef" stroke="#0d4f43" stroke-width="1.2"/>
+  <text x="336" y="304" class="zone" fill="#0d4f43">FASTAPI</text>
+  <text x="336" y="328" class="name">Workspace API</text>
+  <text x="336" y="348" class="sub">认证 · 门店范围 · 幂等 · 下载</text>
+
+  <rect x="584" y="280" width="220" height="88" rx="6" fill="#f4f7f5"/>
+  <rect x="584" y="280" width="220" height="88" rx="6" fill="#ffffff" stroke="#17211d"/>
+  <text x="600" y="304" class="zone">APPLICATION</text>
+  <text x="600" y="328" class="name">WorkspaceService</text>
+  <text x="600" y="348" class="sub">事务编排 · 修订 · 确认快照</text>
+
+  <rect x="320" y="432" width="220" height="84" rx="6" fill="#f4f7f5"/>
+  <rect x="320" y="432" width="220" height="84" rx="6" fill="#ffffff" stroke="#17211d"/>
+  <text x="336" y="456" class="zone">WORKER</text>
+  <text x="336" y="480" class="name">Extraction Worker</text>
+  <text x="336" y="500" class="sub">解析 · 结构化 · 确定性校验</text>
+
+  <rect x="584" y="432" width="220" height="84" rx="6" fill="#f4f7f5"/>
+  <rect x="584" y="432" width="220" height="84" rx="6" fill="#ffffff" stroke="#17211d"/>
+  <text x="600" y="456" class="zone">WORKER</text>
+  <text x="600" y="480" class="name">Workspace Worker</text>
+  <text x="600" y="500" class="sub">自动关联 · 逐行比对 · 预览</text>
+
+  <rect x="320" y="552" width="220" height="64" rx="6" fill="#f4f7f5"/>
+  <rect x="320" y="552" width="220" height="64" rx="6" fill="#17211d" fill-opacity=".02" stroke="#17211d" stroke-opacity=".28" stroke-dasharray="5 4"/>
+  <text x="336" y="576" class="zone">EXTERNAL AI</text>
+  <text x="336" y="600" class="name">MinerU + Normalizer</text>
+
+  <!-- Data nodes -->
+  <rect x="900" y="192" width="236" height="88" rx="6" fill="#f4f7f5"/>
+  <rect x="900" y="192" width="236" height="88" rx="6" fill="#17211d" fill-opacity=".05" stroke="#66736e"/>
+  <text x="916" y="216" class="zone">SOURCE OF TRUTH</text>
+  <text x="916" y="240" class="name">PostgreSQL</text>
+  <text x="916" y="260" class="sub">任务 · 修订 · 预览 · 确认 · 审计</text>
+
+  <rect x="900" y="348" width="236" height="88" rx="6" fill="#f4f7f5"/>
+  <rect x="900" y="348" width="236" height="88" rx="6" fill="#17211d" fill-opacity=".05" stroke="#66736e"/>
+  <text x="916" y="372" class="zone">OBJECT STORAGE</text>
+  <text x="916" y="396" class="name">MinIO</text>
+  <text x="916" y="416" class="sub">原件 · 解析产物 · 授权下载</text>
+
+  <rect x="900" y="500" width="236" height="80" rx="6" fill="#f4f7f5"/>
+  <rect x="900" y="500" width="236" height="80" rx="6" fill="#edf3f0" stroke="#7a8681"/>
+  <text x="916" y="524" class="zone">RULE</text>
+  <text x="916" y="548" class="name">人工确认仍是最终门禁</text>
+  <text x="916" y="568" class="sub">一致与差异都确认一次</text>
+
+  <!-- Legend -->
+  <line x1="32" y1="648" x2="1168" y2="648" stroke="#17211d" stroke-opacity=".12"/>
+  <rect x="32" y="660" width="16" height="8" rx="2" fill="#e6f4ef" stroke="#0d4f43"/>
+  <text x="56" y="668" class="mono">核心入口</text>
+  <rect x="152" y="660" width="16" height="8" rx="2" fill="#17211d" fill-opacity=".05" stroke="#66736e"/>
+  <text x="176" y="668" class="mono">持久化</text>
+  <rect x="264" y="660" width="16" height="8" rx="2" fill="#17211d" fill-opacity=".02" stroke="#17211d" stroke-opacity=".28" stroke-dasharray="4 3"/>
+  <text x="288" y="668" class="mono">外部或可选能力</text>
+  <text x="1168" y="668" class="mono" text-anchor="end">模型输出不是财务事实</text>
+</svg>

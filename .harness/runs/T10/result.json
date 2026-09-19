@@ -1,0 +1,41 @@
+{
+  "task_id": "T10",
+  "status": "candidate_complete",
+  "base_commit": "a8a71b37e41fd5ca5a1b337766a625cece67a979",
+  "changed_files": [
+    "tests/test_workspace_harness_acceptance.py",
+    ".harness/runs/T10/result.json"
+  ],
+  "commands": [
+    {
+      "argv": [".venv/Scripts/python.exe", "-m", "pytest", "tests/test_harness_guards.py", "tests/test_workspace_harness_acceptance.py", "-q"],
+      "exit_code": 0,
+      "captured_log_sha256": "8C318607A7C6581A29E2BD6025DB0E435129746A1071223F9A60D322C7EFBDDE"
+    },
+    {
+      "argv": [".venv/Scripts/python.exe", "tools/check_spec_contract.py", "--spec-root", "spec"],
+      "exit_code": 0,
+      "captured_log_sha256": "CC7A933120F37AC5A8EF91A7CC5BA7D2F3C53CB459F7F59F08D6C0A24760A2A3"
+    },
+    {
+      "argv": [".venv/Scripts/python.exe", "tools/check_task_scope.py", "--task", "T10", "--base", "a8a71b37e41fd5ca5a1b337766a625cece67a979", "--spec-root", "spec", "--evidence", ".git/ir-harness/freeze.json"],
+      "exit_code": 0,
+      "captured_log_sha256": "B490BDB6CD1C6474E4ADD88644AF894F34492947B28FFD221C554209324C1A28"
+    },
+    {
+      "argv": ["git", "diff", "--check", "a8a71b37e41fd5ca5a1b337766a625cece67a979"],
+      "exit_code": 0,
+      "captured_log_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    }
+  ],
+  "acceptance_ids": ["H01", "H02", "H03", "H04", "H05", "H06"],
+  "coverage": {
+    "H01-H03": "temporary repositories exercise T10 allowlist, sibling report rejection, checker trust rejection, casefold ownership rejection; existing guard suite covers broader cases",
+    "H04-H05": "manual coordinator evidence remains authoritative; no automated OS controller or fresh-context simulator is claimed",
+    "H06": "policy test asserts diff-gate-only and no Docker prerequisite"
+  },
+  "limitations": [
+    "Windows native symlink privilege scenario in existing guard suite is an accepted skip; other required cases passed",
+    "H04/H05 execution enforcement is coordinator manual evidence, not pytest enforcement"
+  ]
+}

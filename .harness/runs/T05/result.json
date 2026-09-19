@@ -1,0 +1,77 @@
+{
+  "task_id": "T05",
+  "spec_version": "IR-SIMPLE-1.0.3",
+  "spec_sha256": "ba317333be98598676430d8262dd84ecadb143a6030458d3de7587b32c604c9b",
+  "base_commit": "0a41c7ba77f3363b1f7add58210977ff1619e652",
+  "candidate_commit": null,
+  "changed_files": [
+    ".harness/runs/T05/result.json",
+    "app/services/document_upload_service.py",
+    "app/services/workspace_service.py",
+    "tests/test_document_upload_service.py",
+    "tests/test_workspace_service.py"
+  ],
+  "commands": [
+    {
+      "argv": [
+        ".venv/Scripts/python.exe",
+        "-m",
+        "pytest",
+        "tests/test_workspace_service.py",
+        "tests/test_document_upload_service.py",
+        "-q"
+      ],
+      "exit_code": 0,
+      "log_sha256": "7fbe072bd6c74a7b0b55ddd2583fc288534b9dfe428b8a0f002c2ecdfb8dc490"
+    },
+    {
+      "argv": [
+        ".venv/Scripts/python.exe",
+        "tools/check_spec_contract.py",
+        "--spec-root",
+        "spec"
+      ],
+      "exit_code": 0,
+      "log_sha256": "cc7a933120f37ac5a8ef91a7cc5ba7d2f3c53cb459f7f59f08d6c0a24760a2a3"
+    },
+    {
+      "argv": [
+        ".venv/Scripts/python.exe",
+        "tools/check_task_scope.py",
+        "--task",
+        "T05",
+        "--base",
+        "0a41c7ba77f3363b1f7add58210977ff1619e652",
+        "--spec-root",
+        "spec",
+        "--evidence",
+        ".git/ir-harness/freeze.json"
+      ],
+      "exit_code": 0,
+      "log_sha256": "7d5b0bdadd0e76932bf03c4ec99de8d65ea6f02a879cbac87bb11dc93c63f0d7"
+    },
+    {
+      "argv": [
+        "git",
+        "diff",
+        "--check",
+        "0a41c7ba77f3363b1f7add58210977ff1619e652"
+      ],
+      "exit_code": 0,
+      "log_sha256": "c7a57335e7a0ac602b219b809a99ac24d2f7289d9428390dd10872741bcc207d"
+    }
+  ],
+  "acceptance_ids": [
+    "A09",
+    "A11",
+    "A19",
+    "A27",
+    "A29",
+    "A30"
+  ],
+  "known_limits": [
+    "T05 tests use fake storage and repository ports; PostgreSQL atomicity remains covered by the accepted T03 implementation.",
+    "HTTP streaming headers and status mapping are assigned to T06."
+  ],
+  "status": "passed"
+}

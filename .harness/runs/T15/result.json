@@ -1,0 +1,82 @@
+{
+  "task_id": "T15",
+  "spec_version": "IR-SIMPLE-1.0.8",
+  "spec_sha256": "1c6f391b76ab914c34f4efd9d6a10a820fa002631513736782c1b0940384ea5a",
+  "base_commit": "fd3f04fff9dc53480610a79fa7dcb404ed003137",
+  "candidate_commit": null,
+  "changed_files": [
+    ".harness/runs/T15/result.json",
+    "docs/development.md",
+    "scripts/local_demo_common.ps1",
+    "tests/test_dev_entrypoints.py"
+  ],
+  "commands": [
+    {
+      "argv": [
+        "python",
+        "-m",
+        "pytest",
+        "-q",
+        "tests/test_dev_entrypoints.py"
+      ],
+      "exit_code": 0,
+      "log_sha256": "c4b808d34f4db00b333696dec1f3a43a2887d8bfe0cb7af07a3cb98ff43a7830"
+    },
+    {
+      "argv": [
+        "python",
+        "tools/check_spec_contract.py",
+        "--spec-root",
+        "spec"
+      ],
+      "exit_code": 0,
+      "log_sha256": "9f79f68db38f21d7d07cdad1730033a55535e907f5af1061d16afc91fe0aacce"
+    },
+    {
+      "argv": [
+        "python",
+        "tools/check_documentation_sync.py",
+        "--base-ref",
+        "fd3f04fff9dc53480610a79fa7dcb404ed003137"
+      ],
+      "exit_code": 0,
+      "log_sha256": "5fe0a5c4f833f5ecabb4c301231264513929ea6ff364270f082462ba7b8073a2"
+    },
+    {
+      "argv": [
+        "git",
+        "diff",
+        "--check",
+        "fd3f04fff9dc53480610a79fa7dcb404ed003137"
+      ],
+      "exit_code": 0,
+      "log_sha256": "d310317551c21e22924ff835c629582b6be6a225a9d951cf0514f7d61c5308d4"
+    },
+    {
+      "argv": [
+        "python",
+        "tools/check_task_scope.py",
+        "--task",
+        "T15",
+        "--base",
+        "fd3f04fff9dc53480610a79fa7dcb404ed003137",
+        "--spec-root",
+        "spec",
+        "--evidence",
+        ".git/ir-harness/freeze.json"
+      ],
+      "exit_code": 0,
+      "log_sha256": "eaa90494c7bfae53f4217388fdfd5b5f5a94b2294f4eafa1be6f100d12a4f14a"
+    }
+  ],
+  "acceptance_ids": [
+    "D12",
+    "D13",
+    "D14"
+  ],
+  "known_limits": [
+    "The launcher intentionally does not stop matching project components that were already running outside its state record.",
+    "The real Windows acceptance cycle verified all four launcher-owned components; abrupt host or database termination still relies on PostgreSQL connection cleanup."
+  ],
+  "status": "passed"
+}

@@ -1,0 +1,113 @@
+{
+  "task_id": "T19",
+  "spec_version": "IR-SIMPLE-1.0.14",
+  "spec_sha256": "020316dd3fdad0f3c53a3f13dbc629a1adab77a11e60c6b5972c73a8bad7a754",
+  "base_commit": "73a3c3f4c53302072c3e2aee4833fceedce689b5",
+  "candidate_commit": null,
+  "changed_files": [
+    ".harness/runs/T19/result.json",
+    "docs/architecture.md",
+    "docs/product.md",
+    "frontend/src/history/HistoryPage.test.tsx",
+    "frontend/src/history/HistoryPage.tsx",
+    "frontend/src/styles.css",
+    "frontend/src/workspace/DocumentPage.test.tsx",
+    "frontend/src/workspace/DocumentPage.tsx",
+    "frontend/src/workspace/workspacePresentation.test.ts",
+    "frontend/src/workspace/workspacePresentation.ts"
+  ],
+  "commands": [
+    {
+      "argv": [
+        "npm.cmd",
+        "--prefix",
+        "frontend",
+        "test",
+        "--",
+        "--run",
+        "src/workspace/workspacePresentation.test.ts",
+        "src/workspace/DocumentPage.test.tsx",
+        "src/history/HistoryPage.test.tsx"
+      ],
+      "exit_code": 0,
+      "log_sha256": "fcb533c14135ba2f7ca6ec52235472ff1e177304393d4ae46266eed5f36912e4"
+    },
+    {
+      "argv": [
+        "npm.cmd",
+        "--prefix",
+        "frontend",
+        "test",
+        "--",
+        "--run"
+      ],
+      "exit_code": 0,
+      "log_sha256": "72fe006ccb42ac9905637ab7eb3e8114dde8617f5e89561923eb61ad56e3a64c"
+    },
+    {
+      "argv": [
+        "npm.cmd",
+        "--prefix",
+        "frontend",
+        "run",
+        "build"
+      ],
+      "exit_code": 0,
+      "log_sha256": "c23d4a600fc27cc2393bd29be8a86bf4eb755a5910e38a3332959a037cdf28ad"
+    },
+    {
+      "argv": [
+        ".venv\\Scripts\\python.exe",
+        "tools/check_spec_contract.py",
+        "--spec-root",
+        "spec"
+      ],
+      "exit_code": 0,
+      "log_sha256": "9f79f68db38f21d7d07cdad1730033a55535e907f5af1061d16afc91fe0aacce"
+    },
+    {
+      "argv": [
+        ".venv\\Scripts\\python.exe",
+        "tools/check_documentation_sync.py",
+        "--base-ref",
+        "73a3c3f4c53302072c3e2aee4833fceedce689b5"
+      ],
+      "exit_code": 0,
+      "log_sha256": "5fe0a5c4f833f5ecabb4c301231264513929ea6ff364270f082462ba7b8073a2"
+    },
+    {
+      "argv": [
+        ".venv\\Scripts\\python.exe",
+        "tools/check_task_scope.py",
+        "--task",
+        "T19",
+        "--base",
+        "73a3c3f4c53302072c3e2aee4833fceedce689b5",
+        "--spec-root",
+        "spec",
+        "--evidence",
+        ".git/ir-harness/freeze.json"
+      ],
+      "exit_code": 0,
+      "log_sha256": "087d0cdc97a090212cc4f712c0a70ee52155569356c3540074204686a8819435"
+    },
+    {
+      "argv": [
+        "git",
+        "diff",
+        "--check",
+        "73a3c3f4c53302072c3e2aee4833fceedce689b5"
+      ],
+      "exit_code": 0,
+      "log_sha256": "fd7af02ccba66e4c946882e24657fce47e8934aa225330ef1e32343f10185f10"
+    }
+  ],
+  "acceptance_ids": [
+    "D25",
+    "D26",
+    "D27",
+    "D28"
+  ],
+  "known_limits": [],
+  "status": "passed"
+}

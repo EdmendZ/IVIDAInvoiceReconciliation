@@ -1,0 +1,48 @@
+{
+  "task_id": "T22",
+  "spec_version": "IR-SIMPLE-1.0.17",
+  "spec_sha256": "2e3ba19071ae805465079cd91cff23d56d674cd55aa2417c5dbc282bed121077",
+  "base_commit": "1709649",
+  "candidate_commit": null,
+  "changed_files": [
+    ".harness/runs/T22/result.json",
+    "app/infra/postgres_taptouch_receiving_repository.py",
+    "docs/product.md",
+    "tests/test_taptouch_receiving_import.py"
+  ],
+  "commands": [
+    {
+      "argv": [".venv\\Scripts\\python.exe", "-m", "pytest", "tests/test_taptouch_receiving_import.py", "tests/test_taptouch_integration_api.py", "-q"],
+      "exit_code": 0,
+      "log_sha256": "e78ce80fb2c4e4495f6676564083abb033468fd8970ffaeaf79e80ba82dffaa9"
+    },
+    {
+      "argv": [".venv\\Scripts\\python.exe", "-m", "pytest", "-q"],
+      "exit_code": 0,
+      "log_sha256": "874f6047af9def9ef5988ac5cee19c0c5df085a1a5f97601c88c706e8918f844"
+    },
+    {
+      "argv": [".venv\\Scripts\\ruff.exe", "check", "app/infra/postgres_taptouch_receiving_repository.py", "tests/test_taptouch_receiving_import.py"],
+      "exit_code": 0,
+      "log_sha256": "a4443afdcfb6d7363adb285762515ccf7cf50473b1a05c20c1a50f6bed4d26b0"
+    },
+    {
+      "argv": [".venv\\Scripts\\python.exe", "tools/check_spec_contract.py", "--spec-root", "spec"],
+      "exit_code": 0,
+      "log_sha256": "cc7a933120f37ac5a8ef91a7cc5ba7d2f3c53cb459f7f59f08d6c0a24760a2a3"
+    },
+    {
+      "argv": ["git", "diff", "--check", "1709649"],
+      "exit_code": 0,
+      "log_sha256": "ef0510e92e6de85a3ee27ccbda97d0cf462e1e0e0728e4252277558b55c68a18"
+    },
+    {
+      "argv": [".venv\\Scripts\\python.exe", "tools/check_task_scope.py", "--task", "T22", "--base", "1709649", "--spec-root", "spec", "--evidence", ".git/ir-harness/freeze.json"],
+      "exit_code": 0,
+      "log_sha256": "6513472d92032c13eb795e3ce7a9361a3d9e5ebb1015209e6a4d1260c12ac1d0"
+    }
+  ],
+  "acceptance_ids": ["D34", "D35"],
+  "known_limits": ["No live TapTouch production credential or external API was used; validation is deterministic local import/API coverage."],
+  "status": "passed"
+}

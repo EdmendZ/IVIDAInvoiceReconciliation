@@ -1,0 +1,106 @@
+{
+  "task_id": "T14",
+  "spec_version": "IR-SIMPLE-1.0.7",
+  "spec_sha256": "1d5f1c948f88303945edeb69d863683de07820745f6294b6bd0eae8c17833ace",
+  "base_commit": "58c2da562228b8d3ca0a6f26a40d3a6e098d4931",
+  "candidate_commit": null,
+  "changed_files": [
+    ".harness/runs/T14/result.json",
+    "app/domain/documents.py",
+    "app/infra/postgres_workspace_repository.py",
+    "app/resources/prompts/normalize_document_system.txt",
+    "app/services/validation_service.py",
+    "app/services/workspace_matching.py",
+    "docs/ai.md",
+    "docs/architecture.md",
+    "frontend/src/workspace/workspaceTypes.ts",
+    "tests/test_normalization_provider.py",
+    "tests/test_validation_service.py",
+    "tests/test_workspace_matching.py"
+  ],
+  "commands": [
+    {
+      "argv": [
+        "python",
+        "-m",
+        "pytest",
+        "-q",
+        "tests/test_normalization_provider.py",
+        "tests/test_validation_service.py",
+        "tests/test_workspace_matching.py"
+      ],
+      "exit_code": 0,
+      "log_sha256": "12a9a4a8915fb8d2bb5b4227220247cde267c1a0620203589fe47280d5be4a7f"
+    },
+    {
+      "argv": [
+        "npm.cmd",
+        "--prefix",
+        "frontend",
+        "test",
+        "--",
+        "--run"
+      ],
+      "exit_code": 0,
+      "log_sha256": "f574836e8e7d226c36a117382dd650c102e48f36113021686577588360a29e0d"
+    },
+    {
+      "argv": [
+        "python",
+        "tools/check_spec_contract.py",
+        "--spec-root",
+        "spec"
+      ],
+      "exit_code": 0,
+      "log_sha256": "9f79f68db38f21d7d07cdad1730033a55535e907f5af1061d16afc91fe0aacce"
+    },
+    {
+      "argv": [
+        "python",
+        "tools/check_documentation_sync.py",
+        "--base-ref",
+        "58c2da562228b8d3ca0a6f26a40d3a6e098d4931"
+      ],
+      "exit_code": 0,
+      "log_sha256": "5fe0a5c4f833f5ecabb4c301231264513929ea6ff364270f082462ba7b8073a2"
+    },
+    {
+      "argv": [
+        "git",
+        "diff",
+        "--check",
+        "58c2da562228b8d3ca0a6f26a40d3a6e098d4931"
+      ],
+      "exit_code": 0,
+      "log_sha256": "c806982005003e903054fbf43eb1184b4c19e219aa0eb8da5601f5875a8918e0"
+    },
+    {
+      "argv": [
+        "python",
+        "tools/check_task_scope.py",
+        "--task",
+        "T14",
+        "--base",
+        "58c2da562228b8d3ca0a6f26a40d3a6e098d4931",
+        "--spec-root",
+        "spec",
+        "--evidence",
+        ".git/ir-harness/freeze.json"
+      ],
+      "exit_code": 0,
+      "log_sha256": "a2e3979001a06261ab67a50be6c3bc9c7794fc9554ef821262afbae7322958e1"
+    }
+  ],
+  "acceptance_ids": [
+    "D08",
+    "D09",
+    "D10",
+    "D11"
+  ],
+  "known_limits": [
+    "The real external verification used one synthetic English Australian invoice and its matching receive note; it is not a production accuracy claim.",
+    "MinerU omitted the invoice totals in this sample, so document total and tax correctly remain unverified for human acknowledgement.",
+    "No real TapTouch production contract or machine credential is configured."
+  ],
+  "status": "passed"
+}

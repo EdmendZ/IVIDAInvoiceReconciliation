@@ -69,12 +69,16 @@ def test_frontend_image_builds_static_assets_and_proxies_api() -> None:
 def test_compose_orders_migration_before_runtime_services() -> None:
     compose = _read("compose.yaml")
 
-    for service in ("postgres:", "minio:", "migrate:", "api:", "worker:", "frontend:"):
+    for service in (
+        "postgres:", "minio:", "migrate:", "api:", "worker:",
+        "workspace-worker:", "frontend:",
+    ):
         assert service in compose
     assert "condition: service_healthy" in compose
     assert "condition: service_completed_successfully" in compose
     assert 'command: [".venv/bin/alembic", "upgrade", "head"]' in compose
     assert "MODEL_PROVIDER: disabled" in compose
+    assert 'command: [".venv/bin/python", "run_workspace_worker.py"]' in compose
 
 
 def test_release_compose_uses_versioned_prebuilt_images() -> None:
@@ -83,7 +87,9 @@ def test_release_compose_uses_versioned_prebuilt_images() -> None:
     assert "${IVIDA_IMAGE_PREFIX}-api:${IVIDA_IMAGE_TAG}" in release
     assert "${IVIDA_IMAGE_PREFIX}-worker:${IVIDA_IMAGE_TAG}" in release
     assert "${IVIDA_IMAGE_PREFIX}-frontend:${IVIDA_IMAGE_TAG}" in release
-    assert release.count("build: !reset null") == 4
+    assert release.count("build: !reset null") == 5
+    assert "workspace-worker:" in release
+    assert release.count("${IVIDA_IMAGE_PREFIX}-api:${IVIDA_IMAGE_TAG}") == 3
 
 
 def test_compose_template_contains_only_demo_credentials() -> None:
@@ -94,6 +100,8 @@ def test_compose_template_contains_only_demo_credentials() -> None:
     assert "SSH_PASSWORD=" not in template
     assert "MODEL_PROVIDER=disabled" in template
     assert "MINERU_API_TOKEN=disabled-local-demo" in template
+    assert "WORKSPACE_ENABLED=false" in template
+    assert "WORKSPACE_POLL_SECONDS=3" in template
 
 
 def test_release_requires_ci_smoke_and_minimal_write_permissions() -> None:

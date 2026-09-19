@@ -1,0 +1,107 @@
+{
+  "task_id": "T00",
+  "spec_version": "IR-SIMPLE-1.0.1",
+  "spec_sha256": "83a71801452100220f177b0a480d441854bdb37ca7829b632245847eb6682300",
+  "base_commit": "594909ab56f793a02f73bf9226252097f5fc0f1f",
+  "candidate_commit": null,
+  "changed_files": [
+    ".github/workflows/ci.yml",
+    ".harness/runs/T00/result.json",
+    "AGENTS.md",
+    "docs/code-document-map.json",
+    "tests/test_harness_guards.py",
+    "tools/check_spec_contract.py",
+    "tools/check_task_scope.py"
+  ],
+  "commands": [
+    {
+      "argv": [
+        ".venv/Scripts/python.exe",
+        "-m",
+        "pytest",
+        "tests/test_harness_guards.py",
+        "-q",
+        "-rA"
+      ],
+      "exit_code": 0,
+      "log_sha256": "6b3dc7aa8100ecc9b9cd757e779129121b3a83c711c9799386c3ac8a80bf68a4"
+    },
+    {
+      "argv": [
+        ".venv/Scripts/python.exe",
+        "tools/check_spec_contract.py",
+        "--spec-root",
+        "spec"
+      ],
+      "exit_code": 0,
+      "log_sha256": "cc7a933120f37ac5a8ef91a7cc5ba7d2f3c53cb459f7f59f08d6c0a24760a2a3"
+    },
+    {
+      "argv": [
+        ".venv/Scripts/python.exe",
+        "tools/check_task_scope.py",
+        "--task",
+        "T00",
+        "--base",
+        "594909ab56f793a02f73bf9226252097f5fc0f1f",
+        "--spec-root",
+        "spec",
+        "--evidence",
+        ".git/ir-harness/freeze.json"
+      ],
+      "exit_code": 0,
+      "log_sha256": "96313a179b45dc0d8e1e8c48470697a7eefa1fd2a26a792d49131b10052ec969"
+    },
+    {
+      "argv": [
+        ".venv/Scripts/python.exe",
+        "tools/check_documentation_sync.py",
+        "--base-ref",
+        "594909ab56f793a02f73bf9226252097f5fc0f1f"
+      ],
+      "exit_code": 0,
+      "log_sha256": "7ae650ea9e974497bea80eb403f32832205b50953e897105d2da85189d83f9ad"
+    },
+    {
+      "argv": [
+        ".venv/Scripts/python.exe",
+        "-m",
+        "pytest",
+        "tests/test_documentation_sync.py",
+        "-q"
+      ],
+      "exit_code": 0,
+      "log_sha256": "e39c7c8495c11b3781a4116112e8edaad58e79f9e534b4818722b9eae3cfa6a2"
+    },
+    {
+      "argv": [
+        "git",
+        "diff",
+        "--check",
+        "594909ab56f793a02f73bf9226252097f5fc0f1f"
+      ],
+      "exit_code": 0,
+      "log_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    }
+  ],
+  "acceptance_ids": [
+    "H01",
+    "H02",
+    "H03"
+  ],
+  "enforcement": "diff-gate-only",
+  "test_summary": {
+    "passed": 42,
+    "skipped": 1,
+    "documentation_tests_passed": 2
+  },
+  "known_limits": [
+    "Coordinator independent review and acceptance pending; this report does not authorize T01.",
+    "Diff-gate-only is post-change validation, not operating-system write isolation.",
+    "Windows symlink creation test skipped because privilege unavailable; Windows junction, hardlink, Git symlink-index and submodule-index rejection passed. Linux CI exercises native symlink test.",
+    "Static contract reference checks do not replace business behavior acceptance.",
+    "T00 checker trust is bootstrapped only by independent coordinator review; coordinator must populate both checker hashes before T01.",
+    "No remote CI run was triggered; CI wiring inspected locally."
+  ],
+  "status": "passed"
+}

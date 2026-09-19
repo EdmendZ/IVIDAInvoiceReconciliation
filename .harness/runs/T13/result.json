@@ -1,0 +1,99 @@
+{
+  "task_id": "T13",
+  "spec_version": "IR-SIMPLE-1.0.5",
+  "spec_sha256": "a69bee22b14963075c989bfbe2c101ed5a4cc9cfc5c24ac0692a417000dd0c39",
+  "base_commit": "fa38edacc62b3a6bdd46e572930cb3f2eb0d39ae",
+  "candidate_commit": null,
+  "changed_files": [
+    ".harness/runs/T13/result.json",
+    "README.md",
+    "docs/code-document-map.json",
+    "docs/development.md",
+    "setup_demo_data.py",
+    "tests/test_demo_data_entrypoint.py"
+  ],
+  "commands": [
+    {
+      "argv": [
+        "python",
+        "-m",
+        "pytest",
+        "-q",
+        "tests/test_demo_data_entrypoint.py"
+      ],
+      "exit_code": 0,
+      "log_sha256": "9d5a2646cfea101970d3c6e3eb8c2650770734a095b2562b4c25cf9f554c913c"
+    },
+    {
+      "argv": [
+        "python",
+        "tools/check_spec_contract.py",
+        "--spec-root",
+        "spec"
+      ],
+      "exit_code": 0,
+      "log_sha256": "cc7a933120f37ac5a8ef91a7cc5ba7d2f3c53cb459f7f59f08d6c0a24760a2a3"
+    },
+    {
+      "argv": [
+        "python",
+        "tools/check_documentation_sync.py",
+        "--base-ref",
+        "fa38edacc62b3a6bdd46e572930cb3f2eb0d39ae"
+      ],
+      "exit_code": 0,
+      "log_sha256": "7ae650ea9e974497bea80eb403f32832205b50953e897105d2da85189d83f9ad"
+    },
+    {
+      "argv": [
+        "git",
+        "diff",
+        "--check",
+        "fa38edacc62b3a6bdd46e572930cb3f2eb0d39ae"
+      ],
+      "exit_code": 0,
+      "log_sha256": "6ea9ecc2c7943af170c4f2fcc1f7e25be1dff9768d35726de0f096d7625fe464"
+    },
+    {
+      "argv": [
+        "python",
+        "tools/check_task_scope.py",
+        "--task",
+        "T13",
+        "--base",
+        "fa38edacc62b3a6bdd46e572930cb3f2eb0d39ae",
+        "--spec-root",
+        "spec",
+        "--evidence",
+        ".git/ir-harness/freeze.json"
+      ],
+      "exit_code": 0,
+      "log_sha256": "ec183a9397ffab556ba59993220d1cd92b71a5b8922b5eb28c60a4ca1996fbf3"
+    },
+    {
+      "argv": [
+        "uv",
+        "run",
+        "--frozen",
+        "ruff",
+        "check",
+        "setup_demo_data.py",
+        "tests/test_demo_data_entrypoint.py"
+      ],
+      "exit_code": 0,
+      "log_sha256": "a4443afdcfb6d7363adb285762515ccf7cf50473b1a05c20c1a50f6bed4d26b0"
+    }
+  ],
+  "acceptance_ids": [
+    "D04",
+    "D05",
+    "D06",
+    "D07"
+  ],
+  "known_limits": [
+    "The repository virtual environment was used because the host default Python interpreter does not include pytest.",
+    "Automated tests use SQLite plus in-memory object storage; configured PostgreSQL and MinIO remain required for a real local demo run.",
+    "The script refuses to modify an existing upload or Draft that is not marked as its own demo fixture."
+  ],
+  "status": "passed"
+}

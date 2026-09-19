@@ -25,7 +25,7 @@ export function LoginPage({
       onLogin(user);
       onNavigate("/");
     } catch (problem) {
-      setError(problem instanceof Error ? problem.message : "Sign in failed");
+      setError(problem instanceof Error ? problem.message : "登录失败");
     } finally {
       setBusy(false);
     }
@@ -34,15 +34,14 @@ export function LoginPage({
   return (
     <main className="login-page">
       <section className="login-card">
-        <span className="eyebrow">IVIDA FINANCE CONTROL</span>
-        <h1>Review extracted documents</h1>
+        <span className="eyebrow">IVIDA 财务管理</span>
+        <h1>核对发票与收货记录</h1>
         <p>
-          Verify invoices and receive notes before they are released for
-          reconciliation.
+          上传后系统会自动提取、关联并生成逐行结果，你只需核对后确认一次。
         </p>
         <form onSubmit={submit}>
           <label>
-            Username
+            用户名
             <input
               id="username"
               name="username"
@@ -53,7 +52,7 @@ export function LoginPage({
             />
           </label>
           <label>
-            Password
+            密码
             <input
               id="password"
               name="password"
@@ -66,7 +65,7 @@ export function LoginPage({
           </label>
           {error && <div className="error-banner">{error}</div>}
           <button className="primary" disabled={busy}>
-            {busy ? "Signing in…" : "Sign in"}
+            {busy ? "正在登录…" : "登录"}
           </button>
         </form>
       </section>

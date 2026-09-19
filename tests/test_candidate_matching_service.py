@@ -1,3 +1,6 @@
+from datetime import UTC, datetime
+
+from app.domain.document_sources import DocumentSourceKind, DocumentTrustMethod
 from app.domain.documents import Invoice, ReceiveNote
 from app.services.candidate_matching_service import assess_candidate
 
@@ -127,6 +130,3 @@ def test_same_document_number_blocks_misclassified_invoice() -> None:
     assert result.confidence == "low"
     assert result.recommended is False
     assert result.signals[0].code == "same_document_number"
-from datetime import UTC, datetime
-
-from app.domain.document_sources import DocumentSourceKind, DocumentTrustMethod

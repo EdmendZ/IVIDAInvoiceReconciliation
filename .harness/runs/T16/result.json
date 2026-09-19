@@ -1,0 +1,154 @@
+{
+  "task_id": "T16",
+  "spec_version": "IR-SIMPLE-1.0.9",
+  "spec_sha256": "eb39b7adbc1aafedabbe534dfe181c4aaabe3825ebc4bc55e1ee106db1797a56",
+  "base_commit": "5c00324b79d72c9fcf6ff801bc55c5771d49681f",
+  "candidate_commit": null,
+  "changed_files": [
+    ".harness/runs/T16/result.json",
+    "app/domain/workspace.py",
+    "app/infra/postgres_workspace_repository.py",
+    "docs/architecture.md",
+    "docs/product.md",
+    "frontend/src/app/App.tsx",
+    "frontend/src/styles.css",
+    "frontend/src/workspace/DocumentPage.test.tsx",
+    "frontend/src/workspace/DocumentPage.tsx",
+    "frontend/src/workspace/WorkspacePage.test.tsx",
+    "frontend/src/workspace/WorkspacePage.tsx",
+    "frontend/src/workspace/workspacePresentation.test.ts",
+    "frontend/src/workspace/workspaceTypes.ts",
+    "tests/test_postgres_workspace_repository.py",
+    "tests/test_workspace_contracts.py"
+  ],
+  "commands": [
+    {
+      "argv": [
+        ".venv/Scripts/python.exe",
+        "-m",
+        "pytest",
+        "-q",
+        "tests/test_workspace_contracts.py",
+        "tests/test_workspace_api.py",
+        "tests/test_postgres_workspace_repository.py"
+      ],
+      "exit_code": 0,
+      "log_sha256": "5ecf44e1eb9e6cbb2c77490c32ce5482e036363c2b8e7665b6726e2c48968bb0"
+    },
+    {
+      "argv": [
+        "npm.cmd",
+        "--prefix",
+        "frontend",
+        "test",
+        "--",
+        "--run",
+        "src/workspace/WorkspacePage.test.tsx",
+        "src/workspace/DocumentPage.test.tsx"
+      ],
+      "exit_code": 0,
+      "log_sha256": "81f03643f62dfa2ca51048d3c2dd9630add429e0a8b2a52bfb2a6edfef961cb7"
+    },
+    {
+      "argv": [
+        "npm.cmd",
+        "--prefix",
+        "frontend",
+        "run",
+        "build"
+      ],
+      "exit_code": 0,
+      "log_sha256": "f9f6f669bb2516e17e485b6cddee6c06a0afe6d9f0c4c4cee329e5d1ceebd760"
+    },
+    {
+      "argv": [
+        ".venv/Scripts/python.exe",
+        "-m",
+        "pytest",
+        "-q"
+      ],
+      "exit_code": 0,
+      "log_sha256": "1fa3375d99474c486c5fb79a41866b8f8d8c21de870a6e125709e7804f1a0a3b"
+    },
+    {
+      "argv": [
+        "npm.cmd",
+        "--prefix",
+        "frontend",
+        "test",
+        "--",
+        "--run"
+      ],
+      "exit_code": 0,
+      "log_sha256": "ea43ef852beeff8403bb062cfa688e51d39e817b42735239863b6a3592a49394"
+    },
+    {
+      "argv": [
+        "uv",
+        "run",
+        "ruff",
+        "check",
+        "."
+      ],
+      "exit_code": 0,
+      "log_sha256": "82b3e6a6c090a57601d22943bd23fca9218d1031dbe5a7b754092f9a156b4f18"
+    },
+    {
+      "argv": [
+        ".venv/Scripts/python.exe",
+        "tools/check_spec_contract.py",
+        "--spec-root",
+        "spec"
+      ],
+      "exit_code": 0,
+      "log_sha256": "cc7a933120f37ac5a8ef91a7cc5ba7d2f3c53cb459f7f59f08d6c0a24760a2a3"
+    },
+    {
+      "argv": [
+        ".venv/Scripts/python.exe",
+        "tools/check_task_scope.py",
+        "--task",
+        "T16",
+        "--base",
+        "5c00324b79d72c9fcf6ff801bc55c5771d49681f",
+        "--spec-root",
+        "spec",
+        "--evidence",
+        ".git/ir-harness/freeze.json"
+      ],
+      "exit_code": 0,
+      "log_sha256": "3e532431e547a6f06f6cfcdd574d53a7f32b7dfd87f0667371131c552be11631"
+    },
+    {
+      "argv": [
+        ".venv/Scripts/python.exe",
+        "tools/check_documentation_sync.py",
+        "--base-ref",
+        "5c00324b79d72c9fcf6ff801bc55c5771d49681f"
+      ],
+      "exit_code": 0,
+      "log_sha256": "7ae650ea9e974497bea80eb403f32832205b50953e897105d2da85189d83f9ad"
+    },
+    {
+      "argv": [
+        "git",
+        "diff",
+        "--check",
+        "5c00324b79d72c9fcf6ff801bc55c5771d49681f"
+      ],
+      "exit_code": 0,
+      "log_sha256": "bcfa88467120111b660b04cb4a3e1ac6556e6c5c01fe30d04f7a7df10b1e1b94"
+    }
+  ],
+  "acceptance_ids": [
+    "D15",
+    "D16",
+    "D17",
+    "D18"
+  ],
+  "known_limits": [
+    "Database-backed PostgreSQL integration cases were skipped because WORKSPACE_TEST_DATABASE_URL was not configured; repository projections remain covered by contract and unit tests.",
+    "The real browser demo data contains one selected Receive Note; multiple-Receive-Note switching and unique-versus-ambiguous post-upload navigation are covered by frontend tests."
+  ],
+  "status": "passed"
+}
