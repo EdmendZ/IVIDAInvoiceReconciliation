@@ -1,20 +1,55 @@
+# Secrets and machine-local configuration
 .env
-.env.compose
+.env.*
+!.env.example
+!.env.compose.example
+*.pem
+*.key
+
+# Python environments, caches, coverage and build output
 .venv/
+venv/
 __pycache__/
-.pytest_cache/
 *.py[cod]
+.pytest_cache/
+.ruff_cache/
+.mypy_cache/
+.coverage
+.coverage.*
 coverage.xml
 htmlcov/
-.idea/
-.vscode/
-logs/
-uploads/
-evaluation_data/
+.tox/
+.nox/
+build/
+dist/
+*.egg-info/
+
+# Frontend dependencies, generated bundles and test output
 frontend/node_modules/
 frontend/dist/
-frontend/tsconfig.tsbuildinfo
+frontend/.vite/
+frontend/coverage/
+frontend/playwright-report/
+frontend/test-results/
+*.tsbuildinfo
+
+# Local runtime state and generated business data
+logs/
+uploads/
+runtime/
+.local-demo/
+evaluation_data/
 *.log
 *-junit.xml
-.local-demo/
+
+# Local tooling and editor state
+.idea/
+.vscode/
 .worktrees/
+.DS_Store
+Thumbs.db
+Desktop.ini
+*.swp
+*.swo
+*.tmp
+*~

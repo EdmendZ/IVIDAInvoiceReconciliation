@@ -1,5 +1,11 @@
 # 架构
 
+![IVIDA 发票与收货单核对系统架构](assets/architecture.svg)
+
+这张图只展示当前日常工作台主链路。旧审核、旧核对和 Case 代码仍用于历史只读与迁移兼容，
+不再作为新单据的主写入流程。TapTouch Adapter 是受保护的输入边界，图中的虚线表示接口
+已经存在但尚未连接真实生产 API。
+
 ## 分层
 
 ```text
@@ -16,6 +22,19 @@ spec/                     简化工作台的冻结契约
 API 不保存进程内业务状态。PostgreSQL 是任务、修订、预览、确认和审计记录的事实源；
 MinIO 保存原件与解析产物。Worker 可独立重启，通过租约、fencing、幂等键和数据库锁
 避免重复提交或过期进程覆盖新结果。
+
+## 模块交互
+
+| 场景 | 入口与编排 | 唯一持久化事实 | 约束 |
+|---|---|---|---|
+| 上传原件 | Workspace API → 上传服务 → Extraction Task | MinIO 原件、PostgreSQL 任务 | 文件头、大小、Hash、门店范围和幂等键先校验 |
+| 抽取修订 | Extraction Worker → MinerU → Normalizer → 校验 | Parse Result、Draft、Revision | 模型只能形成草稿，未知值不能补零 |
+| 自动关联 | Workspace Worker → matching/comparison 纯规则 | Selection、Preview | 同门店、主体和币种先过门禁；一对多只选完整收货单 |
+| 人工确认 | Workspace API → WorkspaceService | Confirmation 与 Action | 事务内重读当前修订、占用和 scope generation |
+| 历史查询 | Workspace API → Repository 读模型 | 固定 revision 与 result snapshot | 后续编辑不改写历史，下载仍需当前授权 |
+
+API、Service、Repository 和 Worker 通过领域 DTO 与 Port 交互。前端不拼接对象存储地址，
+Worker 不绕过 Service 规则写正式确认，模型 Provider 不直接决定候选或核对结论。
 
 ## 两条输入路径
 

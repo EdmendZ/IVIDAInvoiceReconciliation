@@ -135,3 +135,7 @@ Alembic revision。GitHub-hosted Runner 使用 PostgreSQL Service Container 和
 
 不要新增按日期堆积的设计稿、实施计划或重复 API/数据库手册。需要冻结的新业务契约写入
 `spec/`，讨论和旧方案留在 Git 历史。
+
+README 的正式截图和架构图统一存放在 `docs/assets/` 并纳入 Git。临时浏览器截图、日志、
+前端构建结果、评测缓存以及 `evaluation_data/` 由 `.gitignore` 排除；不要为了提交图片而
+放宽 Secret、运行数据或模型输出的忽略规则。
